@@ -71,9 +71,21 @@ deterministic under test.
 
 ## Building
 
-_No solution scaffolded yet. Once it is, the commands will be `dotnet build`, `dotnet test`, and
-`dotnet publish -c Release -r win-x64 --self-contained`. This section gets the real, verified
-invocations at that point — not before._
+Requires the .NET 9 SDK. Verified 2026-08-30 against SDK 9.0.317 on Windows 11.
+
+```
+dotnet build
+dotnet test
+dotnet publish src/BingoHud.App/BingoHud.App.csproj -c Release -r win-x64 --self-contained
+```
+
+`publish` writes to `src/BingoHud.App/bin/Release/net9.0-windows/win-x64/publish/`.
+
+How Bingo ships is not settled yet. The plain self-contained output measures 240 files and
+about 134 MB. Adding `-p:PublishSingleFile=true` brings that to eight files with a 120 MB
+executable, and `-p:IncludeNativeLibrariesForSelfExtract=true` folds WPF's native libraries in
+as well. Trimming is not available — WPF does not support it. The figures above are measured,
+not estimated.
 
 ## Versioning
 

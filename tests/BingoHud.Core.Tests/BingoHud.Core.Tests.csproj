@@ -22,4 +22,19 @@
     <ProjectReference Include="..\..\src\BingoHud.Core\BingoHud.Core.csproj" />
   </ItemGroup>
 
+  <!--
+    Recorded endpoint responses live at tests/fixtures/usage, outside any project, because
+    they are captured artefacts belonging to the repository rather than source belonging to
+    this project. Link them into the output directory so tests can read them by path.
+
+    The .meta.json files are copied too: they carry the status code and headers of each
+    capture, which the error-taxonomy tests will need.
+  -->
+  <ItemGroup>
+    <Content Include="..\fixtures\usage\*.json">
+      <Link>fixtures\usage\%(Filename)%(Extension)</Link>
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+  </ItemGroup>
+
 </Project>

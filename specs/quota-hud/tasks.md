@@ -30,19 +30,19 @@ dotnet publish -c Release -r win-x64 --self-contained
       (net9.0-windows, WPF), `tests/BingoHud.Core.Tests` (xUnit). Verify by adding one test that
       passes and one that deliberately fails — confirm the runner reports the failure — then
       delete the failing one. A test runner that cannot fail is not proof of anything.
-- [ ] 1.2 Record the verified `build`, `test`, and `publish` invocations in the README's Building
+- [x] 1.2 Record the verified `build`, `test`, and `publish` invocations in the README's Building
       section, replacing the placeholder.
-- [ ] 1.3 Confirm `BingoHud.Core` has no reference to WPF and cannot acquire one. The seam is
+- [x] 1.3 Confirm `BingoHud.Core` has no reference to WPF and cannot acquire one. The seam is
       meant to be compiler-enforced, so prove the compiler enforces it.
-- [ ] 1.4 Test: `TestClock` returns exactly the instant it was given; `SystemClock` returns an
+- [x] 1.4 Test: `TestClock` returns exactly the instant it was given; `SystemClock` returns an
       instant within a second of now.
-- [ ] 1.5 Implement `IClock`, `SystemClock`, `TestClock`.
-- [ ] 1.6 Test: the test project can load `tests/fixtures/usage/2026-08-30-baseline.json` at
+- [x] 1.5 Implement `IClock`, `SystemClock`, `TestClock`.
+- [x] 1.6 Test: the test project can load `tests/fixtures/usage/2026-08-30-baseline.json` at
       runtime and it parses as JSON. Fixture files not reaching the output directory is a common
       and confusing failure — catch it here, not inside a parser test.
-- [ ] 1.7 Wire the fixtures into the test project so 1.6 passes.
-- [C] 1.8 Checkpoint: `dotnet build` and `dotnet test` both green, task marks audited, result
-      recorded in `progress.md`.
+- [x] 1.7 Wire the fixtures into the test project so 1.6 passes.
+- [x] 1.8 Checkpoint passed 2026-08-30: `dotnet build` and `dotnet test` both green (12 tests),
+      task marks audited, result and three open issues recorded in `progress.md`.
 
 ## Phase 2: Parsing
 
