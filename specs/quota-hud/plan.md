@@ -41,7 +41,9 @@ identity, and backoff are all deterministic under test.
 | Stack | C# + WPF, .NET 8 | Frameless transparency, topmost, click-through, tray, toasts, and DPAPI are native rather than fought for. Single self-contained exe, ~30–50 MB idle — the footprint argument dominates for an always-running widget. Owner is new to Windows development; this is the best-documented option. |
 | Project split | `Core` (no UI reference) + `App` (WPF) | UI code is awkward to test; the logic most likely to harbour bugs must not live in it. The compiler enforces the seam — Core cannot reference WPF. |
 | Quota source | `GET /api/oauth/usage` only | Sole source that knows the account's real ceiling. No plan limits are hardcoded anywhere in this codebase. |
-| Parsing posture | Tolerant in, strict out | Two independent prior-art parsers disagree about this payload's shape, and our own inspection found flat `seven_day_opus` keys where the research describes a `weekly_scoped` container. Unknown fields are ignored; a window we cannot identify is an explicit failure, never a silent zero. |
+| Primary window source | `limits[]` array, flat keys as fallback | Verified 2026-08-30: the live payload carries a self-describing `limits[]` array alongside the legacy flat windows, and the two agree exactly. `limits[]` needs no alias map, carries the server's own severity, and has a `scope` field where per-model caps belong. The flat keys stay as a fallback because they are what the prior art documents and what an older account may still return. |
+| Server severity source | `limits[].severity` | Verified 2026-08-30: there is no top-level `status` field. Severity is reported per limit, so AC-6 reads it there. |
+| Parsing posture | Tolerant in, strict out | Unknown top-level keys are ignored — the live payload carries ten of them, evidently unreleased features, so any rule that fails on an unrecognized key would fail on every response. `Unreadable` means a *known* window was present but malformed, or that no known window was found at all. A window whose value is `null` is absent, not malformed. |
 | Raw response retained | Yes, last raw body kept in memory | When the payload drifts, the first diagnostic question is what it actually sent. Not persisted to disk — it is an authenticated response. |
 | Credentials | Read `~/.claude/.credentials.json` | No third-party OAuth client registration exists for consumer plans. All three prior-art tools do exactly this. |
 | Token refresh | Shell out to `claude -p .`, then re-read | No OAuth refresh grant is implemented locally — none of the prior art does either, and inventing one is a credential bug waiting to happen. |
@@ -67,20 +69,25 @@ across polls.
 ## Data Model
 
 ```csharp
-enum WindowKind { FiveHour, SevenDay, WeeklyScoped }
+enum WindowKind { Session, WeeklyAll, WeeklyScoped }
 
+// ResetsAt is nullable: verified 2026-08-30, a window can report a utilization with
+// resets_at null. Such a window shows a percentage and no countdown, never a guessed one.
 record QuotaWindow(
     WindowKind Kind,
-    string Label,            // display name, post-normalization
-    double RemainingPercent, // 0-100, already inverted from utilization
-    DateTimeOffset ResetsAt,
-    string? ModelScope);     // "opus" / "sonnet" for WeeklyScoped, else null
+    string Label,              // display name, post-normalization
+    double RemainingPercent,   // 0-100, already inverted from utilization
+    DateTimeOffset? ResetsAt,
+    string? ModelScope,        // "opus" / "sonnet" for WeeklyScoped, else null
+    ServerSeverity Severity);  // as reported by the server, not derived locally
 
-enum ServerStatus { Allowed, AllowedWarning, Rejected }
+// Reported per limit. Only "normal" has been observed; the other spellings are assumed, so
+// an unrecognized value maps to Unknown rather than being rounded down to Normal.
+enum ServerSeverity { Normal, Warning, Critical, Rejected, Unknown }
 
 record QuotaSnapshot(
     IReadOnlyList<QuotaWindow> Windows,
-    ServerStatus Status,
+    ServerSeverity WorstReported,
     DateTimeOffset ObservedAt,
     string RawBody);
 
@@ -133,29 +140,57 @@ User-Agent:      claude-code/<version>
 ```
 
 The `User-Agent` is pinned deliberately: prior art reports that generic agents land in a stricter
-429 bucket on this endpoint.
+429 bucket on this endpoint. The 2026-08-30 capture went out as `claude-code/2.1.251`, where the
+prior-art research documented `2.1.83` — so the version moves, and whether Bingo resolves it from
+the installed CLI or carries a constant it bumps on release is still open.
 
-**Response fields consumed.** Utilization arrives as 0–100 and is inverted on the way in.
+**Response fields consumed.** Verified against a live 200 captured 2026-08-30
+(`tests/fixtures/usage/2026-08-30-baseline.json`). Utilization arrives as 0–100 and is inverted
+on the way in.
+
+Primary form — the `limits` array:
+
+| Field | Consumed as | Observed |
+|---|---|---|
+| `limits[].kind` | `WindowKind` | `session`, `weekly_all` |
+| `limits[].group` | Display grouping | `session`, `weekly` |
+| `limits[].percent` | `100 - value` becomes `RemainingPercent` | 0–100 integer |
+| `limits[].severity` | `ServerSeverity` | `normal` only, so far |
+| `limits[].resets_at` | `ResetsAt` | ISO-8601, microsecond precision, `+00:00` offset — not `Z` |
+| `limits[].scope` | `ModelScope` | `null` on this account |
+| `limits[].is_active` | Ignored | Semantics unclear — see below |
+
+Fallback form — the flat window keys, read only when `limits` is absent:
 
 | Field | Consumed as | Aliases seen in the wild |
 |---|---|---|
 | `five_hour` | Session window | `5_hour`, `session`, `primary` |
 | `seven_day` | Weekly window | `7_day`, `weekly`, `week`, `secondary` |
-| `seven_day_opus`, `seven_day_sonnet`, `weekly_scoped` | Per-model weekly caps | flat keys, array, or keyed object |
+| `seven_day_opus`, `seven_day_sonnet`, `weekly_scoped` | Per-model weekly caps | flat keys, array, or keyed object; all `null` as of 2026-08-30 |
 | `.utilization` | `100 - value` becomes `RemainingPercent` | — |
-| `.resets_at` | `ResetsAt` | ISO-8601 |
-| `status` | `ServerStatus` | `allowed`, `allowed_warning`, `rejected` |
-| `spend` | Ignored | Deliberately not consumed — non-goal |
+| `.resets_at` | `ResetsAt` | ISO-8601, nullable |
+| `spend`, `extra_usage` | Ignored | Deliberately not consumed — non-goal |
 
-Normalization rules: alias-map window keys on the way in; accept every container form for
-per-model caps; ignore unknown fields; treat an unrecognizable window shape as `Unreadable`,
-never as zero.
+Normalization rules: prefer `limits[]`, falling back to the flat keys and their alias map only
+when it is absent. Ignore unknown top-level keys. Treat a *known* window that is present but
+malformed as `Unreadable`, never as zero; a window whose value is `null` is absent rather than
+malformed. Map an unrecognized severity string to `Unknown`, never to `Normal`.
+
+### Open questions from the live capture
+
+- `is_active` is `false` for the session window and `true` for the weekly one, while the session
+  window is 12% utilized. Nothing is built on this field until further captures explain it.
+- Only `severity: "normal"` has been seen. The warning, critical, and rejected spellings are
+  inferred from prior art, not observed here.
+- No per-model cap has ever been observed on this account — the flat `seven_day_opus` and
+  `seven_day_sonnet` keys are `null` and `limits[].scope` is `null`. AC-23 therefore needs an
+  empty state, not just a rendering.
 
 **Error taxonomy** (adopted from prior art):
 
 | Class | Statuses | Action |
 |---|---|---|
-| Auth | 401, 403 | Attempt one CLI refresh, then surface sign-in. A 401 whose body carries `error.type == "authentication_error"` is a genuine invalidation; a 401 with no parseable body stays generic. |
+| Auth | 401, 403 | Attempt one CLI refresh, then surface sign-in. A 401 whose body carries `error.type == "authentication_error"` is a genuine invalidation; a 401 with no parseable body stays generic. Verified 2026-08-30 (`tests/fixtures/usage/2026-08-30-auth-failure.json`). |
 | Transient | 429, 5xx, network | Back off. Honour `Retry-After`. |
 | Unsupported | any other status | Endpoint not usable on this account — surface plainly and stop polling hard. |
 
@@ -183,10 +218,13 @@ not as speculative abstraction.
 
 ## Implementation Phases
 
-1. **Foundation** — solution, both projects, test project, `IClock`, and recorded fixtures
-   captured from real responses with credentials scrubbed.
-2. **Parsing** — `UsageNormalizer` against those fixtures, including the alias and container-form
-   variants, plus a contract test pinning the known-good shape. Highest risk and highest test
+1. **Foundation** — solution, both projects, test project, and `IClock`. Fixtures already exist:
+   `scripts/capture-usage.js` writes scrubbed captures to `tests/fixtures/usage/`, where a 200
+   and a 401 are recorded. The states still missing are listed in that directory's README and
+   can only be captured while the account is actually in them.
+2. **Parsing** — `UsageNormalizer` against those fixtures: the `limits[]` primary path, the flat
+   fallback and its alias map, unknown-key tolerance, null `resets_at`, and unrecognized
+   severity. Plus a contract test pinning the known-good shape. Highest risk and highest test
    value, so it goes first and it goes alone.
 3. **Credentials** — `FileCredentialProvider`, watch signature, the seconds-versus-milliseconds
    `expiresAt` normalization, the two-probe permission-denied distinction, and the CLI refresh
@@ -215,4 +253,5 @@ known-correct.
 | Click-through makes the HUD unclickable | Medium — user cannot open the panel | Hit-testing toggles on hover rather than being permanently off; explicit test of the enter and leave transitions before shipping |
 | WPF interop difficulty on a first Windows project | Medium — schedule, not correctness | All P/Invoke quarantined in one file; Core carries the logic and is ordinary C# |
 | Credential token leaks into logs or error text | High if it happened | Token never logged, never included in error text, never written anywhere. Raw response body kept in memory only. |
-| Fixtures drift from reality unnoticed | Medium — tests pass while the app breaks | Fixtures are dated and their capture date recorded; a failing contract test is the signal to recapture, never to loosen the parser |
+| Fixtures drift from reality unnoticed | Medium — tests pass while the app breaks | Fixtures are dated and their capture conditions recorded; a failing contract test is the signal to recapture with `scripts/capture-usage.js`, never to loosen the parser |
+| `limits[]` disappears, or diverges from the flat keys | Medium — the primary parse path is lost | The flat keys and their alias map are retained as a fallback, and both paths are fixture-tested. They agreed exactly on 2026-08-30. |

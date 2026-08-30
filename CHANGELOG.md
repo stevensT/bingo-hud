@@ -12,11 +12,16 @@ be treated as liable to break when that endpoint changes.
 ## [Unreleased]
 
 ### Changed
+- Technical plan revised against a live response. The endpoint no longer returns a top-level
+  `status` field; windows and their severities now arrive in a `limits` array, which becomes the
+  primary source with the older flat keys kept as a fallback.
 - Renamed the project to Bingo. Assemblies and namespaces become `BingoHud.Core`
   and `BingoHud.App`. The "Quota HUD" feature name and its `specs/quota-hud/` path are unchanged —
   that is the feature, not the product.
 
 ### Added
+- Capture script for the usage endpoint, writing dated, scrubbed fixtures. First recorded
+  fixtures: a successful read and an authentication failure.
 - MIT license.
 - README covering what Bingo is, how it reads quota, requirements, architecture, and the
   versioning policy.
