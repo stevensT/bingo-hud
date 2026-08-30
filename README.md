@@ -101,3 +101,7 @@ Three shipping usage monitors informed this design, and
 [`docs/research/usage-monitor-teardown.md`](docs/research/usage-monitor-teardown.md) records what
 was learned from reading them: the endpoint contract, the error taxonomy, the credential handling,
 and the display conventions all three converged on independently.
+
+## License
+
+MIT — see [LICENSE](LICENSE).

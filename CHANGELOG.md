@@ -17,6 +17,7 @@ be treated as liable to break when that endpoint changes.
   that is the feature, not the product.
 
 ### Added
+- MIT license.
 - README covering what Bingo is, how it reads quota, requirements, architecture, and the
   versioning policy.
 - Project structure: constitution, quota HUD spec and technical plan.
