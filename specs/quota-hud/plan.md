@@ -49,7 +49,8 @@ identity, and backoff are all deterministic under test.
 | Token refresh | Shell out to `claude -p .`, then re-read | No OAuth refresh grant is implemented locally — none of the prior art does either, and inventing one is a credential bug waiting to happen. |
 | Credential re-read | Watch signature over path, size, mtime | Avoids re-reading and re-authenticating on a timer. Cheapest-first. |
 | Poll cadence | Pure-function policy, 2–30 min | Adopted from CodexBar. Never faster than 2 minutes: this is someone else's undocumented service, and utilization only moves when Claude Code is working. |
-| Percentage direction | Display remaining | The endpoint returns utilization; all three prior-art tools invert before display. The number a person acts on is what is left. |
+| Percentage direction | Consumed by default, user-switchable, always labelled | `/usage` reports consumed, so a readout showing remaining forces a subtraction every time the two are compared. Prior art all inverts to remaining and the case for it is real, which is why this is a setting rather than a fixed choice. Making it configurable is also what forces the label: an unlabelled percentage whose direction is a setting the reader cannot see can be read exactly backwards, and Principle 6 does not permit that. |
+| Stored direction | Store consumed, invert at render | The server reports utilization. Keeping it that way to the edge means one transformation in one place, rather than a value whose direction depends on where in the pipeline you read it. |
 | Severity | Three discrete states | Warning at 25% remaining, critical at 10%. A gradient reads as noise at HUD size. |
 | Alert identity | Window kind + threshold + `resets_at` | `resets_at` is the natural identity of a window occurrence, so rearming on reset is free and restart-safe. |
 | Alert state persistence | Local file, plain JSON | Must survive restart mid-window (AC-16). Holds no secrets. |
@@ -76,7 +77,8 @@ enum WindowKind { Session, WeeklyAll, WeeklyScoped }
 record QuotaWindow(
     WindowKind Kind,
     string Label,              // display name, post-normalization
-    double RemainingPercent,   // 0-100, already inverted from utilization
+    double UsedPercent,        // 0-100, exactly as the server reports it; inverted at render
+                               // only when the display-direction setting asks for remaining
     DateTimeOffset? ResetsAt,
     string? ModelScope,        // "opus" / "sonnet" for WeeklyScoped, else null
     ServerSeverity Severity);  // as reported by the server, not derived locally
@@ -145,8 +147,8 @@ prior-art research documented `2.1.83` — so the version moves, and whether Bin
 the installed CLI or carries a constant it bumps on release is still open.
 
 **Response fields consumed.** Verified against a live 200 captured 2026-08-30
-(`tests/fixtures/usage/2026-08-30-baseline.json`). Utilization arrives as 0–100 and is inverted
-on the way in.
+(`tests/fixtures/usage/2026-08-30-baseline.json`). Utilization arrives as 0–100 and is carried
+through as consumed; the display-direction setting is applied at render, not on the way in.
 
 Primary form — the `limits` array:
 
@@ -154,7 +156,7 @@ Primary form — the `limits` array:
 |---|---|---|
 | `limits[].kind` | `WindowKind` | `session`, `weekly_all` |
 | `limits[].group` | Display grouping | `session`, `weekly` |
-| `limits[].percent` | `100 - value` becomes `RemainingPercent` | 0–100 integer |
+| `limits[].percent` | `UsedPercent`, unchanged | 0–100 integer |
 | `limits[].severity` | `ServerSeverity` | `normal` only, so far |
 | `limits[].resets_at` | `ResetsAt` | ISO-8601, microsecond precision, `+00:00` offset — not `Z` |
 | `limits[].scope` | `ModelScope` | `null` on this account |
@@ -167,7 +169,7 @@ Fallback form — the flat window keys, read only when `limits` is absent:
 | `five_hour` | Session window | `5_hour`, `session`, `primary` |
 | `seven_day` | Weekly window | `7_day`, `weekly`, `week`, `secondary` |
 | `seven_day_opus`, `seven_day_sonnet`, `weekly_scoped` | Per-model weekly caps | flat keys, array, or keyed object; all `null` as of 2026-08-30 |
-| `.utilization` | `100 - value` becomes `RemainingPercent` | — |
+| `.utilization` | `UsedPercent`, unchanged | — |
 | `.resets_at` | `ResetsAt` | ISO-8601, nullable |
 | `spend`, `extra_usage` | Ignored | Deliberately not consumed — non-goal |
 

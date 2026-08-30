@@ -12,12 +12,15 @@ avoid. Bingo keeps the answer in peripheral vision so it arrives before it matte
 
 ## What it shows
 
-A frameless, draggable, always-on-top window with the remaining percentage and reset time for
+A frameless, draggable, always-on-top window with the percentage used and the reset time for
 both the 5-hour and weekly windows:
 
 ```
-5h ● 32% left · resets in 53 min      wk ● 59% left · resets Sat
+5h ● 68% used · resets in 53 min      wk ● 41% used · resets Sat
 ```
+
+Percentages read as consumed by default, matching `/usage`. You can switch them to show what
+is left instead; either way the figure says which it is, so it can never be read backwards.
 
 Clicking it opens a detail panel with per-model weekly caps, exact reset times, current status,
 and the running version. Threshold alerts raise a desktop notification once per window.

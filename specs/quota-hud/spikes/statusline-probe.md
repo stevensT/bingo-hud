@@ -111,12 +111,18 @@ tool it is meant to summarise. Consistency with the number already in the user's
 the abstract argument about which figure is more actionable.
 
 The argument for remaining still stands on its own terms, and all three prior-art tools invert
-before display. This is not settled by one reaction on the first day — it is exactly what a
-week of use is for. Recorded here rather than amended into `spec.md`, so that the spike closes
-with evidence rather than a first impression.
+before display. Rather than pick a winner on one day's reaction, AC-2 was amended to make
+consumed the default and the direction a user setting (AC-2a), which retires the question.
 
-Worth watching over the week: whether a bare `38%` ever reads ambiguously, given it could be
-either figure. If it does, the fix is a unit rather than a direction — `38% used`.
+That amendment introduced a new one. A percentage whose direction is a setting the reader
+cannot see can be read exactly backwards, so AC-2b now requires the figure to state which
+direction it is in.
+
+**The probe deliberately does not carry that label.** It renders a bare `41%`. That is a
+divergence from AC-2b, and it is useful: a week of reading an unlabelled figure is direct
+evidence for whether the label AC-2b mandates is genuinely load-bearing or merely cautious.
+Record at the end of the week whether the bare number was ever misread — including the case
+where it never was.
 
 ## Result
 

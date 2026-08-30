@@ -29,8 +29,14 @@ the 5-hour and weekly windows remain, and when each resets. It answers one quest
 ## Acceptance Criteria
 
 ### Readout
-- [ ] AC-1: The HUD displays the remaining percentage for both the 5-hour and weekly windows.
-- [ ] AC-2: Percentages are displayed as **remaining**, not consumed.
+- [ ] AC-1: The HUD displays a utilization percentage for both the 5-hour and weekly windows.
+      AC-2 governs which direction that percentage is expressed in.
+- [ ] AC-2: Percentages are displayed as **consumed** by default, matching what `/usage` reports,
+      so the two never need reconciling in the reader's head.
+- [ ] AC-2a: Display direction is a user setting — consumed or remaining.
+- [ ] AC-2b: The figure on screen states which direction it is in, in both settings. A percentage
+      whose meaning depends on a setting the reader cannot see is a number that can be read
+      exactly backwards.
 - [ ] AC-3: Each window's reset time appears alongside its percentage, on the same line — absolute
       when distant ("resets 4:38 AM"), switching to relative as it nears ("resets in 53 min"), in
       local time.
@@ -67,7 +73,8 @@ the 5-hour and weekly windows remain, and when each resets. It answers one quest
 - [ ] AC-20: The HUD snaps to screen edges.
 - [ ] AC-21: The HUD is click-through when idle, so it does not intercept clicks meant for what's
       beneath it.
-- [ ] AC-22: Position, collapse preference, and threshold settings persist across restarts.
+- [ ] AC-22: Position, collapse preference, display direction, and threshold settings persist
+      across restarts.
 - [ ] AC-23: Clicking the HUD opens a detail panel showing per-model weekly caps, exact reset
       times, and current status.
 - [ ] AC-24: The detail panel shows the running application version and the time of the last

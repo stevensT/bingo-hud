@@ -12,6 +12,9 @@ be treated as liable to break when that endpoint changes.
 ## [Unreleased]
 
 ### Changed
+- Percentages now read as consumed rather than remaining, matching what `/usage` reports.
+  The direction is a setting, and the figure states which direction it is in so it cannot be
+  read backwards.
 - Technical plan revised against a live response. The endpoint no longer returns a top-level
   `status` field; windows and their severities now arrive in a `limits` array, which becomes the
   primary source with the older flat keys kept as a fallback.
