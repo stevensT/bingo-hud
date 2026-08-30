@@ -17,7 +17,12 @@ namespace BingoHud.Core.Usage;
 /// with no reset time. Such a window shows its percentage and no countdown — never a guessed
 /// one.
 /// </param>
+/// <param name="Severity">
+/// The server's own assessment, carried rather than derived. Local thresholds are a separate
+/// judgement made later; this is what the endpoint said.
+/// </param>
 public sealed record QuotaWindow(
     WindowKind Kind,
     double UsedPercent,
-    DateTimeOffset? ResetsAt);
+    DateTimeOffset? ResetsAt,
+    ServerSeverity Severity);

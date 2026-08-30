@@ -58,20 +58,22 @@ Highest risk in the project. It goes first, it goes alone, and every task here t
 - [x] 2.4 Test: with `limits` absent, the flat `five_hour` / `seven_day` keys and their alias map
       produce the same two windows. Build the fixture by deriving it from the baseline capture.
 - [x] 2.5 Implement the flat fallback path.
-- [ ] 2.6 Test: the ten unknown top-level keys in the baseline fixture — `tangelo`,
+- [x] 2.6 Test: the ten unknown top-level keys in the baseline fixture — `tangelo`,
       `nimbus_quill`, `iguana_necktie` and the rest — produce no windows and no failure. This is
       the rule that would otherwise make every real response unreadable.
-- [ ] 2.7 Test: a window reporting a utilization with `resets_at` null parses, keeps its
+- [x] 2.7 Test: a window reporting a utilization with `resets_at` null parses, keeps its
       percentage, and carries a null reset. It is neither dropped nor treated as malformed.
-- [ ] 2.8 Test: a severity string outside the known set maps to `Unknown`, never to `Normal`.
-- [ ] 2.9 Test: a response with no recognizable window at all returns `Unreadable` and no
+- [x] 2.8 Test: a severity string outside the known set maps to `Unknown`, never to `Normal`.
+- [x] 2.9 Test: a response with no recognizable window at all returns `Unreadable` and no
       percentages. Never a zero. (AC-9, AC-12)
-- [ ] 2.10 Test: the 401 fixture maps to `AuthFailed(Invalidated)` on `error.type ==
+- [x] 2.10 Test: the 401 fixture maps to `AuthFailed(Invalidated)` on `error.type ==
       "authentication_error"`; a 401 with an unparseable body stays generic. (AC-10)
-- [ ] 2.11 Contract test pinning the known-good shape of the baseline fixture. When this fails it
+- [x] 2.11 Contract test pinning the known-good shape of the baseline fixture. When this fails it
       means the payload moved: recapture with `scripts/capture-usage.js`, never loosen the parser.
-- [C] 2.12 Checkpoint: full suite green, AC-1, AC-2, AC-9, AC-10, AC-12 assessed, recorded in
-      `progress.md`.
+- [x] 2.12 Checkpoint passed 2026-08-30: `dotnet clean` then `dotnet build` and `dotnet test`
+      both green (121 tests, 0 warnings), task marks audited, AC-1, AC-2, AC-9, AC-10 and AC-12
+      assessed, and the result recorded in `progress.md` with four open issues and the
+      mutation results for the six tests that pass on arrival.
 
 ## Phase 3: Credentials
 

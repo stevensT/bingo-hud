@@ -24,4 +24,13 @@ public abstract record FetchOutcome
     /// What was wrong, for the detail panel. Never contains any part of the credential.
     /// </param>
     public sealed record Unreadable(string Reason) : FetchOutcome;
+
+    /// <summary>
+    /// The request was not authenticated. Shows a sign-in state and no percentages.
+    /// </summary>
+    /// <param name="Kind">
+    /// Why, to the extent the response established it. Not a guess: see
+    /// <see cref="AuthFailureKind.Unspecified"/>.
+    /// </param>
+    public sealed record AuthFailed(AuthFailureKind Kind) : FetchOutcome;
 }

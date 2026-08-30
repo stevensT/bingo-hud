@@ -49,10 +49,27 @@ public class UsageNormalizerFlatFallbackTests
         // The point of the fallback is that it agrees with the primary path. Both fixtures
         // carry the same numbers because one was derived from the other, so any disagreement
         // here is the two code paths disagreeing, which is the bug worth catching.
+        //
+        // Severity is excluded deliberately, and the test below says why.
         var viaLimits = Parse(Fixtures.Read(Fixtures.Baseline));
         var viaFlatKeys = Parse(Fixtures.Read(Fixtures.DerivedFlatOnly));
 
-        Assert.Equal(viaLimits.Windows, viaFlatKeys.Windows);
+        Assert.Equal(
+            viaLimits.Windows.Select(w => (w.Kind, w.UsedPercent, w.ResetsAt)),
+            viaFlatKeys.Windows.Select(w => (w.Kind, w.UsedPercent, w.ResetsAt)));
+    }
+
+    [Fact]
+    public void TheFallbackReportsNoSeverityBecauseTheFlatFormCarriesNone()
+    {
+        // The one thing lost by falling back. The flat payload has no severity field anywhere,
+        // so these windows carry Unknown while the same windows read through limits[] carry
+        // the server's Normal. That is a real difference between the two forms rather than a
+        // shortfall in the fallback, and it is asserted here so that nobody later "fixes" it
+        // by defaulting the fallback to Normal.
+        var viaFlatKeys = Parse(Fixtures.Read(Fixtures.DerivedFlatOnly));
+
+        Assert.All(viaFlatKeys.Windows, w => Assert.Equal(ServerSeverity.Unknown, w.Severity));
     }
 
     [Fact]

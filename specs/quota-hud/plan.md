@@ -95,7 +95,10 @@ record QuotaSnapshot(
 
 enum Severity { Normal, Warning, Critical, RateLimited }
 enum Freshness { Fresh, Stale, Frozen }
-enum AuthFailureKind { Invalidated, SignedOut, PermissionDenied }
+// Unspecified is what "a 401 with no parseable body stays generic" resolves to. The other three
+// are all specific claims — two of them about the credential file — and a bare 401 supports
+// none of them. Added during Phase 2; the credential-side kinds arrive with Phase 3.
+enum AuthFailureKind { Unspecified, Invalidated, SignedOut, PermissionDenied }
 
 // The single discriminated outcome of one fetch attempt.
 abstract record FetchOutcome

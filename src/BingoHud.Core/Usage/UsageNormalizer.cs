@@ -49,18 +49,106 @@ public static class UsageNormalizer
     /// <param name="observedAt">When the response was received.</param>
     public static FetchOutcome Normalize(string rawBody, DateTimeOffset observedAt)
     {
-        using var document = JsonDocument.Parse(rawBody);
-        var root = document.RootElement;
+        JsonDocument document;
 
-        var windows = ReadLimitsArray(root) ?? ReadFlatWindows(root);
-
-        if (windows.Count == 0)
+        try
         {
-            return new FetchOutcome.Unreadable(
-                "The response carried no quota window this version recognizes.");
+            document = JsonDocument.Parse(rawBody);
+        }
+        catch (JsonException)
+        {
+            // Realistically an intermediary answering instead of the API — a proxy error page,
+            // a captive portal. Nothing about it is worth showing beyond the fact of it.
+            return new FetchOutcome.Unreadable("The response body was not valid JSON.");
         }
 
-        return new FetchOutcome.Success(new QuotaSnapshot(windows, observedAt, rawBody));
+        using (document)
+        {
+            var root = document.RootElement;
+
+            if (root.ValueKind != JsonValueKind.Object)
+            {
+                return new FetchOutcome.Unreadable("The response body was not a JSON object.");
+            }
+
+            var reading = ReadLimitsArray(root) ?? ReadFlatWindows(root);
+
+            if (reading.MalformedReason is not null)
+            {
+                return new FetchOutcome.Unreadable(reading.MalformedReason);
+            }
+
+            if (reading.Windows.Count == 0)
+            {
+                return new FetchOutcome.Unreadable(
+                    "The response carried no quota window this version recognizes.");
+            }
+
+            return new FetchOutcome.Success(
+                new QuotaSnapshot(reading.Windows, observedAt, rawBody));
+        }
+    }
+
+    /// <summary>
+    /// Classifies the body of a response that failed authentication.
+    /// </summary>
+    /// <param name="rawBody">The response body exactly as it arrived.</param>
+    public static FetchOutcome ClassifyAuthFailure(string rawBody)
+    {
+        return new FetchOutcome.AuthFailed(ReadAuthFailureKind(rawBody));
+    }
+
+    /// <summary>
+    /// Looks for the server's own statement that the token was rejected. Anything else — a
+    /// different error type, a body from an intermediary, no body at all — leaves the kind
+    /// unspecified rather than assuming.
+    /// </summary>
+    private static AuthFailureKind ReadAuthFailureKind(string rawBody)
+    {
+        JsonDocument document;
+
+        try
+        {
+            document = JsonDocument.Parse(rawBody);
+        }
+        catch (JsonException)
+        {
+            return AuthFailureKind.Unspecified;
+        }
+
+        using (document)
+        {
+            if (document.RootElement.ValueKind != JsonValueKind.Object
+                || !document.RootElement.TryGetProperty("error", out var error)
+                || error.ValueKind != JsonValueKind.Object
+                || !error.TryGetProperty("type", out var type)
+                || type.ValueKind != JsonValueKind.String)
+            {
+                return AuthFailureKind.Unspecified;
+            }
+
+            return type.GetString() == "authentication_error"
+                ? AuthFailureKind.Invalidated
+                : AuthFailureKind.Unspecified;
+        }
+    }
+
+    /// <summary>
+    /// The result of reading one parse path: the windows found, or the reason the payload was
+    /// rejected.
+    ///
+    /// <para>
+    /// The two are kept apart deliberately. "No windows found" and "a window was found and it
+    /// was broken" both end as <see cref="FetchOutcome.Unreadable"/>, but they mean different
+    /// things — one is an account with nothing to report, the other is a payload that has
+    /// moved — so the detail panel can tell them apart.
+    /// </para>
+    /// </summary>
+    private sealed record WindowReading(List<QuotaWindow> Windows, string? MalformedReason)
+    {
+        public static WindowReading Found(List<QuotaWindow> windows) => new(windows, null);
+
+        public static WindowReading Malformed(string reason) => new([], reason);
     }
 
     /// <summary>
@@ -68,7 +156,7 @@ public static class UsageNormalizer
     /// back to the flat keys. An empty array is present, not absent: it means the server
     /// reported no windows, and no fallback can improve on that.
     /// </summary>
-    private static List<QuotaWindow>? ReadLimitsArray(JsonElement root)
+    private static WindowReading? ReadLimitsArray(JsonElement root)
     {
         if (!root.TryGetProperty("limits", out var limits)
             || limits.ValueKind != JsonValueKind.Array)
@@ -80,58 +168,41 @@ public static class UsageNormalizer
 
         foreach (var limit in limits.EnumerateArray())
         {
-            var window = ReadLimit(limit);
-
-            if (window is not null)
+            if (limit.ValueKind != JsonValueKind.Object)
             {
-                windows.Add(window);
+                return WindowReading.Malformed("An entry of the limits array was not an object.");
             }
+
+            if (ReadWindowKind(limit) is not { } kind)
+            {
+                // A window this version does not know. Skipped, not rejected: the endpoint has
+                // already been observed carrying features that do not exist yet.
+                continue;
+            }
+
+            if (!TryReadPercent(limit, "percent", out var percent))
+            {
+                return WindowReading.Malformed(
+                    $"The {Describe(kind)} window reported no usable percentage.");
+            }
+
+            if (!TryReadResetsAt(limit, out var resetsAt))
+            {
+                return WindowReading.Malformed(
+                    $"The {Describe(kind)} window reported an unreadable reset time.");
+            }
+
+            windows.Add(new QuotaWindow(kind, percent, resetsAt, ReadSeverity(limit)));
         }
 
-        return windows;
+        return WindowReading.Found(windows);
     }
-
-    /// <summary>
-    /// Reads one entry of the <c>limits</c> array, or null if it describes a window this
-    /// version does not understand.
-    /// </summary>
-    private static QuotaWindow? ReadLimit(JsonElement limit)
-    {
-        if (!limit.TryGetProperty("kind", out var kind))
-        {
-            return null;
-        }
-
-        var windowKind = ReadWindowKind(kind.GetString());
-
-        if (windowKind is null)
-        {
-            return null;
-        }
-
-        return new QuotaWindow(
-            windowKind.Value,
-            limit.GetProperty("percent").GetDouble(),
-            ReadResetsAt(limit));
-    }
-
-    /// <summary>
-    /// Maps the server's <c>kind</c> string, or null when it names a window Bingo does not
-    /// know. Skipping is the right answer rather than failing: the endpoint has already been
-    /// observed carrying keys for features that do not exist yet.
-    /// </summary>
-    private static WindowKind? ReadWindowKind(string? kind) => kind switch
-    {
-        "session" => WindowKind.Session,
-        "weekly_all" => WindowKind.WeeklyAll,
-        _ => null,
-    };
 
     /// <summary>
     /// Reads the flat window keys. At most one window per kind: a payload carrying two aliases
     /// for the same window describes one window twice, not two windows.
     /// </summary>
-    private static List<QuotaWindow> ReadFlatWindows(JsonElement root)
+    private static WindowReading ReadFlatWindows(JsonElement root)
     {
         var windows = new List<QuotaWindow>();
 
@@ -139,41 +210,129 @@ public static class UsageNormalizer
         {
             foreach (var key in keys)
             {
+                // A key that is absent, or present and null, reported nothing under this
+                // alias. Both are ordinary — the live payload nulls several window keys — so
+                // the next alias gets its turn.
                 if (!root.TryGetProperty(key, out var flat)
-                    || flat.ValueKind != JsonValueKind.Object
-                    || !flat.TryGetProperty("utilization", out var utilization)
-                    || utilization.ValueKind != JsonValueKind.Number)
+                    || flat.ValueKind != JsonValueKind.Object)
                 {
                     continue;
                 }
 
-                windows.Add(new QuotaWindow(
-                    kind,
-                    utilization.GetDouble(),
-                    ReadResetsAt(flat)));
+                if (!TryReadPercent(flat, "utilization", out var percent))
+                {
+                    return WindowReading.Malformed(
+                        $"The {Describe(kind)} window reported no usable percentage.");
+                }
+
+                if (!TryReadResetsAt(flat, out var resetsAt))
+                {
+                    return WindowReading.Malformed(
+                        $"The {Describe(kind)} window reported an unreadable reset time.");
+                }
+
+                windows.Add(new QuotaWindow(kind, percent, resetsAt, ReadSeverity(flat)));
 
                 break;
             }
         }
 
-        return windows;
+        return WindowReading.Found(windows);
     }
 
     /// <summary>
-    /// Reads <c>resets_at</c>. Absent and null are the same thing — a window with no reset
-    /// time — and both are ordinary, not malformed.
+    /// Maps an entry's <c>kind</c> string, or null when it names a window Bingo does not know.
     /// </summary>
-    private static DateTimeOffset? ReadResetsAt(JsonElement window)
+    private static WindowKind? ReadWindowKind(JsonElement limit)
     {
-        if (!window.TryGetProperty("resets_at", out var resetsAt)
-            || resetsAt.ValueKind != JsonValueKind.String)
+        if (!limit.TryGetProperty("kind", out var kind)
+            || kind.ValueKind != JsonValueKind.String)
         {
             return null;
         }
 
-        return DateTimeOffset.Parse(
-            resetsAt.GetString()!,
-            CultureInfo.InvariantCulture,
-            DateTimeStyles.RoundtripKind);
+        return kind.GetString() switch
+        {
+            "session" => WindowKind.Session,
+            "weekly_all" => WindowKind.WeeklyAll,
+            _ => null,
+        };
+    }
+
+    /// <summary>
+    /// How a window is named in a message the user may end up reading.
+    /// </summary>
+    private static string Describe(WindowKind kind) => kind switch
+    {
+        WindowKind.Session => "5-hour",
+        WindowKind.WeeklyAll => "weekly",
+        _ => "per-model weekly",
+    };
+
+    /// <summary>
+    /// Reads a percentage. Absent or non-numeric is a failure rather than a zero: the window
+    /// declared itself, so a number that cannot be read is a broken reading and not an empty
+    /// one.
+    /// </summary>
+    private static bool TryReadPercent(JsonElement window, string property, out double percent)
+    {
+        percent = 0;
+
+        return window.TryGetProperty(property, out var value)
+            && value.ValueKind == JsonValueKind.Number
+            && value.TryGetDouble(out percent);
+    }
+
+    /// <summary>
+    /// Reads <c>resets_at</c>. Absent and null are the same thing — a window with no reset time
+    /// — and both succeed, yielding null. A string that will not parse is a failure, because
+    /// the server did report a reset time and we cannot show it.
+    /// </summary>
+    private static bool TryReadResetsAt(JsonElement window, out DateTimeOffset? resetsAt)
+    {
+        resetsAt = null;
+
+        if (!window.TryGetProperty("resets_at", out var value)
+            || value.ValueKind == JsonValueKind.Null)
+        {
+            return true;
+        }
+
+        if (value.ValueKind != JsonValueKind.String
+            || !DateTimeOffset.TryParse(
+                value.GetString(),
+                CultureInfo.InvariantCulture,
+                DateTimeStyles.RoundtripKind,
+                out var parsed))
+        {
+            return false;
+        }
+
+        resetsAt = parsed;
+        return true;
+    }
+
+    /// <summary>
+    /// Reads <c>severity</c>. Anything not recognized — an unfamiliar spelling, a null, a
+    /// non-string, or no field at all — is <see cref="ServerSeverity.Unknown"/>. Never
+    /// <see cref="ServerSeverity.Normal"/>: a default of "fine" would hide the escalation this
+    /// field exists to report.
+    /// </summary>
+    private static ServerSeverity ReadSeverity(JsonElement window)
+    {
+        if (!window.TryGetProperty("severity", out var severity)
+            || severity.ValueKind != JsonValueKind.String)
+        {
+            return ServerSeverity.Unknown;
+        }
+
+        return severity.GetString() switch
+        {
+            "normal" => ServerSeverity.Normal,
+            "warning" => ServerSeverity.Warning,
+            "critical" => ServerSeverity.Critical,
+            "rejected" => ServerSeverity.Rejected,
+            _ => ServerSeverity.Unknown,
+        };
     }
 }
