@@ -38,7 +38,7 @@ identity, and backoff are all deterministic under test.
 
 | Decision | Choice | Rationale |
 |---|---|---|
-| Stack | C# + WPF, .NET 8 | Frameless transparency, topmost, click-through, tray, toasts, and DPAPI are native rather than fought for. Single self-contained exe, ~30–50 MB idle — the footprint argument dominates for an always-running widget. Owner is new to Windows development; this is the best-documented option. |
+| Stack | C# + WPF, .NET 9 | Frameless transparency, topmost, click-through, tray, toasts, and DPAPI are native rather than fought for. Single self-contained exe, ~30–50 MB idle — the footprint argument dominates for an always-running widget. Owner is new to Windows development; this is the best-documented option. |
 | Project split | `Core` (no UI reference) + `App` (WPF) | UI code is awkward to test; the logic most likely to harbour bugs must not live in it. The compiler enforces the seam — Core cannot reference WPF. |
 | Quota source | `GET /api/oauth/usage` only | Sole source that knows the account's real ceiling. No plan limits are hardcoded anywhere in this codebase. |
 | Primary window source | `limits[]` array, flat keys as fallback | Verified 2026-08-30: the live payload carries a self-describing `limits[]` array alongside the legacy flat windows, and the two agree exactly. `limits[]` needs no alias map, carries the server's own severity, and has a `scope` field where per-model caps belong. The flat keys stay as a fallback because they are what the prior art documents and what an older account may still return. |
