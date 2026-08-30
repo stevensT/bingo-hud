@@ -22,4 +22,13 @@ internal static class Fixtures
 
     public const string Baseline = "2026-08-30-baseline.json";
     public const string AuthFailure = "2026-08-30-auth-failure.json";
+
+    /// <summary>
+    /// The baseline body with its <c>limits</c> array removed, and nothing else changed.
+    ///
+    /// Derived rather than captured: the live endpoint returns <c>limits[]</c> on every
+    /// request, so the flat-key fallback cannot be observed from this account. See the
+    /// fixture directory's README.
+    /// </summary>
+    public const string DerivedFlatOnly = "2026-08-30-derived-flat-only.json";
 }

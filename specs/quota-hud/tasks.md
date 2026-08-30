@@ -49,15 +49,15 @@ dotnet publish -c Release -r win-x64 --self-contained
 Highest risk in the project. It goes first, it goes alone, and every task here touches
 `UsageNormalizer` — so none of it is parallelizable.
 
-- [ ] 2.1 Test: the baseline fixture yields two windows via the `limits[]` path — session at 12
+- [x] 2.1 Test: the baseline fixture yields two windows via the `limits[]` path — session at 12
       used, weekly_all at 37 used — with `resets_at` parsed to the correct instant. Covers the
       microsecond precision and `+00:00` offset the live payload actually uses. (AC-1)
-- [ ] 2.2 Implement the `limits[]` primary path.
-- [ ] 2.3 Test: percentages are carried through as consumed, unchanged from the server, with no
+- [x] 2.2 Implement the `limits[]` primary path.
+- [x] 2.3 Test: percentages are carried through as consumed, unchanged from the server, with no
       inversion anywhere in Core. (AC-2, AC-12)
-- [ ] 2.4 Test: with `limits` absent, the flat `five_hour` / `seven_day` keys and their alias map
+- [x] 2.4 Test: with `limits` absent, the flat `five_hour` / `seven_day` keys and their alias map
       produce the same two windows. Build the fixture by deriving it from the baseline capture.
-- [ ] 2.5 Implement the flat fallback path.
+- [x] 2.5 Implement the flat fallback path.
 - [ ] 2.6 Test: the ten unknown top-level keys in the baseline fixture — `tangelo`,
       `nimbus_quill`, `iguana_necktie` and the rest — produce no windows and no failure. This is
       the rule that would otherwise make every real response unreadable.

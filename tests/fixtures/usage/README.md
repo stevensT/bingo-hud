@@ -25,6 +25,19 @@ to detect.
 |---|---|---|
 | `2026-08-30-baseline` | 200 | Max plan, both windows normal. `five_hour` 12% utilized, `seven_day` 37%. Per-model weekly keys present but `null`. |
 | `2026-08-30-auth-failure` | 401 | Deliberately invalid bearer token (`--auth-failure-probe`). Body carries `error.type == "authentication_error"`. |
+| `2026-08-30-derived-flat-only` | 200, derived | **Not a capture.** The baseline body with its `limits` array removed. |
+
+### Derived fixtures
+
+One fixture is not a recorded response. The endpoint currently returns `limits[]` on every
+request, so the flat-key fallback — the path an older account may still take — cannot be captured
+from this account at all. `2026-08-30-derived-flat-only` is the baseline body with one key
+removed and nothing else changed, which is the only edit that keeps it honest: every value in it
+is still a value the server actually sent.
+
+Derived fixtures are named `derived` and carry no `.meta.json`, because there was no response
+to record the status and headers of. Regenerate one by deriving it from its capture again, never
+by editing values in place.
 
 ## Still missing
 
