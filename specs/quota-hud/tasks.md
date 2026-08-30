@@ -218,7 +218,14 @@ already known-correct.
 
 - [ ] BV.1 `dotnet build` exits clean.
 - [ ] BV.2 `dotnet test` — full suite, no failures, no skips left unexplained.
-- [ ] BV.3 `dotnet publish -c Release -r win-x64 --self-contained` produces a runnable exe.
+- [ ] BV.3 Produce a runnable exe, and choose the publish shape deliberately rather than by
+      default. Self-contained was assumed on the grounds that a user should not have to install
+      a runtime — but that argument only holds for a hand-delivered download. Bingo is also
+      intended to be installable through a package manager, and both winget and Chocolatey can
+      declare the .NET 9 Desktop Runtime as a dependency and install it first, which reduces the
+      artifact from the measured ~120 MB to a few MB. Record the choice, the reasoning, and the
+      measured figures in the README's Building section, replacing the open "how Bingo ships"
+      note. Packaging itself is not this feature's work.
 - [ ] BV.4 Launch the published exe on a clean path and confirm it reads quota and renders.
 - [C] BV.5 Final checkpoint: all builds green, all tests pass, acceptance criteria verified
       against `spec.md`, result recorded in `progress.md`.

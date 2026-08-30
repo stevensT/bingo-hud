@@ -15,6 +15,10 @@ in the project and every task in it touches `UsageNormalizer`, so none of it par
 - The status line spike is running. Its outcome decides what Phase 6 is, at gate G.1.
 - Task 3.1 is a decision, not code, and it blocks 3.7.
 - Task 6.1 is a spike that may force an amendment to AC-21.
+- A packaging feature is queued behind this one: delivery through winget and Chocolatey, on top
+  of the plain executable. It cannot start before 0.1.0 exists, because a manifest needs a
+  released artifact to hash. Its only claim on this feature is BV.3, which now decides the
+  publish shape with that delivery in mind instead of defaulting to self-contained.
 
 ## Checkpoints
 
