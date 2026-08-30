@@ -1,16 +1,23 @@
 # Changelog
 
-All notable changes to TokenWatch are recorded here.
+All notable changes to Bingo are recorded here.
 
 Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 Versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-TokenWatch stays on `0.x` until the app has run reliably through real daily use. Because it reads
+Bingo stays on `0.x` until the app has run reliably through real daily use. Because it reads
 an undocumented upstream endpoint whose payload has drifted before, anything below `1.0.0` should
 be treated as liable to break when that endpoint changes.
 
 ## [Unreleased]
 
+### Changed
+- Renamed the project to Bingo. Assemblies and namespaces become `BingoHud.Core`
+  and `BingoHud.App`. The "Quota HUD" feature name and its `specs/quota-hud/` path are unchanged —
+  that is the feature, not the product.
+
 ### Added
-- SDD project structure: constitution, quota HUD spec.
+- README covering what Bingo is, how it reads quota, requirements, architecture, and the
+  versioning policy.
+- Project structure: constitution, quota HUD spec and technical plan.
 - Research teardown of three prior-art Claude usage monitors.

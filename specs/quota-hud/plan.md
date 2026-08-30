@@ -2,7 +2,7 @@
 
 ## Technical Approach
 
-Two projects with one hard rule between them: `TokenWatch.Core` decides, `TokenWatch.App` draws.
+Two projects with one hard rule between them: `BingoHud.Core` decides, `BingoHud.App` draws.
 Every behaviour in the spec that can be stated as "given X, show Y" belongs in Core and is tested
 there. The WPF layer holds no logic, only rendering and Win32 interop.
 

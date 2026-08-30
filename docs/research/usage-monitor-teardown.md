@@ -1,4 +1,4 @@
-# Usage monitor teardown — prior art for TokenWatch
+# Usage monitor teardown — prior art for Bingo
 
 Source review of three shipping Claude-usage monitors, read at the source rather than from
 their READMEs. Compiled 2026-08-29.
@@ -8,9 +8,6 @@ their READMEs. Compiled 2026-08-29.
 | [CodeZeno/Claude-Code-Usage-Monitor](https://github.com/CodeZeno/Claude-Code-Usage-Monitor) | Rust | Windows taskbar widget | Claude + 4 optional providers |
 | [steipete/CodexBar](https://github.com/steipete/CodexBar) | Swift 6.2, macOS 14+ | Menu bar + CLI | 69+ providers |
 | [timharris707/modeldeck](https://github.com/timharris707/modeldeck) | SwiftUI + Node 24 + SQLite | Menu bar popover | Claude + Codex, multi-account |
-
-Human-readable version of this same material:
-<https://claude.ai/code/artifact/2068bad5-2f8e-493b-a5c6-b3b2e526dd08>
 
 > **All endpoint and header details below are reverse-engineered from shipping clients, not
 > from published Anthropic documentation. Treat the payload shape as unstable.**
@@ -273,7 +270,7 @@ these as defaults rather than open decisions.
 
 ---
 
-## 7. Implications for TokenWatch
+## 7. Implications for Bingo
 
 - **Build the endpoint path first.** Percentages, reset times, per-model caps and spend all
   arrive in one authenticated GET; the display is downstream of it.

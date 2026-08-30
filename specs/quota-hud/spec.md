@@ -101,7 +101,12 @@ the 5-hour and weekly windows remain, and when each resets. It answers one quest
 
 ## Open Questions
 
-_None outstanding._
+- [DEFERRED: Should the three severity states be renamed to aviation brevity codes matching the
+  product name — *joker* at 25% remaining, *bingo* at 10%, *winchester* at 0%? This is not a
+  rename of AC-4 but an expansion of it: *winchester* introduces an exhausted state the spec does
+  not currently carry, taking the ladder from three states to four. Deferred until the HUD is
+  built and the present three states have been used in anger. Does not block implementation; AC-4
+  stands as written.]
 
 ## Dependencies
 
