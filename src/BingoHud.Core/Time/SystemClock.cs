@@ -10,4 +10,8 @@ public sealed class SystemClock : IClock
     /// the value itself instead of being reapplied later by whoever happens to display it.
     /// </summary>
     public DateTimeOffset Now => DateTimeOffset.Now;
+
+    /// <inheritdoc />
+    public Task DelayAsync(TimeSpan duration, CancellationToken cancellationToken = default) =>
+        Task.Delay(duration, cancellationToken);
 }

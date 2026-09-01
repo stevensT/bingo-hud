@@ -55,6 +55,27 @@ public sealed class QuotaMonitor
     public static TimeSpan StaleAfter { get; } = PollPolicy.Ceiling + TimeSpan.FromMinutes(15);
 
     /// <summary>
+    /// The earliest instant another attempt will be accepted, or null before the first one has
+    /// been made.
+    ///
+    /// <para>
+    /// Exposed so the poll loop can wait on it instead of working the cadence out again. The
+    /// monitor is already the only place that merges what happened to a request back into the
+    /// signals the policy reads, and a second copy of that merge would drift from this one.
+    /// </para>
+    /// </summary>
+    public DateTimeOffset? NextAttemptAt
+    {
+        get
+        {
+            lock (_gate)
+            {
+                return _nextAttemptAt;
+            }
+        }
+    }
+
+    /// <summary>
     /// The current state, with its age measured as of now.
     /// </summary>
     public ReadingState Current

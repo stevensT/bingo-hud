@@ -1,6 +1,6 @@
 # Spike: status line probe
 
-**Status:** open — started 2026-08-30
+**Status:** open — started 2026-08-30, restarted 2026-09-01
 **Script:** `scripts/quota-statusline.ps1`
 
 ## Question
@@ -45,11 +45,19 @@ In `%USERPROFILE%\.claude\settings.json`:
 ```json
 "statusLine": {
   "type": "command",
-  "command": "powershell -NoProfile -ExecutionPolicy Bypass -File C:\\Users\\Trevor\\01_dev\\bingo-hud\\scripts\\quota-statusline.ps1"
+  "command": "powershell -NoProfile -ExecutionPolicy Bypass -File C:\\Users\\Trevo\\01_dev\\bingo-hud\\scripts\\quota-statusline.ps1"
 }
 ```
 
 `-NoProfile` matters — loading a PowerShell profile on every status line render is slow.
+
+The path is absolute and machine-specific. Only one `statusLine` entry can exist, so installing
+the probe displaces whatever was there; save the previous entry before overwriting it, because
+the Exit step below puts it back.
+
+After editing, run the command by hand once to confirm it renders. A `statusLine` that fails is
+silent — Claude Code shows nothing rather than an error, which looks exactly like a probe that
+is running and reporting nothing.
 
 ## What this tests
 
@@ -94,7 +102,7 @@ Record the outcome honestly, including the unflattering one:
 ## Exit
 
 When the spike closes, record the result below, delete `scripts/quota-statusline.ps1`, and
-remove the `statusLine` entry from settings. It is committed so the experiment is reproducible,
+restore the previous `statusLine` entry. It is committed so the experiment is reproducible,
 not because it is a deliverable.
 
 ## Findings so far
@@ -123,6 +131,17 @@ divergence from AC-2b, and it is useful: a week of reading an unlabelled figure 
 evidence for whether the label AC-2b mandates is genuinely load-bearing or merely cautious.
 Record at the end of the week whether the bare number was ever misread — including the case
 where it never was.
+
+**2026-09-01 — the probe was not running, and the week has to restart.**
+
+Moving to a new machine left the `statusLine` entry pointing elsewhere, and the install snippet
+above named a user profile directory that does not exist here. Nothing errored, because a
+failing status line renders as nothing at all. Two days were nominally collected on the previous
+machine; treat the observation window as starting 2026-09-01.
+
+The failure mode is worth keeping in mind beyond this spike: an absolute path in configuration
+outside the repository is invisible to every check the project runs, and a silent renderer gives
+back no signal that it has stopped.
 
 ## Result
 

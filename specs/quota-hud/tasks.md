@@ -159,6 +159,30 @@ are genuinely independent and run concurrently.
       both green (524 tests, 0 warnings), AC-14 through AC-18 assessed and all met in Core,
       recorded in `progress.md`. No rework. Three open issues, two of them carried from 4.10.
 
+## Phase 5a: Driving the loop
+
+Nothing in Phases 1 to 5 ever calls anything. Core can fetch, parse, judge, and alert, but no
+component owns the schedule that would make any of it happen, and two of the inputs the cadence
+table reads have no producer. This phase closes the issues carried from the 4.10 checkpoint. It
+is not gated on G.1: every task here is needed whether Phase 6 becomes a HUD, a notification-only
+tool, or something else.
+
+- [x] 5a.1 Test + implement `IClock.DelayAsync`, so Core can wait without reaching for `Task.Delay`
+      directly and a loop stays testable. `TestClock` completes the delay immediately and advances
+      itself by the requested span, which is what makes a loop test both deterministic and instant.
+- [x] 5a.2 Test + implement `PollLoop`: gather `PollSignals`, call `QuotaMonitor.RefreshAsync`,
+      wait the span `PollPolicy.NextDelay` returns, repeat. Cancellation ends it promptly. A
+      failing fetch must not end the loop, since the failure is exactly what the backoff row of
+      the cadence table exists to handle. Closes the 4.10 issue that nothing drives the monitor.
+- [ ] 5a.3 Test + implement the producer for `PollSignals.SinceLocalTranscriptActivity`: how long
+      ago Claude Code last wrote a local transcript. Without it the `Claude Code is working` row
+      can never fire and Bingo polls at its slowest cadence precisely when utilization is moving
+      fastest. Reads modification times only — never transcript contents.
+- [ ] 5a.4 Wire `AlertEngine` into the loop so each new snapshot yields its due alerts and Core
+      exposes them for the shell to raise. Core decides, App draws: nothing here shows a toast.
+- [C] 5a.5 Checkpoint: full suite green, build green, AC-25 through AC-28 re-assessed now that
+      something actually drives the monitor, recorded in `progress.md`.
+
 ## Gate: spike outcome
 
 - [C] G.1 Read the result recorded in `specs/quota-hud/spikes/statusline-probe.md` and decide
