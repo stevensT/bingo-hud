@@ -46,7 +46,7 @@ identity, and backoff are all deterministic under test.
 | Parsing posture | Tolerant in, strict out | Unknown top-level keys are ignored — the live payload carries ten of them, evidently unreleased features, so any rule that fails on an unrecognized key would fail on every response. `Unreadable` means a *known* window was present but malformed, or that no known window was found at all. A window whose value is `null` is absent, not malformed. |
 | Raw response retained | Yes, last raw body kept in memory | When the payload drifts, the first diagnostic question is what it actually sent. Not persisted to disk — it is an authenticated response. |
 | Credentials | Read `~/.claude/.credentials.json` | No third-party OAuth client registration exists for consumer plans. All three prior-art tools do exactly this. |
-| Token refresh | Shell out to `claude -p .`, then re-read | No OAuth refresh grant is implemented locally — none of the prior art does either, and inventing one is a credential bug waiting to happen. |
+| Token refresh | None. Read the file, never refresh it | Claude Code maintains the token, and Bingo only has anything to report while Claude Code is being used. Decided at task 3.1; the reasoning is below. |
 | Credential re-read | Watch signature over path, size, mtime | Avoids re-reading and re-authenticating on a timer. Cheapest-first. |
 | Poll cadence | Pure-function policy, 2–30 min | Adopted from CodexBar. Never faster than 2 minutes: this is someone else's undocumented service, and utilization only moves when Claude Code is working. |
 | Percentage direction | Consumed by default, user-switchable, always labelled | `/usage` reports consumed, so a readout showing remaining forces a subtraction every time the two are compared. Prior art all inverts to remaining and the case for it is real, which is why this is a setting rather than a fixed choice. Making it configurable is also what forces the label: an unlabelled percentage whose direction is a setting the reader cannot see can be read exactly backwards, and Principle 6 does not permit that. |
@@ -56,6 +56,38 @@ identity, and backoff are all deterministic under test.
 | Alert state persistence | Local file, plain JSON | Must survive restart mid-window (AC-16). Holds no secrets. |
 | Interop isolation | All P/Invoke in one file | Topmost, click-through, edge-snap, and DPAPI probing are the only unsafe-ish code; quarantining them keeps the rest ordinary C#. |
 | Version display | `<Version>` in csproj, shown in detail panel | When the payload drifts, "which build is misreading it" must be answerable from the screen. |
+
+### Decision: Bingo never refreshes the token (task 3.1, decided 2026-08-31)
+
+`FileCredentialProvider` reads `~/.claude/.credentials.json` and that is the whole of it. There
+is no refresher, no subprocess, and no `ICredentialRefresher`. An expired token surfaces a
+sign-in state.
+
+The reasoning that settled it:
+
+- Shelling out to `claude -p .` spends real quota. That is the same objection that ruled out the
+  Messages-API fallback as a non-goal, and it does not become acceptable merely because this
+  path is more convenient. Spending quota to read a quota number is the contradiction at the
+  heart of the original plan.
+- Bingo monitors Claude Code, so by definition Claude Code is the thing being used — and Claude
+  Code maintains the token itself. Observed 2026-08-30: `.credentials.json` was written at
+  09:34:31, the instant a session started, carrying an eight-hour token, and was still untouched
+  116 minutes later.
+- The failure case argues the same way. An expired token means Claude Code has not run for over
+  eight hours; if it has not run, quota has not moved. A reading that cannot be refreshed is a
+  reading that has not changed, so surfacing sign-in costs nothing real.
+
+What it removes: the shellout, the `CREATE_NO_WINDOW` interop, the environment stripping, the
+subprocess timeout, the hung-poller failure mode, and two risk rows.
+
+What would reopen it: evidence that the 5-hour and weekly windows also count claude.ai and
+desktop-app usage. Quota could then move while Claude Code sits idle, and an expired token could
+coincide with real change. Even then the answer is the frozen reading carrying its age, which
+AC-13 already requires — not a reinstated shellout.
+
+Why the prior art does not settle it: all three comparable tools shell out to the CLI, but none
+of them assumes the user is running Claude Code. Bingo does, and that assumption is what makes
+this option available here and not to them.
 
 ### Constitutional tension worth naming
 
@@ -208,7 +240,6 @@ a number, and add load to the very limit that caused the failure.
 ```csharp
 interface IClock               { DateTimeOffset Now { get; } }
 interface ICredentialProvider  { Task<Credential?> GetAsync(CancellationToken ct); }
-interface ICredentialRefresher { Task<bool> TryRefreshAsync(CancellationToken ct); }
 interface IUsageClient         { Task<FetchOutcome> FetchAsync(Credential c, CancellationToken ct); }
 interface IAlertStateStore     { bool HasFired(AlertKey k); void MarkFired(AlertKey k); void Prune(DateTimeOffset before); }
 interface INotifier            { void Raise(Severity s, string title, string body); }
@@ -252,8 +283,8 @@ known-correct.
 | Upstream payload changes shape | High — the app's only data source | Tolerant parsing, alias maps, contract fixture test, explicit `Unreadable` state showing no numbers, raw body retained for diagnosis, MINOR version bump discipline so a break is traceable to a build |
 | Endpoint removed or gated entirely | High — feature ceases to function | `Unsupported` outcome surfaces plainly and stops hard polling. No silent fallback; the header-based fallback stays a non-goal. |
 | Aggressive polling draws rate limiting | Medium — could affect the user's actual Claude Code work | 2-minute floor, single-flight guard, pinned User-Agent, `Retry-After` honoured, manual refresh subject to the same backoff |
-| Refresh shellout flashes a console window | Low, but visible and unnerving | `CREATE_NO_WINDOW` (0x08000000), stdio nulled, `CLAUDECODE` and `CLAUDE_CODE_ENTRYPOINT` stripped from the child environment |
-| Refresh shellout hangs | Medium — poller stalls | Hard timeout, treated as `Transient`, never awaited on the UI thread |
+| Token expires while the app is running | Low — an expected daily transition, not a fault | Surface sign-in. The last reading stays on screen, frozen and marked with its age, and is excluded from severity. No refresh is attempted; see the 3.1 decision. |
+| Quota moves while Claude Code is idle | Low, and only if the windows also count claude.ai and desktop-app usage | The frozen reading carries its age, so a stale number is never mistaken for a current one. This is the one observation that would reopen the 3.1 decision. |
 | Permission-denied misread as signed-out | Medium — sends the user down the wrong recovery path | Two-probe check: a metadata-only probe needing no elevated access distinguishes "exists but refused" from "absent" (AC-11) |
 | Click-through makes the HUD unclickable | Medium — user cannot open the panel | Hit-testing toggles on hover rather than being permanently off; explicit test of the enter and leave transitions before shipping |
 | WPF interop difficulty on a first Windows project | Medium — schedule, not correctness | All P/Invoke quarantined in one file; Core carries the logic and is ordinary C# |

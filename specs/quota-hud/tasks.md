@@ -77,36 +77,14 @@ Highest risk in the project. It goes first, it goes alone, and every task here t
 
 ## Phase 3: Credentials
 
-- [ ] 3.1 Decision, before any refresh code: `claude -p .` spends real quota, which contradicts
-      the reasoning used to rule out the Messages-API fallback. Record the decision and its
-      rationale in `plan.md`. Task 3.7 depends on the answer.
-
-      **Leading option: do not refresh at all.** Bingo monitors Claude Code, so by definition
-      Claude Code is being used — and Claude Code maintains the token itself. Observed
-      2026-08-30: `.credentials.json` was written at 09:34:31, the instant a session started,
-      carrying an eight-hour token, and was still untouched 116 minutes later. Reading the file
-      may be sufficient on its own.
-
-      The failure case argues the same way. An expired token means Claude Code has not run for
-      over eight hours; if it has not run, quota has not moved. The reading that cannot be
-      refreshed is a reading that has not changed, so surfacing sign-in costs nothing.
-
-      What this would buy: the quota-spending contradiction disappears, and with it the
-      `CREATE_NO_WINDOW` interop, the environment stripping, the subprocess timeout, and the
-      hung-poller failure mode — an entire risk row and several tasks.
-
-      Two caveats to weigh before deciding:
-
-      - The evidence is inference, not demonstration. A file written at session start with an
-        eight-hour life is strong, but no mid-session refresh has actually been observed.
-      - If the 5-hour and weekly windows also cover claude.ai and the desktop app, quota can
-        move while Claude Code sits idle, so an expired token could coincide with real usage.
-        That argues for a frozen reading carrying its age, which AC-13 already requires, rather
-        than for reinstating the shellout.
-
-      Why the prior art does not settle this: all three tools shell out to the CLI, but none of
-      them assumes the user is running Claude Code. Bingo does, and that assumption is what
-      makes this option available here and not to them.
+- [x] 3.1 Decided 2026-08-31: Bingo never refreshes the token. It reads
+      `~/.claude/.credentials.json` and nothing else; an expired token surfaces a sign-in state.
+      Claude Code maintains the token, and an expired one means Claude Code has not run for over
+      eight hours — so quota has not moved and the unrefreshable reading is an unchanged one.
+      Shelling out to `claude -p .` would have spent real quota to read a quota number, which is
+      the same objection that made the Messages-API fallback a non-goal. The decision, its
+      reasoning, and what would reopen it are recorded in `plan.md`. Removes the shellout and its
+      two risk rows; 3.7 is cut to a fence test.
 - [ ] 3.2 Test: `FileCredentialProvider` reads `claudeAiOauth.accessToken`, a bare root
       `accessToken`, and returns null for a missing or malformed file. Never logs the token.
 - [ ] 3.3 Implement `FileCredentialProvider`.
@@ -116,10 +94,9 @@ Highest risk in the project. It goes first, it goes alone, and every task here t
       is stable when it does not.
 - [ ] 3.6 Test: the two-probe check distinguishes "exists but access refused" from "absent", so
       recovery advice points the right way. (AC-11)
-- [ ] 3.7 Test + implement the refresh path as decided in 3.1. If it stays: `CREATE_NO_WINDOW`,
-      stdio nulled, `CLAUDECODE` and `CLAUDE_CODE_ENTRYPOINT` stripped, hard timeout, timeout
-      treated as `Transient`, never awaited on the UI thread. Test against a stub process runner
-      — do not shell out for real in tests.
+- [ ] 3.7 Fence test, replacing the refresh path cut by 3.1: nothing in Core starts a process.
+      The shellout is the kind of thing that gets reintroduced by a later contributor solving a
+      symptom, so the absence is asserted rather than assumed.
 - [ ] 3.8 Test: token expiry is an ordinary expected transition, not an error branch. The
       observed token life is roughly eight hours, so an always-on app crosses it daily.
 - [C] 3.9 Checkpoint: full suite green, AC-10 and AC-11 assessed, recorded in `progress.md`.
@@ -140,6 +117,14 @@ are genuinely independent and run concurrently.
       time, and nothing at all when `resets_at` is null. (AC-3)
 - [C] 4.4 Checkpoint after the parallel group: full suite green, no integration conflicts between
       the three units.
+- [ ] 4.4a Test + implement `UsageClient` and the status-code taxonomy. Nothing yet owns the
+      mapping from a status code to a `FetchOutcome`, so AC-10 cannot be met without it: 401 and
+      403 are auth failures whose body goes to `UsageNormalizer.ClassifyAuthFailure`, 429 and 5xx
+      are `Transient` honouring `Retry-After`, and any other status is `Unsupported`. Pins the
+      request headers too — the `anthropic-beta` value and the `claude-code/<version>`
+      User-Agent, which prior art reports is what keeps the endpoint out of a stricter 429
+      bucket. Test against a stub message handler; never call the live endpoint from a test.
+      (AC-10)
 - [ ] 4.5 Test: `QuotaMonitor` holds one refresh in flight at a time — concurrent requests
       collapse to a single fetch. (AC-27)
 - [ ] 4.6 Test: the full `ReadingState` transition set — first success, staleness by age, the
@@ -150,7 +135,7 @@ are genuinely independent and run concurrently.
       against any other endpoint. (AC-26)
 - [ ] 4.9 Test: manual refresh obeys the same backoff as automatic polling, and when refused says
       why and when the next attempt is possible. (AC-28)
-- [C] 4.10 Checkpoint: full suite green, AC-3, AC-4, AC-5, AC-6, AC-8, AC-13, AC-25 through AC-28
+- [C] 4.10 Checkpoint: full suite green, AC-3, AC-4, AC-5, AC-6, AC-8, AC-10, AC-13, AC-25 through AC-28
       assessed, recorded in `progress.md`.
 
 ## Phase 5: Alerts
