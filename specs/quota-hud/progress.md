@@ -275,3 +275,71 @@ verification notes:
 - 4.8 and 4.9 pass on arrival, since 4.7 was built to satisfy them. Verified by mutation:
   dropping the server's `Retry-After` from the schedule failed two, and removing the backoff
   check failed eight.
+
+### CP: Phase 5 Alerts — 2026-09-01
+tests: 524 pass / 0 fail / 0 skip
+build: pass (`dotnet clean` then `dotnet build`, 0 warnings, 0 errors)
+done: 5.1, 5.2, 5.3, 5.4
+rework: none. The tests were watched failing before each implementation, and nothing needed
+correcting afterwards.
+
+criteria_assessed:
+- AC-14 (crossing a threshold raises a notification): met in Core as far as Core can take it.
+  `AlertEngine.TakeNewAlerts` returns the alerts a reading is due; raising the toast is 6.10.
+  The engine deliberately does not hold `INotifier` — the plan's own data path has the shell
+  raising toasts, and keeping the decision separate from the wording leaves all user-facing copy
+  to 7.1 instead of scattering it through Core.
+- AC-15 (at most once per window occurrence): met. Dedupe is set membership on `AlertKey`, so
+  there is no counter, no timestamp comparison, and nothing that can drift.
+- AC-16 (persists across restarts within an occurrence): met. `AlertStateStore` writes a small
+  JSON file and reloads it. The window kind is written by name rather than as an enum ordinal,
+  because state stored as an ordinal changes meaning the day a kind is inserted mid-list, and the
+  symptom would be a silently missing alert rather than an error.
+- AC-17 (rearms when a window resets): met, and met structurally rather than by a mechanism. The
+  reset time is part of the identity, so after a reset the key matches nothing recorded and the
+  alert is armed again by construction.
+- AC-18 (the current window's alerts can be muted): met. A mute is every threshold for that
+  occurrence recorded as fired — no second kind of state. Restart-survival and rearm-on-reset
+  therefore come free, and a mute cannot be made indefinite, which is the right constraint for a
+  quota tool.
+
+decisions:
+- Alerts fire on "at or beyond a line and not yet fired", not on observing a crossing between two
+  polls. Crossing-detection would stay silent when Bingo starts up already at 8% remaining, which
+  is the moment it exists for. Dedupe by occurrence already gives once-per, so tracking the
+  previous reading buys nothing.
+- A reading that arrives already past both lines is due only the critical alert, and the
+  overtaken warning is recorded rather than delivered. Utilization cannot fall within an
+  occurrence, so a warning that arrived afterwards could only say something milder than what the
+  user had just been told. Not offered as a setting: no case was found where the second
+  notification helps.
+- A window reporting no reset time never alerts. It has no occurrence boundary, so "at most once
+  per occurrence" has nothing to mean, and the alternative is an alert that fires on every poll
+  and can never be rearmed or silenced. Such a window still shows its percentage on the HUD; it
+  is only alerting that it is excluded from.
+- `Prune` is called on load, using the injected clock. This gives the plan's `Prune` seam a real
+  caller immediately, and keeps the file bounded without anything having to own a timer for it.
+- File failures degrade to in-memory behaviour rather than throwing. The worst outcome this state
+  can produce is a duplicate notification, which is not worth failing a poll over. Marked with a
+  `ponytail:` note in `AlertStateStore.Save` naming the ceiling.
+
+verification notes:
+- Every non-obvious branch was mutation-checked after going green. Delivering both alerts instead
+  of only the worst failed 3 tests; removing the dedupe check failed 2; removing prune-on-load
+  failed 1; treating the reset instant itself as past failed 1; writing the window kind as an
+  ordinal failed 1.
+- `AlertKey` equality is instant-based rather than spelling-based, since `DateTimeOffset`
+  compares its UTC value. That is what makes state written in one offset and read back in another
+  still match, and it is pinned by its own test rather than left to be inferred.
+- The in-memory store double was extracted from `AlertEngineTests` into
+  `InMemoryAlertStateStore` when 5.4 needed it too.
+
+issues:
+- Carried unchanged from the Phase 4 checkpoint and still open: nothing drives `QuotaMonitor` on
+  a schedule, and `PollSignals.SinceLocalTranscriptActivity` still has no producer. Neither is
+  blocked by Phase 5 and both still need a task before Phase 6.
+- Nothing calls `AlertEngine` yet either. `QuotaMonitor` sits between the snapshot and the shell
+  in the plan's data path but does not know the engine exists. That wiring has no task, and it
+  belongs with the poll-loop task rather than in the shell.
+- `AlertStateStore` has no `DefaultPath`, unlike `FileCredentialProvider`. Where app state lives
+  on disk is 6.2's question and was left to it rather than answered twice.

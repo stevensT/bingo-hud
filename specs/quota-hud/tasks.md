@@ -152,10 +152,12 @@ are genuinely independent and run concurrently.
       (AC-17)
 - [x] 5.2 Test + implement `AlertEngine`: crossing a threshold raises a notification, and each
       threshold fires at most once per window occurrence. (AC-14, AC-15)
-- [ ] 5.3 Test + implement `AlertStateStore`: plain JSON, survives restart mid-window, prunes
+- [x] 5.3 Test + implement `AlertStateStore`: plain JSON, survives restart mid-window, prunes
       keys for windows that have already reset. (AC-16)
-- [ ] 5.4 Test + implement muting the current window's alerts. (AC-18)
-- [C] 5.5 Checkpoint: full suite green, AC-14 through AC-18 assessed, recorded in `progress.md`.
+- [x] 5.4 Test + implement muting the current window's alerts. (AC-18)
+- [x] 5.5 Checkpoint passed 2026-09-01: `dotnet clean` then `dotnet build` and `dotnet test`
+      both green (524 tests, 0 warnings), AC-14 through AC-18 assessed and all met in Core,
+      recorded in `progress.md`. No rework. Three open issues, two of them carried from 4.10.
 
 ## Gate: spike outcome
 

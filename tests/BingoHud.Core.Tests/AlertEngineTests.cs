@@ -28,16 +28,6 @@ public class AlertEngineTests
     private static readonly DateTimeOffset Reset =
         new(2026, 8, 31, 16, 0, 0, TimeSpan.FromHours(-7));
 
-    /// <summary>An in-memory stand-in for the persistent store built in 5.3.</summary>
-    private sealed class RecordingStore : IAlertStateStore
-    {
-        private readonly HashSet<AlertKey> _fired = [];
-
-        public bool HasFired(AlertKey key) => _fired.Contains(key);
-
-        public void MarkFired(AlertKey key) => _fired.Add(key);
-    }
-
     private static QuotaWindow Window(
         double usedPercent,
         WindowKind kind = WindowKind.Session,
@@ -48,7 +38,7 @@ public class AlertEngineTests
         new(windows, ObservedAt, RawBody: "{}");
 
     private static AlertEngine Engine(IAlertStateStore? store = null) =>
-        new(store ?? new RecordingStore());
+        new(store ?? new InMemoryAlertStateStore());
 
     private static IReadOnlyList<Alert> Take(AlertEngine engine, params QuotaWindow[] windows) =>
         engine.TakeNewAlerts(Snapshot(windows), Thresholds.Default);
@@ -160,7 +150,7 @@ public class AlertEngineTests
     public void OnlyTheAlertsActuallyDueAreRecorded()
     {
         // A quiet reading must not mark anything fired, or the real alert would be swallowed.
-        var store = new RecordingStore();
+        var store = new InMemoryAlertStateStore();
         Take(Engine(store), Window(usedPercent: 50));
 
         Assert.False(store.HasFired(new AlertKey(WindowKind.Session, 25, Reset)));

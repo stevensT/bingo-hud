@@ -33,23 +33,12 @@ public sealed class AlertEngine(IAlertStateStore store)
         foreach (var window in snapshot.Windows)
         {
             var remaining = 100 - window.UsedPercent;
-            var worstFirst = new[]
-            {
-                (Threshold: thresholds.CriticalAtRemaining, Severity: Severity.Critical),
-                (Threshold: thresholds.WarningAtRemaining, Severity: Severity.Warning),
-            };
-
             var alreadyDue = false;
 
-            foreach (var (threshold, severity) in worstFirst)
+            foreach (var (threshold, severity) in WorstFirst(thresholds))
             {
-                if (remaining > threshold)
-                {
-                    continue;
-                }
-
-                var key = AlertKey.For(window, (int)Math.Round(threshold));
-                if (key is null || store.HasFired(key))
+                if (remaining > threshold || KeyFor(window, threshold) is not { } key
+                    || store.HasFired(key))
                 {
                     continue;
                 }
@@ -68,4 +57,44 @@ public sealed class AlertEngine(IAlertStateStore store)
 
         return due;
     }
+
+    /// <summary>
+    /// Silences this window for the rest of its current occurrence, by recording every threshold
+    /// as already fired.
+    ///
+    /// <para>
+    /// Muting needs no state of its own: "do not tell me about this window again" and "you have
+    /// already told me about this window" are the same instruction. Written this way, a mute
+    /// survives a restart and lifts at the next reset for free, because both of those already
+    /// belong to the key. It is also why a mute cannot be indefinite — a quota tool that can be
+    /// silenced permanently will be silent on the day it matters.
+    /// </para>
+    /// </summary>
+    public void Mute(QuotaWindow window, Thresholds thresholds)
+    {
+        foreach (var (threshold, _) in WorstFirst(thresholds))
+        {
+            if (KeyFor(window, threshold) is { } key)
+            {
+                store.MarkFired(key);
+            }
+        }
+    }
+
+    /// <summary>
+    /// The thresholds, most severe first. Order matters: it is what makes a reading past both
+    /// lines report the critical one.
+    /// </summary>
+    private static (double Threshold, Severity Severity)[] WorstFirst(Thresholds thresholds) =>
+    [
+        (thresholds.CriticalAtRemaining, Severity.Critical),
+        (thresholds.WarningAtRemaining, Severity.Warning),
+    ];
+
+    /// <summary>
+    /// The key for a threshold on a window, or null when the window reports no reset time and so
+    /// has no occurrence to be once-per.
+    /// </summary>
+    private static AlertKey? KeyFor(QuotaWindow window, double threshold) =>
+        AlertKey.For(window, (int)Math.Round(threshold));
 }
