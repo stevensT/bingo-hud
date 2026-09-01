@@ -216,3 +216,62 @@ verification notes:
   which exposed a genuinely undecided precedence rather than a weak test; the decision above was
   made, pinned by two tests, and the same mutation now fails.
 - 4.2 and 4.3 were each watched failing before implementation — 21 and 13 failures respectively.
+
+### CP: Phase 4 Polling and state — 2026-08-31
+tests: 488 pass / 0 fail / 0 skip
+build: pass (`dotnet clean` then `dotnet build`, 0 warnings, 0 errors)
+done: 4.4a, 4.5, 4.6, 4.7, 4.8, 4.9 (4.1 to 4.4 recorded at the previous checkpoint)
+rework: two, both found by tests rather than by reading.
+
+criteria_assessed:
+- AC-3 (reset alongside the percentage): met in Core. `ResetFormatter` produces the phrase;
+  placing it on the line is Phase 6.
+- AC-4, AC-5, AC-6 (three states, worst window, server rejection distinct): met in Core.
+- AC-8 (every reading carries an age, shown once stale): met in Core. The age is computed on
+  every read of `Current` rather than stored, so there is no moment at which it can quietly stop
+  being true. `StaleAfter` is the poll ceiling plus fifteen minutes — a healthy reading is
+  routinely half an hour old, so anything tighter would make the marker meaningless.
+- AC-10 (authentication failure shows a sign-in state): now met in Core, having been partial at
+  the last two checkpoints. 4.4a supplied the status-code routing and 4.7 supplied the mapping
+  from a missing credential file. The wording is 7.1.
+- AC-11 (permission denied differs from signed out): still met, and now actually reachable —
+  `CredentialAvailability` becomes `AuthFailureKind` in exactly one place, in `QuotaMonitor`.
+- AC-13 (frozen, marked, excluded from severity): met in Core. Frozen is decided by the failure
+  rather than by age, because an invalidated token will not refresh however long is waited.
+- AC-25 (2 to 30 minutes, never faster): met in Core, as a property test over every combination
+  of signals rather than as a row.
+- AC-26 (rate limit backs off, no compensating request): met in Core. The monitor holds one
+  client and has no other endpoint to reach for, so this is structural rather than enforced.
+- AC-27 (one refresh in flight): met. Concurrent callers join the running fetch.
+- AC-28 (manual refresh obeys the same backoff, says why and when): met in Core. Twenty presses
+  across a hundred seconds produce one fetch.
+
+issues:
+- Nothing drives the monitor. `RefreshAsync` exists and obeys its backoff, but no task in the
+  plan owns the timer that calls it on a schedule, and none supplies the `PollSignals` it takes.
+  Phase 6 builds the shell but has no task for a poll loop. This needs a home before the app can
+  do anything at all — either a Core loop driven by the injected clock, which stays testable, or
+  a timer in the shell, which does not.
+- `PollSignals.SinceLocalTranscriptActivity` still has no producer. Carried from the previous
+  checkpoint and now more pressing: with the monitor complete, that row of the cadence table is
+  the only one that can never fire.
+- `ICredentialProvider` has a second method the plan's seam does not list: `Probe()`. It is what
+  closes the enum overlap recorded at 3.9 — the file-level answer becomes an authentication
+  outcome in exactly one place, and `AuthFailureKind.SignedOut` and `PermissionDenied` now have
+  a producer. That issue is resolved.
+
+verification notes:
+- 4.7 had a real concurrency bug, caught by `TheGuardIsReleasedSoALaterRefreshCanRun`. The
+  in-flight task was cleared by a continuation, which runs at an unspecified later moment, so a
+  caller arriving just after the first fetch completed could be handed an already-finished task
+  and no second fetch would ever happen. Fixed by testing the task's completion at the point of
+  joining instead. A polling app would have shown this as "it fetches once and then never
+  again".
+- Three tests in `QuotaMonitorTests` advanced the clock by a minute before a second refresh, so
+  the backoff refused it and no second outcome was ever recorded. Two failed and were corrected.
+  The third — `ATransientFailureDoesNotFreezeTheReading` — was passing for the wrong reason: it
+  asserted the reading was not frozen when in truth nothing had happened to it at all. Corrected
+  with the others.
+- 4.8 and 4.9 pass on arrival, since 4.7 was built to satisfy them. Verified by mutation:
+  dropping the server's `Retry-After` from the schedule failed two, and removing the backoff
+  check failed eight.

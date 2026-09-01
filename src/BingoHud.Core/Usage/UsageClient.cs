@@ -25,7 +25,7 @@ namespace BingoHud.Core.Usage;
 /// caused the failure.
 /// </para>
 /// </summary>
-public sealed class UsageClient
+public sealed class UsageClient : IUsageClient
 {
     private readonly HttpClient _http;
     private readonly IClock _clock;

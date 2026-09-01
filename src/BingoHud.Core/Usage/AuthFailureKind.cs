@@ -1,3 +1,5 @@
+using BingoHud.Core.Credentials;
+
 namespace BingoHud.Core.Usage;
 
 /// <summary>
@@ -23,4 +25,18 @@ public enum AuthFailureKind
     /// <c>authentication_error</c> alongside a 401.
     /// </summary>
     Invalidated,
+
+    /// <summary>
+    /// There is no credential file. Claude Code has not signed in on this machine, or the
+    /// profile was cleared. Established locally rather than from a response, by
+    /// <see cref="CredentialAvailability.Absent"/>.
+    /// </summary>
+    SignedOut,
+
+    /// <summary>
+    /// The credential file exists and the operating system will not let Bingo open it. Reported
+    /// separately from <see cref="SignedOut"/> because signing in again would change nothing
+    /// (AC-11). Established by <see cref="CredentialAvailability.AccessDenied"/>.
+    /// </summary>
+    PermissionDenied,
 }

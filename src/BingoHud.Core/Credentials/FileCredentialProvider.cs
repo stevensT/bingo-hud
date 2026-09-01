@@ -16,7 +16,7 @@ namespace BingoHud.Core.Credentials;
 /// thing to the app, which is that there is no usable token right now.
 /// </para>
 /// </summary>
-public sealed class FileCredentialProvider
+public sealed class FileCredentialProvider : ICredentialProvider
 {
     private readonly string _path;
 
@@ -53,6 +53,12 @@ public sealed class FileCredentialProvider
 
         return ReadCredential(content);
     }
+
+    /// <summary>
+    /// Why the file could not be read. Asked only once <see cref="GetAsync"/> has already
+    /// answered null.
+    /// </summary>
+    public CredentialAvailability Probe() => CredentialProbe.Probe(_path);
 
     /// <summary>
     /// Pulls the token out of the file's contents. The nested <c>claudeAiOauth</c> object is the

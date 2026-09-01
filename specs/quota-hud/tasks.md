@@ -129,18 +129,21 @@ are genuinely independent and run concurrently.
       User-Agent, which prior art reports is what keeps the endpoint out of a stricter 429
       bucket. Test against a stub message handler; never call the live endpoint from a test.
       (AC-10)
-- [ ] 4.5 Test: `QuotaMonitor` holds one refresh in flight at a time — concurrent requests
+- [x] 4.5 Test: `QuotaMonitor` holds one refresh in flight at a time — concurrent requests
       collapse to a single fetch. (AC-27)
-- [ ] 4.6 Test: the full `ReadingState` transition set — first success, staleness by age, the
+- [x] 4.6 Test: the full `ReadingState` transition set — first success, staleness by age, the
       `Frozen` case, a failure preserving the last snapshot with its age, and `Unreadable`
       showing no percentages. (AC-8, AC-13)
-- [ ] 4.7 Implement `QuotaMonitor` with single-flight and backoff.
-- [ ] 4.8 Test: a 429 backs off, honours `Retry-After`, and triggers no compensating request
+- [x] 4.7 Implement `QuotaMonitor` with single-flight and backoff.
+- [x] 4.8 Test: a 429 backs off, honours `Retry-After`, and triggers no compensating request
       against any other endpoint. (AC-26)
-- [ ] 4.9 Test: manual refresh obeys the same backoff as automatic polling, and when refused says
+- [x] 4.9 Test: manual refresh obeys the same backoff as automatic polling, and when refused says
       why and when the next attempt is possible. (AC-28)
-- [C] 4.10 Checkpoint: full suite green, AC-3, AC-4, AC-5, AC-6, AC-8, AC-10, AC-13, AC-25 through AC-28
-      assessed, recorded in `progress.md`.
+- [x] 4.10 Checkpoint passed 2026-08-31: `dotnet clean` then `dotnet build` and `dotnet test`
+      both green (488 tests, 0 warnings), AC-3 through AC-6, AC-8, AC-10, AC-11, AC-13 and AC-25
+      through AC-28 assessed and all met in Core, recorded in `progress.md`. Two pieces of
+      rework and three open issues, one of which — nothing drives the monitor on a schedule —
+      needs a task before Phase 6.
 
 ## Phase 5: Alerts
 
