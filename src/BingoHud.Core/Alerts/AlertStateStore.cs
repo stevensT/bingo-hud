@@ -102,8 +102,8 @@ public sealed class AlertStateStore : IAlertStateStore
         catch (Exception e) when (e is IOException or UnauthorizedAccessException
             or NotSupportedException or ArgumentException)
         {
-            // ponytail: state stays in memory for this session, add a surfaced warning if losing
-            // it ever proves to matter more than a duplicate notification.
+            // deferred: state stays in memory for this session. Add a surfaced warning if losing
+            // it ever proves to matter more than a duplicate notification does.
         }
     }
 }

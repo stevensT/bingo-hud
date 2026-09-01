@@ -321,7 +321,7 @@ decisions:
   caller immediately, and keeps the file bounded without anything having to own a timer for it.
 - File failures degrade to in-memory behaviour rather than throwing. The worst outcome this state
   can produce is a duplicate notification, which is not worth failing a poll over. Marked with a
-  `ponytail:` note in `AlertStateStore.Save` naming the ceiling.
+  `deferred:` note in `AlertStateStore.Save` naming the ceiling.
 
 verification notes:
 - Every non-obvious branch was mutation-checked after going green. Delivering both alerts instead
