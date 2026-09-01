@@ -147,10 +147,10 @@ are genuinely independent and run concurrently.
 
 ## Phase 5: Alerts
 
-- [ ] 5.1 Test + implement `AlertKey` identity as window kind, threshold, and `resets_at`, so
+- [x] 5.1 Test + implement `AlertKey` identity as window kind, threshold, and `resets_at`, so
       rearming on reset falls out of the identity rather than needing its own mechanism.
       (AC-17)
-- [ ] 5.2 Test + implement `AlertEngine`: crossing a threshold raises a notification, and each
+- [x] 5.2 Test + implement `AlertEngine`: crossing a threshold raises a notification, and each
       threshold fires at most once per window occurrence. (AC-14, AC-15)
 - [ ] 5.3 Test + implement `AlertStateStore`: plain JSON, survives restart mid-window, prunes
       keys for windows that have already reset. (AC-16)
