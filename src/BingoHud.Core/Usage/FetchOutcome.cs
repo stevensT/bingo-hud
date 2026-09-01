@@ -33,4 +33,22 @@ public abstract record FetchOutcome
     /// <see cref="AuthFailureKind.Unspecified"/>.
     /// </param>
     public sealed record AuthFailed(AuthFailureKind Kind) : FetchOutcome;
+
+    /// <summary>
+    /// The attempt failed in a way that is expected to pass: a rate limit, a server error, or a
+    /// network that was not there. Back off and try again.
+    /// </summary>
+    /// <param name="RetryAfter">
+    /// How long the server asked us to wait, when it said. Null means it did not, not that
+    /// retrying immediately is acceptable.
+    /// </param>
+    public sealed record Transient(TimeSpan? RetryAfter) : FetchOutcome;
+
+    /// <summary>
+    /// The endpoint answered in a way that means it is not usable on this account at all.
+    /// Surfaced plainly, and polling stops hard rather than hammering something that will keep
+    /// saying no.
+    /// </summary>
+    /// <param name="StatusCode">What it answered, so the detail panel can say.</param>
+    public sealed record Unsupported(int StatusCode) : FetchOutcome;
 }

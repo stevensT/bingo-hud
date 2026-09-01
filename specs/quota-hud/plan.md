@@ -178,8 +178,14 @@ User-Agent:      claude-code/<version>
 
 The `User-Agent` is pinned deliberately: prior art reports that generic agents land in a stricter
 429 bucket on this endpoint. The 2026-08-30 capture went out as `claude-code/2.1.251`, where the
-prior-art research documented `2.1.83` — so the version moves, and whether Bingo resolves it from
-the installed CLI or carries a constant it bumps on release is still open.
+prior-art research documented `2.1.83` — so the version moves.
+
+Decided at task 4.4a: Bingo carries a constant, currently `claude-code/2.1.251`, bumped by hand
+on release. Resolving it from the installed CLI would add a filesystem dependency and a failure
+mode to every poll, in exchange for a version string that no observation suggests is checked for
+accuracy. The cost is that the constant drifts from the real Claude Code version between bumps,
+and that drift is invisible — nothing fails, it simply stops being true. If the endpoint ever
+starts rejecting stale versions, this is the first thing to look at.
 
 **Response fields consumed.** Verified against a live 200 captured 2026-08-30
 (`tests/fixtures/usage/2026-08-30-baseline.json`). Utilization arrives as 0–100 and is carried

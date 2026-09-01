@@ -121,7 +121,7 @@ are genuinely independent and run concurrently.
 - [x] 4.4 Checkpoint passed 2026-08-31: `dotnet clean` then `dotnet build` and `dotnet test`
       both green (417 tests, 0 warnings), no integration conflicts between the three units, and
       the result recorded in `progress.md` with three decisions and two open issues.
-- [ ] 4.4a Test + implement `UsageClient` and the status-code taxonomy. Nothing yet owns the
+- [x] 4.4a Test + implement `UsageClient` and the status-code taxonomy. Nothing yet owns the
       mapping from a status code to a `FetchOutcome`, so AC-10 cannot be met without it: 401 and
       403 are auth failures whose body goes to `UsageNormalizer.ClassifyAuthFailure`, 429 and 5xx
       are `Transient` honouring `Retry-After`, and any other status is `Unsupported`. Pins the
