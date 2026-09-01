@@ -172,3 +172,47 @@ verification notes:
 - 3.2: the token-redaction test earns its place. A positional record generates a `ToString` that
   prints every property, so without the override the access token would have been one
   interpolated string away from any log line or debugger watch.
+
+### CP: Phase 4 parallel group — 2026-08-31
+tests: 417 pass / 0 fail / 0 skip
+build: pass (`dotnet clean` then `dotnet build`, 0 warnings, 0 errors)
+done: 4.1, 4.2, 4.3
+integration conflicts: none. The three units share no state and touch no common file.
+`SeverityPolicy` reads `QuotaWindow` and `QuotaSnapshot` from Phase 2 without altering either;
+`PollPolicy` and `ResetFormatter` share nothing at all.
+
+execution note: the three `[P]` tasks were run inline and in sequence rather than as concurrent
+subagents. They are small pure functions and two of them needed decisions that were easier to
+make with the others in view. Worth revisiting for a larger parallel group.
+
+decisions taken while building:
+- Poll precedence: an open panel outranks battery power. Power saving is for an unattended app,
+  and someone with the panel open is present and asking; the cost is bounded because they close
+  it. Found by mutation — see the verification notes — and now pinned from both directions.
+- Severity is raised by the server but never lowered by it. A server reporting `normal` for a
+  window at 95% consumed does not make it fine, and a server escalating a window that looks
+  healthy knows something Bingo does not. Only `rejected` maps to the distinct `RateLimited`
+  state (AC-6); `warning` and `critical` fold into the local ladder.
+- Reset phrasing has two absolute forms, not three: a time of day for today, and a day name plus
+  time for anything else. A date form for resets a week or more out was written and then cut —
+  the weekly window is at most seven days, so there is only ever one Monday within reach and the
+  day name cannot be misread.
+
+issues:
+- `SeverityPolicy.Evaluate` takes a third argument the plan's signature does not have:
+  `Freshness`. AC-13 requires a frozen reading to be excluded from the severity calculation, and
+  task 4.2 places that rule in this function, so the function has to be told. The alternative —
+  leaving the rule to `QuotaMonitor` — would put an acceptance criterion in an untested place.
+- `PollSignals.SinceLocalTranscriptActivity` has no producer yet. Reading Claude Code's local
+  transcripts is not in any task, and the spec's non-goals rule out transcript ingestion for
+  attribution — but this is a modification time, not ingestion. Either a Phase 4 task supplies
+  it or the signal stays permanently null, in which case the working cadence is unreachable and
+  the table has a dead row. Needs deciding before 4.7.
+
+verification notes:
+- 4.1: the tests were written before the implementation but the two were run together, so no
+  intervening red was observed. Verified by mutation instead. Removing the floor clamp failed
+  one test, as intended. Demoting the battery rule below the panel rule failed nothing at all,
+  which exposed a genuinely undecided precedence rather than a weak test; the decision above was
+  made, pinned by two tests, and the same mutation now fails.
+- 4.2 and 4.3 were each watched failing before implementation — 21 and 13 failures respectively.

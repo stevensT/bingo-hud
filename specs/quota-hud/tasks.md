@@ -109,17 +109,18 @@ Highest risk in the project. It goes first, it goes alone, and every task here t
 The three policy units below are pure functions in separate files with no shared state, so they
 are genuinely independent and run concurrently.
 
-- [P] 4.1 Test + implement `PollPolicy.NextDelay` as a data-driven table over `PollSignals`.
+- [x] 4.1 Test + implement `PollPolicy.NextDelay` as a data-driven table over `PollSignals`.
       Returns a delay and a named reason. Never below the two-minute floor; honours
       `ServerRetryAfter`. (AC-25)
-- [P] 4.2 Test + implement `SeverityPolicy.Evaluate`: three discrete states at 25% and 10%
+- [x] 4.2 Test + implement `SeverityPolicy.Evaluate`: three discrete states at 25% and 10%
       remaining, worst-window drives the overall result, a `Frozen` reading is excluded from that
       calculation, and a server-reported rejection surfaces distinctly from a local threshold.
       (AC-4, AC-5, AC-6, AC-13)
-- [P] 4.3 Test + implement reset formatting: absolute when distant, relative as it nears, local
+- [x] 4.3 Test + implement reset formatting: absolute when distant, relative as it nears, local
       time, and nothing at all when `resets_at` is null. (AC-3)
-- [C] 4.4 Checkpoint after the parallel group: full suite green, no integration conflicts between
-      the three units.
+- [x] 4.4 Checkpoint passed 2026-08-31: `dotnet clean` then `dotnet build` and `dotnet test`
+      both green (417 tests, 0 warnings), no integration conflicts between the three units, and
+      the result recorded in `progress.md` with three decisions and two open issues.
 - [ ] 4.4a Test + implement `UsageClient` and the status-code taxonomy. Nothing yet owns the
       mapping from a status code to a `FetchOutcome`, so AC-10 cannot be met without it: 401 and
       403 are auth failures whose body goes to `UsageNormalizer.ClassifyAuthFailure`, 429 and 5xx

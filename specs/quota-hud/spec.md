@@ -124,6 +124,7 @@ the 5-hour and weekly windows remain, and when each resets. It answers one quest
 - **`~/.claude/.credentials.json`** — the OAuth token Claude Code maintains. No third-party OAuth
   client registration exists for consumer subscription plans, so there is no independent
   authentication path.
-- **The `claude` CLI** — token refresh is delegated to it; no OAuth refresh grant is implemented
-  locally.
+- **Claude Code itself** — it maintains the OAuth token, and Bingo never refreshes it. An
+  expired token means Claude Code has not run for hours, which also means quota has not moved.
+  Decided at task 3.1 and recorded in `plan.md`.
 - **An active Claude Max or Pro subscription.**
