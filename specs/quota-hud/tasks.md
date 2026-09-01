@@ -174,14 +174,16 @@ tool, or something else.
       wait the span `PollPolicy.NextDelay` returns, repeat. Cancellation ends it promptly. A
       failing fetch must not end the loop, since the failure is exactly what the backoff row of
       the cadence table exists to handle. Closes the 4.10 issue that nothing drives the monitor.
-- [ ] 5a.3 Test + implement the producer for `PollSignals.SinceLocalTranscriptActivity`: how long
+- [x] 5a.3 Test + implement the producer for `PollSignals.SinceLocalTranscriptActivity`: how long
       ago Claude Code last wrote a local transcript. Without it the `Claude Code is working` row
       can never fire and Bingo polls at its slowest cadence precisely when utilization is moving
       fastest. Reads modification times only — never transcript contents.
-- [ ] 5a.4 Wire `AlertEngine` into the loop so each new snapshot yields its due alerts and Core
+- [x] 5a.4 Wire `AlertEngine` into the loop so each new snapshot yields its due alerts and Core
       exposes them for the shell to raise. Core decides, App draws: nothing here shows a toast.
-- [C] 5a.5 Checkpoint: full suite green, build green, AC-25 through AC-28 re-assessed now that
-      something actually drives the monitor, recorded in `progress.md`.
+- [x] 5a.5 Checkpoint passed 2026-09-01: `dotnet clean` then `dotnet build` and `dotnet test`
+      both green (556 tests, 0 warnings), AC-25 through AC-28 re-assessed now that
+      something actually drives the monitor, recorded in `progress.md`. One piece of rework and
+      three open issues, all of them needing the shell.
 
 ## Gate: spike outcome
 

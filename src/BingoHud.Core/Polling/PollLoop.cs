@@ -1,3 +1,4 @@
+using BingoHud.Core.Alerts;
 using BingoHud.Core.Monitoring;
 using BingoHud.Core.Time;
 using BingoHud.Core.Usage;
@@ -20,7 +21,13 @@ namespace BingoHud.Core.Polling;
 /// from a snapshot taken at startup.
 /// </para>
 /// </summary>
-public sealed class PollLoop(QuotaMonitor monitor, IClock clock, Func<PollSignals> gatherSignals)
+public sealed class PollLoop(
+    QuotaMonitor monitor,
+    IClock clock,
+    Func<PollSignals> gatherSignals,
+    AlertEngine? alerts = null,
+    Func<Thresholds>? thresholds = null,
+    Action<IReadOnlyList<Alert>>? onAlerts = null)
 {
     /// <summary>
     /// Polls until cancelled, or until the endpoint says this account cannot use it.
@@ -52,6 +59,8 @@ public sealed class PollLoop(QuotaMonitor monitor, IClock clock, Func<PollSignal
                     .RefreshAsync(signals, cancellationToken)
                     .ConfigureAwait(false);
 
+                HandOverAnyAlerts();
+
                 if (IsTerminal(result))
                 {
                     return;
@@ -69,6 +78,37 @@ public sealed class PollLoop(QuotaMonitor monitor, IClock clock, Func<PollSignal
         catch (OperationCanceledException)
         {
             // Asked to stop, mid-fetch or mid-wait. Nothing to report and nothing to clean up.
+        }
+    }
+
+    /// <summary>
+    /// Evaluates the current reading and hands over whatever it is due.
+    ///
+    /// <para>
+    /// Run on every completed pass rather than only after a successful fetch. Deduplication in
+    /// <see cref="AlertEngine"/> already makes a repeat evaluation cost nothing, so the simpler
+    /// rule is also the more complete one: it catches a threshold crossed by a manual refresh,
+    /// whose result the loop never sees and whose backoff will refuse the loop's own next
+    /// attempt.
+    /// </para>
+    /// <para>
+    /// Nothing is raised here. The alerts go to whoever is listening — the shell and its toasts
+    /// in the app, a notifier alone in a notification-only build — because deciding and
+    /// announcing are different jobs and only the first belongs in Core.
+    /// </para>
+    /// </summary>
+    private void HandOverAnyAlerts()
+    {
+        if (alerts is null || onAlerts is null || monitor.Current.Last is not { } snapshot)
+        {
+            return;
+        }
+
+        var due = alerts.TakeNewAlerts(snapshot, (thresholds ?? (() => Thresholds.Default))());
+
+        if (due.Count > 0)
+        {
+            onAlerts(due);
         }
     }
 

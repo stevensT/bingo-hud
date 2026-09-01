@@ -343,3 +343,88 @@ issues:
   belongs with the poll-loop task rather than in the shell.
 - `AlertStateStore` has no `DefaultPath`, unlike `FileCredentialProvider`. Where app state lives
   on disk is 6.2's question and was left to it rather than answered twice.
+
+### CP: Phase 5a Driving the loop — 2026-09-01
+tests: 556 pass / 0 fail / 0 skip
+build: pass (`dotnet clean` then `dotnet build`, 0 warnings, 0 errors)
+done: 5a.1, 5a.2, 5a.3, 5a.4
+rework: one, found by a test rather than by reading. See verification notes.
+
+Phase 5a was added at this session, not planned. Phases 1 to 5 built every component and
+connected none of them: nothing owned a schedule, and two inputs the cadence table reads had no
+producer. The plan had no task for any of it, and the gap was recorded as an open issue at both
+the 4.10 and 5.5 checkpoints before being given tasks here.
+
+criteria_assessed:
+- AC-25 (2 to 30 minutes, never faster): still met, and now actually exercised. The loop does not
+  compute the cadence at all — it asks the monitor when the next attempt will be accepted and
+  waits until then, so there is exactly one implementation of the rule rather than one in the
+  policy and a second in the thing that obeys it.
+- AC-26 (rate limit backs off, no compensating request): still met, now demonstrably. A server
+  `Retry-After` becomes the loop's next wait directly, and the loop has no second endpoint to
+  reach for.
+- AC-27 (one refresh in flight): unchanged. The loop is one caller among several and joins the
+  in-flight fetch like any other.
+- AC-28 (manual refresh obeys the same backoff): unchanged, and its one weakness is now closed
+  from the other side. The loop never sees the result of a refresh it did not ask for, so a
+  threshold crossed by a manual refresh is picked up by evaluating the current reading on every
+  pass rather than only after a fetch.
+- AC-14 (crossing a threshold raises a notification): the Core half is now connected end to end.
+  A reading past a threshold reaches the alert engine and its decision is handed to a listener.
+  Raising the toast remains 6.10.
+
+decisions:
+- `IClock` grew `DelayAsync` rather than the app adopting `TimeProvider` alongside it. Two time
+  abstractions would let a test freeze "now" while the code still slept in real time, which is
+  the exact bug the seam exists to prevent. `TestClock` collapses the wait and records every span
+  it was asked for, so the cadence is observable without waiting for it.
+- The loop stops only on `Unsupported`, not on every frozen reading, even though the monitor
+  freezes for `AuthFailed` too. A signed-out user can sign in to Claude Code at any moment; a
+  loop that had already stopped would never find out, and Bingo would sit dead until restarted
+  with no sign it had given up. Polling a signed-out account costs one request every thirty
+  minutes.
+- Alerts are evaluated on every completed pass rather than only after a successful fetch.
+  Deduplication already makes a repeat evaluation free, so the simpler rule is also the more
+  complete one — it is what catches a crossing that a manual refresh produced.
+- Alerting is attached to the loop rather than built into it. One outcome of the G.1 gate is a
+  notification-only tool and another is no HUD at all; the schedule is needed in every case, so a
+  loop with nothing listening is a legitimate configuration rather than a half-built one.
+- `TranscriptActivity` filters to `*.jsonl`. The projects directory also holds a `memory` folder
+  of markdown written by other things, and counting those would report Claude Code as working
+  when it is not — spending requests against a rate-limited endpoint for nothing. The filter was
+  written after looking at the real directory, not inferred.
+- A transcript timestamp in the future clamps to zero. Clock skew and restored backups both
+  produce one, and left negative it satisfies every comparison in the cadence table, pinning
+  Bingo to its fastest cadence indefinitely while looking like normal operation.
+
+verification notes:
+- The loop was issuing a fetch after cancellation. `RefreshAsync` does not check the token before
+  starting and the test stubs ignore it, so a request was spent against a rate-limited endpoint
+  after shutdown had been requested. In the real app the request would be aborted in flight, but
+  it would already have been made. Fixed by re-checking after gathering signals, which in the app
+  reads the filesystem and the power state and so can genuinely take long enough for shutdown to
+  land inside it.
+- The premise 5a.3 rests on was checked against reality rather than assumed: the transcript for
+  the session in progress had been written two seconds earlier, so Claude Code writes
+  continuously rather than flushing at session end. Had it been the latter, the signal would have
+  been useless and the task pointless.
+- A frozen-reading guard was drafted for the alert wiring and then dropped as unreachable. A
+  snapshot only exists after a success, and utilization cannot change while a reading is frozen,
+  so "frozen and newly past a threshold" cannot occur. The test that would have covered it was
+  replaced by one that does mean something: a failure after an alert must not repeat it.
+- Every branch was mutation-checked. Stopping on any frozen reading, never stopping, and removing
+  the wait each failed. Dropping the `*.jsonl` filter, the future clamp, newest-versus-oldest and
+  recursion each failed. Never handing alerts over failed 6; evaluating only after a performed
+  fetch failed 1; fixing the thresholds at the default failed 1.
+
+issues:
+- Nothing composes any of this yet. `PollLoop`, `TranscriptActivity`, `AlertStateStore` and
+  `AlertEngine` all exist and are tested, but no entry point constructs them together and none of
+  the delegates the loop takes has a real producer. That is Phase 6's first job whatever the gate
+  decides, and it is the last remaining wire.
+- `PollSignals.PowerConstrained` and `SinceUserOpenedPanel` still have no producers. Both need
+  the shell — battery state is Win32 and the panel does not exist yet — so unlike the transcript
+  signal they could not have been closed here. Two of the five cadence rows therefore remain
+  unexercised in a running app.
+- `AlertStateStore` still has no `DefaultPath`, carried from the 5.5 checkpoint. Where app state
+  lives on disk is 6.2's question.
