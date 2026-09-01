@@ -85,21 +85,24 @@ Highest risk in the project. It goes first, it goes alone, and every task here t
       the same objection that made the Messages-API fallback a non-goal. The decision, its
       reasoning, and what would reopen it are recorded in `plan.md`. Removes the shellout and its
       two risk rows; 3.7 is cut to a fence test.
-- [ ] 3.2 Test: `FileCredentialProvider` reads `claudeAiOauth.accessToken`, a bare root
+- [x] 3.2 Test: `FileCredentialProvider` reads `claudeAiOauth.accessToken`, a bare root
       `accessToken`, and returns null for a missing or malformed file. Never logs the token.
-- [ ] 3.3 Implement `FileCredentialProvider`.
-- [ ] 3.4 Test: `expiresAt` in seconds and in milliseconds both normalize correctly, split on the
+- [x] 3.3 Implement `FileCredentialProvider`.
+- [x] 3.4 Test: `expiresAt` in seconds and in milliseconds both normalize correctly, split on the
       `10_000_000_000` boundary. The live credential stores milliseconds — pin that case.
-- [ ] 3.5 Test: the watch signature over path, size and mtime changes when the file changes and
+- [x] 3.5 Test: the watch signature over path, size and mtime changes when the file changes and
       is stable when it does not.
-- [ ] 3.6 Test: the two-probe check distinguishes "exists but access refused" from "absent", so
+- [x] 3.6 Test: the two-probe check distinguishes "exists but access refused" from "absent", so
       recovery advice points the right way. (AC-11)
-- [ ] 3.7 Fence test, replacing the refresh path cut by 3.1: nothing in Core starts a process.
+- [x] 3.7 Fence test, replacing the refresh path cut by 3.1: nothing in Core starts a process.
       The shellout is the kind of thing that gets reintroduced by a later contributor solving a
       symptom, so the absence is asserted rather than assumed.
-- [ ] 3.8 Test: token expiry is an ordinary expected transition, not an error branch. The
+- [x] 3.8 Test: token expiry is an ordinary expected transition, not an error branch. The
       observed token life is roughly eight hours, so an always-on app crosses it daily.
-- [C] 3.9 Checkpoint: full suite green, AC-10 and AC-11 assessed, recorded in `progress.md`.
+- [x] 3.9 Checkpoint passed 2026-08-31: `dotnet clean` then `dotnet build` and `dotnet test`
+      both green (173 tests, 0 warnings), task marks audited, AC-10 and AC-11 assessed, and the
+      result recorded in `progress.md` with five open issues. AC-11 is met in Core; AC-10 stays
+      partial until 4.4a owns the status-code mapping.
 
 ## Phase 4: Polling and state
 

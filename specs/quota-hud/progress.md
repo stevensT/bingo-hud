@@ -1,11 +1,12 @@
 # Quota HUD — Progress
 
 updated: 2026-08-30
-status: Phase 2 complete — checkpoint 2.12 passed
+status: Phase 3 complete — checkpoint 3.9 passed
 blockers: none
-next_session: Start Phase 3 at task 3.1, which is a decision rather than code — whether to
-refresh the token at all — and it blocks 3.7. Confirm reality first with `dotnet build` and
-`dotnet test`; both were green at 2.12 with 121 passing tests.
+next_session: Start Phase 4. The three policy units at 4.1, 4.2 and 4.3 are `[P]` and run
+concurrently; 4.4a is the new task covering `UsageClient` and the status-code taxonomy, and it
+has to land before `QuotaMonitor` at 4.5. Confirm reality first with `dotnet build` and
+`dotnet test`; both were green at 3.9 with 173 passing tests.
 
 ## Notes carried into execution
 
@@ -121,3 +122,53 @@ verification notes:
   silent success is the reason the contract test exists.
 - 2.11 also caught its own author: the first run failed because `limits` was missing from the
   expected list of top-level keys.
+
+### CP: Phase 3 Credentials — 2026-08-31
+tests: 173 pass / 0 fail / 0 skip
+build: pass (`dotnet clean` then `dotnet build`, 0 warnings, 0 errors)
+done: 3.1 through 3.8
+rework: none
+
+decision: 3.1 settled — Bingo never refreshes the token. Recorded in `plan.md` with its
+reasoning and with the single observation that would reopen it. The refresh task became a fence
+test instead, and two risk rows were replaced by the two risks that actually remain.
+
+criteria_assessed:
+- AC-10 (authentication failure shows a sign-in state): still partial, and for the same reason
+  as at 2.12. Phase 3 adds the front half — a missing, malformed, or tokenless credential file
+  reads as no credential, and an expired token is read normally rather than as a failure. The
+  missing piece is unchanged: nothing yet maps a status code to a `FetchOutcome`. That is task
+  4.4a.
+- AC-11 (permission denied reported differently from signed out): met in Core.
+  `CredentialProbe` distinguishes readable, absent, access-denied, and busy, and the two probes
+  exist because neither alone is conclusive — an unlistable directory raises the same exception
+  as a missing file. The wording the user sees is 7.1.
+
+issues:
+- `AuthFailureKind.SignedOut` and `PermissionDenied` still have no producer, and `Phase 3`
+  arrived at the same distinction from a different direction: `CredentialAvailability`. The two
+  enums overlap and need reconciling where a credential failure becomes a `FetchOutcome`, which
+  is Phase 4. The likely answer is that the availability values are the real ones and those two
+  `AuthFailureKind` members are redundant — but that is a decision for whoever writes the
+  mapping, not one to make in advance.
+- `ICredentialProvider` does not exist yet. The plan lists it as a seam, and its stated purpose
+  is to be the test double for `QuotaMonitor` — which does not exist either. Adding it now would
+  be an interface with one implementation and no consumer. It arrives with 4.5.
+- `CredentialAvailability` has a fourth value the plan does not mention: `Busy`, for a file held
+  exclusively by another process. Claude Code rewriting the token is exactly that, and the
+  advice it calls for — wait — is neither of the other two answers.
+- The access-denied test produces its exception by putting a directory where the file belongs,
+  which raises the same `UnauthorizedAccessException` a denying ACL raises. A real ACL denial
+  cannot be set up portably from a test. The exception path is identical; the ACL itself is
+  untested.
+- Tests that need real files write under `bin/.../test-scratch`, inside the project tree, so a
+  test run touches nothing outside it and `dotnet clean` removes any leftovers.
+
+verification notes:
+- The real credential file was never read. Its shape is known from the project's capture script,
+  and every test fixture here is written to match that shape.
+- 3.7: the fence was proved by adding a single `Process.Start` call to Core and watching the
+  test fail naming `System.Diagnostics.Process`, then removing it.
+- 3.2: the token-redaction test earns its place. A positional record generates a `ToString` that
+  prints every property, so without the override the access token would have been one
+  interpolated string away from any log line or debugger watch.
