@@ -11,7 +11,8 @@
         UseLayoutRounding="True"
         WindowStartupLocation="Manual">
     <!-- The readout arrives at 6.6; until then this is only something to drag. -->
-    <Border Background="#DD1E1E1E" CornerRadius="6" Padding="12,6">
+    <Border x:Name="Panel" Background="#DD1E1E1E" BorderBrush="Transparent" BorderThickness="1"
+            CornerRadius="6" Padding="12,6">
         <TextBlock Text="Bingo" Foreground="White" FontSize="14" />
     </Border>
 </Window>

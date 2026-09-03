@@ -1,5 +1,6 @@
 using System.Windows;
 using BingoHud.Core.Settings;
+using BingoHud.Core.Time;
 
 namespace BingoHud.App;
 
@@ -18,7 +19,10 @@ public partial class App : Application
 
         _settings = _settingsStore.Load();
 
-        MainWindow = new HudWindow(_settings.Position, position => Remember(_settings with { Position = position }));
+        MainWindow = new HudWindow(
+            _settings.Position,
+            position => Remember(_settings with { Position = position }),
+            new SystemClock());
         MainWindow.Show();
     }
 

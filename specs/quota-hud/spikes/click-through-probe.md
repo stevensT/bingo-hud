@@ -142,3 +142,8 @@ the single interop file. The low-level hook was never built and there is no reas
 Not settled here, and now owed by 6.5 before it writes code: the policy question above. The
 mechanism supports hover, dwell, and a modifier key equally; which one AC-21 actually means is
 a design choice, and the literal hover reading defeats the criterion's own purpose.
+
+Settled at 6.5, 2026-09-03: dwell. AC-21 was amended to say so, `DwellPolicy` in Core holds the
+rule, and the shell's 50 ms cursor timer feeds it. Verified on the built app by reading the
+ex-style back: click-through on arrival, solid after 600 ms at rest, click-through again on
+leaving, and still click-through after a 91 ms crossing.

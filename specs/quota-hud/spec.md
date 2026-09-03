@@ -71,8 +71,11 @@ the 5-hour and weekly windows remain, and when each resets. It answers one quest
 ### Window behaviour
 - [ ] AC-19: The HUD is frameless, always-on-top, and draggable.
 - [ ] AC-20: The HUD snaps to screen edges.
-- [ ] AC-21: The HUD is click-through when idle, so it does not intercept clicks meant for what's
-      beneath it.
+- [ ] AC-21: The HUD is click-through until the cursor has rested on it for a moment. It then
+      turns solid, visibly, and stays solid until the cursor leaves. A cursor passing over it on
+      the way to something beneath passes through, and so does a click made without pausing.
+      Amended 2026-09-03: the original "click-through when idle, clickable on hover" made the HUD
+      solid at exactly the moment someone was trying to click through it.
 - [ ] AC-22: Position, collapse preference, display direction, and threshold settings persist
       across restarts.
 - [ ] AC-23: Clicking the HUD opens a detail panel showing per-model weekly caps, exact reset

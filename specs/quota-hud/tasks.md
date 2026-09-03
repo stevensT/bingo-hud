@@ -207,7 +207,7 @@ already known-correct.
       direction, and thresholds. Testable headless, so it is not deferred into the UI. (AC-22)
 - [x] 6.3 Implement the HUD window: frameless, always-on-top, draggable. (AC-19)
 - [x] 6.4 Implement edge snapping. (AC-20)
-- [ ] 6.5 Implement click-through per the 6.1 outcome: a `DispatcherTimer` polling
+- [x] 6.5 Implement click-through per the 6.1 outcome: a `DispatcherTimer` polling
       `GetCursorPos` against the window rect toggles `WS_EX_TRANSPARENT` with `SetWindowLongPtr`;
       no hook. Explicit coverage of the enter and leave transitions. Before writing code, settle
       the policy the spike left open — literal hover makes the HUD clickable at exactly the
