@@ -205,8 +205,8 @@ already known-correct.
       before any HUD code is written. (AC-21)
 - [x] 6.2 Test + implement settings persistence in Core: position, collapse preference, display
       direction, and thresholds. Testable headless, so it is not deferred into the UI. (AC-22)
-- [ ] 6.3 Implement the HUD window: frameless, always-on-top, draggable. (AC-19)
-- [ ] 6.4 Implement edge snapping. (AC-20)
+- [x] 6.3 Implement the HUD window: frameless, always-on-top, draggable. (AC-19)
+- [x] 6.4 Implement edge snapping. (AC-20)
 - [ ] 6.5 Implement click-through per the 6.1 outcome: a `DispatcherTimer` polling
       `GetCursorPos` against the window rect toggles `WS_EX_TRANSPARENT` with `SetWindowLongPtr`;
       no hook. Explicit coverage of the enter and leave transitions. Before writing code, settle

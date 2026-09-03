@@ -1,9 +1,12 @@
 # Quota HUD — Progress
 
 updated: 2026-09-03
-status: Phase 6 in progress — 6.1 and 6.2 done
+status: Phase 6 in progress — 6.1 to 6.4 done
 blockers: none
-next_session: 6.3, the HUD window. 6.1 answered: cursor timer, no hook; see
+next_session: 6.5, click-through. Settle the hover, dwell or modifier policy and amend AC-21
+before writing code; the mechanism is decided (cursor timer, see the spike). The shell is verified by launching the built exe and reading its
+window styles and rectangle back through Win32 from PowerShell, then simulating a drag; that is
+the shell's runnable check until 6.12 records how it is assessed. 6.1 answered: cursor timer, no hook; see
 `specs/quota-hud/spikes/click-through-probe.md`. 6.2 put app state under `%LOCALAPPDATA%\Bingo`
 (`AppData.Directory`), which closes the `DefaultPath` question carried since 5.5. Confirm reality first
 with `dotnet build` and `dotnet test`; both were green at the 2026-09-03 review with 554 passing
