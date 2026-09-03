@@ -187,7 +187,7 @@ tool, or something else.
 
 ## Gate: spike outcome
 
-- [C] G.1 Read the result recorded in `specs/quota-hud/spikes/statusline-probe.md` and decide
+- [x] G.1 Read the result recorded in `specs/quota-hud/spikes/statusline-probe.md` and decide
       what Phase 6 actually is, before spending anything on it. The three outcomes in that
       document's decision table lead to: build the HUD as specified; cut it to a
       notification-only tool; or reconsider the readout premise entirely. Record the decision and

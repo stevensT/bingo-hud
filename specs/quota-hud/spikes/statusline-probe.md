@@ -143,6 +143,38 @@ The failure mode is worth keeping in mind beyond this spike: an absolute path in
 outside the repository is invisible to every check the project runs, and a silent renderer gives
 back no signal that it has stopped.
 
+**2026-09-03 — a second usage readout was on screen the whole time. The window restarts again.**
+
+The probe was confirmed rendering on this machine today, by running the script by hand. The same
+check found that the CodeZeno taskbar widget — the first of the three prior-art tools in
+`docs/research/usage-monitor-teardown.md` — had been running on both machines for most of the
+project, including every day the spike has counted so far. It was closed today.
+
+Two consequences. The status line was never the only number on screen, so nothing observed
+before today can be attributed to it; the observation window starts 2026-09-03. And the widget
+is the always-visible form this spike explicitly cannot test, lived with for weeks: whether it
+ever changed a decision, or faded into the taskbar, is direct evidence for the decision table
+and should be recorded here before the gate is read.
+
+The owner's account, given the same day: it was looked at often, and it drove coding sessions
+across every project, not only this one. Approaching a limit, the session was wrapped up rather
+than left to run into a rate-limited window. That is the first row of the decision table —
+looked at, and it changed real decisions, repeatedly — and it was observed over weeks of an
+always-visible readout rather than the status line's one week of a readout visible only while
+Claude Code is on screen. The narrower question the first row leaves open, whether the readout
+is wanted when Claude Code is not on screen, is answered by the same evidence: the widget lived
+on the taskbar, not inside the terminal.
+
+One detail settles the last objection, that a taskbar widget had already proved sufficient and
+the floating window might be more than the evidence supports: the desktop's taskbar is set to
+auto-hide, so the widget there was only visible when summoned. Wanting the number without
+summoning anything is the original motive for the project, and it is exactly what a
+taskbar-resident readout cannot provide.
+
+What this does not settle is the direction label (AC-2b). The widget shows an unlabelled
+percentage, and the probe still renders a bare `41%`; whether either was ever misread is the
+one question the restarted status line week can still answer.
+
 ## Result
 
 _Open. Nothing to record yet._

@@ -1,12 +1,11 @@
 # Quota HUD — Progress
 
-updated: 2026-08-30
-status: Phase 3 complete — checkpoint 3.9 passed
+updated: 2026-09-03
+status: Gate G.1 passed — Phase 6 (Shell) may start
 blockers: none
-next_session: Start Phase 4. The three policy units at 4.1, 4.2 and 4.3 are `[P]` and run
-concurrently; 4.4a is the new task covering `UsageClient` and the status-code taxonomy, and it
-has to land before `QuotaMonitor` at 4.5. Confirm reality first with `dotnet build` and
-`dotnet test`; both were green at 3.9 with 173 passing tests.
+next_session: Start Phase 6 at 6.1, the click-through spike, in task order. Confirm reality first
+with `dotnet build` and `dotnet test`; both were green at the 2026-09-03 review with 554 passing
+tests. The status line probe stays up for the AC-2b label question and closes at 7.2.
 
 ## Notes carried into execution
 
@@ -428,6 +427,34 @@ issues:
   unexercised in a running app.
 - `AlertStateStore` still has no `DefaultPath`, carried from the 5.5 checkpoint. Where app state
   lives on disk is 6.2's question.
+
+### Gate G.1: spike outcome — 2026-09-03
+decision: build Phase 6 as specified, in the order written.
+evidence: the first row of the spike's decision table, but not from the spike's own instrument.
+See the 2026-09-03 finding in `specs/quota-hud/spikes/statusline-probe.md`.
+
+reasoning:
+- The status line probe turned out never to have been the only readout on screen. The CodeZeno
+  taskbar widget from the prior-art teardown had been running on both machines for most of the
+  project, and was closed today. Its weeks of use are the always-visible experiment the spike
+  said it could not run: looked at often, and it drove session decisions on every project —
+  wrapping up before a limit rather than running into a rate-limited window.
+- The first row's residual question, whether the readout is wanted when Claude Code is off
+  screen, is answered by where the widget lived: the taskbar, not the terminal.
+- The objection that a taskbar widget had therefore already proved sufficient, and that the
+  frameless topmost window carrying most of Phase 6's risk was more than the evidence reached,
+  was raised and answered. The desktop's taskbar auto-hides, so that widget was only visible
+  when summoned. A number that is there without summoning anything is the project's original
+  motive, and no taskbar-resident shape can give it.
+- A reordering that would have landed the tray shape before the floating window was offered
+  and declined for the same reason: the taskbar form is already known, and seeing the on-screen
+  form is the point.
+
+still open:
+- The spike stays running. Its one remaining question is AC-2b: whether an unlabelled
+  percentage is ever misread. The observation window restarted today and closes at 7.2.
+- Nothing since Phase 5a has changed the three composition issues carried from that checkpoint.
+  They are Phase 6's first job.
 
 ### Review: complexity pass over Phases 5 and 5a — 2026-09-03
 tests: 554 pass / 0 fail / 0 skip (down from 556: the two `Prune` tests went with the method)
