@@ -428,3 +428,31 @@ issues:
   unexercised in a running app.
 - `AlertStateStore` still has no `DefaultPath`, carried from the 5.5 checkpoint. Where app state
   lives on disk is 6.2's question.
+
+### Review: complexity pass over Phases 5 and 5a — 2026-09-03
+tests: 554 pass / 0 fail / 0 skip (down from 556: the two `Prune` tests went with the method)
+build: pass (0 warnings, 0 errors)
+
+A review pass looking only for unneeded code, run against the diff of the last five commits.
+Seven findings; four applied, three declined.
+
+applied:
+- `AlertStateStore.Prune` and the matching interface member were removed. Nothing in production
+  called it — the constructor already drops reset windows on load with the same predicate — so
+  the 5.5 record above describing "the plan's `Prune` seam" given "a real caller" no longer
+  applies. The plan's interface sketch was updated to match.
+- The alert file is now a bare JSON array of keys rather than an object with a `fired` property.
+  The wrapper existed only to leave room for fields nobody had asked for; the shape can change
+  the day one does, at the same cost as now, and no file exists in the wild yet.
+- `TranscriptActivity` no longer sets `IgnoreInaccessible = true`, which is the default for
+  `EnumerationOptions`. The comment explaining why skipping is wanted stayed.
+- `TranscriptActivity.SinceLastWrite` uses a nullable `Max` instead of a `DateTime.MinValue`
+  sentinel checked twice. Same behaviour, one way of saying "empty".
+
+declined:
+- Deleting `IAlertStateStore` as an interface with one shipping implementation. The in-memory
+  test double is a real second implementation, and replacing it with temp files would make the
+  engine tests touch disk. Same reasoning the plan gives for `ICredentialProvider`.
+- Replacing the loop's three alert parameters with a single after-poll callback. Cleaner, but
+  5a.2 settled that the loop connects the engine, and the manual-refresh alert test leans on it.
+- Inlining the single-use transcript pattern constant. Three lines; not worth the diff.
