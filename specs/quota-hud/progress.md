@@ -1,9 +1,10 @@
 # Quota HUD — Progress
 
 updated: 2026-09-03
-status: Gate G.1 passed — Phase 6 (Shell) may start
+status: Phase 6 in progress — 6.1 done
 blockers: none
-next_session: Start Phase 6 at 6.1, the click-through spike, in task order. Confirm reality first
+next_session: 6.2, settings persistence in Core. 6.1 answered: cursor timer, no hook; see
+`specs/quota-hud/spikes/click-through-probe.md`. Its probe code is deleted once committed. Confirm reality first
 with `dotnet build` and `dotnet test`; both were green at the 2026-09-03 review with 554 passing
 tests. The status line probe stays up for the AC-2b label question and closes at 7.2.
 

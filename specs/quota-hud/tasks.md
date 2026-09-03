@@ -198,7 +198,7 @@ tool, or something else.
 Everything Windows-specific is concentrated here, deliberately, so that what it renders is
 already known-correct.
 
-- [ ] 6.1 Timeboxed spike: prove that click-through and clickability can coexist. A window with
+- [x] 6.1 Timeboxed spike: prove that click-through and clickability can coexist. A window with
       `WS_EX_TRANSPARENT` receives no mouse input, so it cannot observe the hover that would
       toggle hit-testing back on. Establish whether a cursor-position timer or a low-level mouse
       hook is required, and write down which. If neither works cleanly, AC-21 needs amending
@@ -207,8 +207,12 @@ already known-correct.
       direction, and thresholds. Testable headless, so it is not deferred into the UI. (AC-22)
 - [ ] 6.3 Implement the HUD window: frameless, always-on-top, draggable. (AC-19)
 - [ ] 6.4 Implement edge snapping. (AC-20)
-- [ ] 6.5 Implement click-through per the 6.1 outcome, with explicit coverage of the enter and
-      leave transitions. (AC-21)
+- [ ] 6.5 Implement click-through per the 6.1 outcome: a `DispatcherTimer` polling
+      `GetCursorPos` against the window rect toggles `WS_EX_TRANSPARENT` with `SetWindowLongPtr`;
+      no hook. Explicit coverage of the enter and leave transitions. Before writing code, settle
+      the policy the spike left open — literal hover makes the HUD clickable at exactly the
+      moment someone is trying to click through it, so choose between hover, dwell, and a
+      modifier key, and amend AC-21 to say which. (AC-21)
 - [ ] 6.6 Implement the readout: both windows, percentage labelled with its direction, reset
       alongside on the same line. (AC-1, AC-2, AC-2a, AC-2b, AC-3)
 - [ ] 6.7 Implement collapse behaviour: default shows both windows; when enabled, show only the
