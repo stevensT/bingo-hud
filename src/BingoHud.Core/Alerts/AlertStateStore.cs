@@ -32,7 +32,8 @@ public sealed class AlertStateStore : IAlertStateStore
     private readonly HashSet<AlertKey> _fired;
 
     /// <summary>
-    /// Loads the file, dropping anything whose window has already reset.
+    /// Loads the file, dropping anything whose window has already reset. An alert is kept right
+    /// up to its reset instant, since the window is still current until then.
     ///
     /// <para>
     /// Pruning on load is what keeps the file bounded without anything having to own a timer for
@@ -61,28 +62,13 @@ public sealed class AlertStateStore : IAlertStateStore
         }
     }
 
-    /// <summary>
-    /// Forgets alerts for windows that reset before the given instant. An alert is kept right up
-    /// to its reset instant, since the window is still current until then.
-    /// </summary>
-    public void Prune(DateTimeOffset before)
-    {
-        if (_fired.RemoveWhere(key => key.ResetsAt < before) > 0)
-        {
-            Save();
-        }
-    }
-
-    /// <summary>The file's shape. An object rather than a bare array, so it has somewhere to grow.</summary>
-    private sealed record StoredState(List<AlertKey>? Fired);
-
     private static HashSet<AlertKey> Load(string path)
     {
         try
         {
-            var state = JsonSerializer.Deserialize<StoredState>(File.ReadAllText(path), Format);
-
-            return state?.Fired is { } fired ? [.. fired] : [];
+            return JsonSerializer.Deserialize<List<AlertKey>>(File.ReadAllText(path), Format) is { } fired
+                ? [.. fired]
+                : [];
         }
         catch (Exception e) when (e is IOException or UnauthorizedAccessException
             or NotSupportedException or ArgumentException or JsonException)
@@ -97,7 +83,7 @@ public sealed class AlertStateStore : IAlertStateStore
     {
         try
         {
-            File.WriteAllText(_path, JsonSerializer.Serialize(new StoredState([.. _fired]), Format));
+            File.WriteAllText(_path, JsonSerializer.Serialize(_fired, Format));
         }
         catch (Exception e) when (e is IOException or UnauthorizedAccessException
             or NotSupportedException or ArgumentException)

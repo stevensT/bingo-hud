@@ -80,7 +80,7 @@ public class AlertStateStoreTests
 
         Assert.Contains("WeeklyAll", written);
         using var document = JsonDocument.Parse(written);
-        Assert.Equal(JsonValueKind.Array, document.RootElement.GetProperty("fired").ValueKind);
+        Assert.Equal(JsonValueKind.Array, document.RootElement.ValueKind);
     }
 
     [Fact]
@@ -92,36 +92,6 @@ public class AlertStateStoreTests
         Store(path).MarkFired(Key(resetsAt: Reset));
 
         Assert.True(Store(path).HasFired(Key(resetsAt: Reset.ToUniversalTime())));
-    }
-
-    [Fact]
-    public void PruningDropsAlertsForWindowsThatHaveAlreadyReset()
-    {
-        using var directory = new TempDirectory();
-        var store = Store(directory.PathTo("alerts.json"));
-
-        var over = Key(resetsAt: Reset);
-        var current = Key(resetsAt: Reset.AddHours(5));
-        store.MarkFired(over);
-        store.MarkFired(current);
-
-        store.Prune(before: Reset.AddMinutes(1));
-
-        Assert.False(store.HasFired(over));
-        Assert.True(store.HasFired(current));
-    }
-
-    [Fact]
-    public void PruningIsWrittenOutSoTheFileDoesNotGrowForever()
-    {
-        using var directory = new TempDirectory();
-        var path = directory.PathTo("alerts.json");
-        var store = Store(path);
-        store.MarkFired(Key());
-
-        store.Prune(before: Reset.AddMinutes(1));
-
-        Assert.False(Store(path).HasFired(Key()));
     }
 
     [Fact]

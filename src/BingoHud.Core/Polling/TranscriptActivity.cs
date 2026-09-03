@@ -27,14 +27,10 @@ public sealed class TranscriptActivity(string projectsPath, IClock clock)
     /// </summary>
     private const string TranscriptPattern = "*.jsonl";
 
-    private static readonly EnumerationOptions Enumeration = new()
-    {
-        RecurseSubdirectories = true,
-
-        // A folder being written as it is walked, or one the user cannot read, is not a reason
-        // to fail. The answer is allowed to be approximate; it is a scheduling hint.
-        IgnoreInaccessible = true,
-    };
+    // Inaccessible folders are skipped by default, which is wanted: one being written as it is
+    // walked, or one the user cannot read, is not a reason to fail. The answer is a scheduling
+    // hint and is allowed to be approximate.
+    private static readonly EnumerationOptions Enumeration = new() { RecurseSubdirectories = true };
 
     /// <summary>Where Claude Code keeps its transcripts: one folder per project.</summary>
     public static string DefaultPath => Path.Combine(
@@ -53,15 +49,14 @@ public sealed class TranscriptActivity(string projectsPath, IClock clock)
     /// </summary>
     public TimeSpan? SinceLastWrite()
     {
-        DateTime newest;
+        DateTime? newest;
 
         try
         {
+            // Max over a nullable is null for an empty directory, which is exactly "no evidence".
             newest = Directory
                 .EnumerateFiles(projectsPath, TranscriptPattern, Enumeration)
-                .Select(File.GetLastWriteTimeUtc)
-                .DefaultIfEmpty(DateTime.MinValue)
-                .Max();
+                .Max(file => (DateTime?)File.GetLastWriteTimeUtc(file));
         }
         catch (Exception e) when (e is IOException or UnauthorizedAccessException
             or NotSupportedException or ArgumentException)
@@ -69,12 +64,12 @@ public sealed class TranscriptActivity(string projectsPath, IClock clock)
             return null;
         }
 
-        if (newest == DateTime.MinValue)
+        if (newest is not { } written)
         {
             return null;
         }
 
-        var since = clock.Now.UtcDateTime - newest;
+        var since = clock.Now.UtcDateTime - written;
 
         // Clock skew and restored backups both put a file in the future. Left negative, the span
         // would satisfy every comparison in the cadence table and pin Bingo to its fastest

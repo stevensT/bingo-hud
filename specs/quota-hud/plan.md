@@ -247,7 +247,7 @@ a number, and add load to the very limit that caused the failure.
 interface IClock               { DateTimeOffset Now { get; } }
 interface ICredentialProvider  { Task<Credential?> GetAsync(CancellationToken ct); }
 interface IUsageClient         { Task<FetchOutcome> FetchAsync(Credential c, CancellationToken ct); }
-interface IAlertStateStore     { bool HasFired(AlertKey k); void MarkFired(AlertKey k); void Prune(DateTimeOffset before); }
+interface IAlertStateStore     { bool HasFired(AlertKey k); void MarkFired(AlertKey k); }
 interface INotifier            { void Raise(Severity s, string title, string body); }
 
 static class PollPolicy        { static (TimeSpan Delay, string Reason) NextDelay(PollSignals s); }

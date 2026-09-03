@@ -17,10 +17,4 @@ public interface IAlertStateStore
 
     /// <summary>Records that this alert has fired and must not fire again.</summary>
     void MarkFired(AlertKey key);
-
-    /// <summary>
-    /// Forgets alerts for windows that reset before the given instant, so the record does not
-    /// accumulate occurrences that can never recur.
-    /// </summary>
-    void Prune(DateTimeOffset before);
 }
