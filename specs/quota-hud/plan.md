@@ -158,6 +158,13 @@ record PollSignals(
     TimeSpan? ServerRetryAfter);
 
 record AlertKey(WindowKind Kind, int ThresholdPercent, DateTimeOffset ResetsAt);
+
+// AC-22. One plain-JSON file under %LOCALAPPDATA%\Bingo, next to the alert state. Position is
+// null until the user has placed the HUD; a missing key loads as its default without resetting
+// the rest, so a file written by an older version survives an upgrade.
+enum DisplayDirection { Consumed, Remaining }
+record HudPosition(double Left, double Top);
+record UserSettings(HudPosition? Position, bool Collapse, DisplayDirection Direction, Thresholds Thresholds);
 ```
 
 `Freshness.Frozen` is the AC-13 case: a reading that can no longer be refreshed. It stays on
@@ -248,6 +255,7 @@ interface IClock               { DateTimeOffset Now { get; } }
 interface ICredentialProvider  { Task<Credential?> GetAsync(CancellationToken ct); }
 interface IUsageClient         { Task<FetchOutcome> FetchAsync(Credential c, CancellationToken ct); }
 interface IAlertStateStore     { bool HasFired(AlertKey k); void MarkFired(AlertKey k); }
+class SettingsStore            { UserSettings Load(); bool Save(UserSettings s); }
 interface INotifier            { void Raise(Severity s, string title, string body); }
 
 static class PollPolicy        { static (TimeSpan Delay, string Reason) NextDelay(PollSignals s); }

@@ -52,6 +52,8 @@ public sealed class AlertStateStore : IAlertStateStore
         }
     }
 
+    public static string DefaultPath => Path.Combine(AppData.Directory, "alerts.json");
+
     public bool HasFired(AlertKey key) => _fired.Contains(key);
 
     public void MarkFired(AlertKey key)

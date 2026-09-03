@@ -203,7 +203,7 @@ already known-correct.
       toggle hit-testing back on. Establish whether a cursor-position timer or a low-level mouse
       hook is required, and write down which. If neither works cleanly, AC-21 needs amending
       before any HUD code is written. (AC-21)
-- [ ] 6.2 Test + implement settings persistence in Core: position, collapse preference, display
+- [x] 6.2 Test + implement settings persistence in Core: position, collapse preference, display
       direction, and thresholds. Testable headless, so it is not deferred into the UI. (AC-22)
 - [ ] 6.3 Implement the HUD window: frameless, always-on-top, draggable. (AC-19)
 - [ ] 6.4 Implement edge snapping. (AC-20)

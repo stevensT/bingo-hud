@@ -1,10 +1,11 @@
 # Quota HUD — Progress
 
 updated: 2026-09-03
-status: Phase 6 in progress — 6.1 done
+status: Phase 6 in progress — 6.1 and 6.2 done
 blockers: none
-next_session: 6.2, settings persistence in Core. 6.1 answered: cursor timer, no hook; see
-`specs/quota-hud/spikes/click-through-probe.md`. Its probe code is deleted once committed. Confirm reality first
+next_session: 6.3, the HUD window. 6.1 answered: cursor timer, no hook; see
+`specs/quota-hud/spikes/click-through-probe.md`. 6.2 put app state under `%LOCALAPPDATA%\Bingo`
+(`AppData.Directory`), which closes the `DefaultPath` question carried since 5.5. Confirm reality first
 with `dotnet build` and `dotnet test`; both were green at the 2026-09-03 review with 554 passing
 tests. The status line probe stays up for the AC-2b label question and closes at 7.2.
 
