@@ -10,6 +10,26 @@
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
     <UseWPF>true</UseWPF>
+    <!-- For NotifyIcon alone. Windows has no WPF notification-area control, and the two
+         alternatives are a NuGet dependency or several hundred lines of Shell_NotifyIcon
+         plumbing with a message-only window to receive its callbacks. This is the boring one.
+         Weigh the added assemblies against the publish shape when BV.3 settles packaging. -->
+    <UseWindowsForms>true</UseWindowsForms>
+    <ApplicationIcon>Assets\bingo.ico</ApplicationIcon>
   </PropertyGroup>
+
+  <ItemGroup>
+    <!-- Also embedded, so the tray can load it without depending on where the exe sits. -->
+    <Resource Include="Assets\bingo.ico" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- Enabling Windows Forms adds these to every file implicitly, where they collide with the
+         WPF types of the same names: Application, Brush, Color, Point, Size. This is a WPF app
+         that borrows one Windows Forms control, so the WPF meaning is the one that should win
+         everywhere, and the borrowed types are named in full at the one place they are used. -->
+    <Using Remove="System.Windows.Forms" />
+    <Using Remove="System.Drawing" />
+  </ItemGroup>
 
 </Project>

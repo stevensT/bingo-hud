@@ -28,6 +28,7 @@ public partial class App : Application
     private QuotaMonitor? _monitor;
     private DetailPanelWindow? _panel;
     private DateTimeOffset? _panelOpenedAt;
+    private TrayIcon? _tray;
 
     protected override void OnStartup(StartupEventArgs e)
     {
@@ -75,12 +76,21 @@ public partial class App : Application
             ReadoutLines,
             OpenPanel);
         MainWindow.Show();
+
+        // The tray is the only route to the collapse and direction settings, and the only way to
+        // quit: the HUD is frameless and has no close button by design (AC-19).
+        _tray = new TrayIcon(
+            settings: () => _settings,
+            change: Remember,
+            openPanel: OpenPanel,
+            quit: Shutdown);
     }
 
     protected override void OnExit(ExitEventArgs e)
     {
         // A fetch in flight is abandoned rather than awaited. Nobody will see its reading.
         _shutdown.Cancel();
+        _tray?.Dispose();
         _http.Dispose();
         base.OnExit(e);
     }
@@ -158,6 +168,10 @@ public partial class App : Application
         return Readout.Lines(_monitor.Current, _settings, _clock.Now);
     }
 
+    /// <summary>
+    /// Applies a settings change and writes it down (AC-22). The HUD and panel both re-read
+    /// once a second, so a change made from the tray shows up without anything being told.
+    /// </summary>
     // deferred: a failed save is dropped on the floor here. The settings still apply for this
     // session. The panel now exists to carry the news, but it has no place to put it until
     // 7.1 writes the copy for states like this one.

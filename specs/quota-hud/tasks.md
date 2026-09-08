@@ -221,7 +221,7 @@ already known-correct.
       app version, and last successful poll time. Per-model caps have been null on every capture
       so far, so the empty state is the common case and must be designed, not an afterthought.
       (AC-23, AC-24)
-- [ ] 6.9 Implement the tray icon and menu.
+- [x] 6.9 Implement the tray icon and menu.
 - [ ] 6.10 Wire toasts to `AlertEngine`. (AC-14)
 - [ ] 6.11 Confirm all P/Invoke lives in one file and nothing else in `App` calls into Win32.
 - [C] 6.12 Checkpoint: full suite green, build green, AC-1 through AC-3, AC-7, AC-19 through
