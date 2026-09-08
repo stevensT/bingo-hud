@@ -27,19 +27,29 @@ namespace BingoHud.App;
 public sealed class TrayIcon : IDisposable
 {
     private readonly Forms.NotifyIcon _icon;
+    private readonly Forms.ToolStripMenuItem _mute;
+    private readonly Func<bool> _canMute;
     private readonly Forms.ToolStripMenuItem _collapse;
     private readonly Forms.ToolStripMenuItem _remaining;
 
     /// <param name="settings">The settings as they stand, read whenever the menu opens.</param>
     /// <param name="change">Applies and persists a change the user made from the menu.</param>
     /// <param name="openPanel">Opens the detail panel.</param>
+    /// <param name="mute">
+    /// Silences the current occurrence of every window (AC-18). Returns false when there is no
+    /// reading yet and so nothing to silence.
+    /// </param>
+    /// <param name="canMute">Whether there is a reading to silence yet.</param>
     /// <param name="quit">Ends the application.</param>
     public TrayIcon(
         Func<Core.Settings.UserSettings> settings,
         Action<Core.Settings.UserSettings> change,
         Action openPanel,
+        Func<bool> mute,
+        Func<bool> canMute,
         Action quit)
     {
+        _canMute = canMute;
         _collapse = new Forms.ToolStripMenuItem("Collapse to one line") { CheckOnClick = true };
         _collapse.Click += (_, _) => change(settings() with { Collapse = _collapse.Checked });
 
@@ -51,11 +61,18 @@ public sealed class TrayIcon : IDisposable
                 : Core.Settings.DisplayDirection.Consumed,
         });
 
+        // Muting cannot be indefinite by design: it records every threshold as already fired for
+        // the occurrence on screen, so it lifts at the next reset on its own. A quota tool that
+        // could be silenced permanently would be silent on the day it mattered.
+        _mute = new Forms.ToolStripMenuItem("Mute alerts until reset", null, (_, _) => mute());
+
         var menu = new Forms.ContextMenuStrip();
         menu.Items.Add(new Forms.ToolStripMenuItem("Show details", null, (_, _) => openPanel()));
         menu.Items.Add(new Forms.ToolStripSeparator());
         menu.Items.Add(_collapse);
         menu.Items.Add(_remaining);
+        menu.Items.Add(new Forms.ToolStripSeparator());
+        menu.Items.Add(_mute);
         menu.Items.Add(new Forms.ToolStripSeparator());
         menu.Items.Add(new Forms.ToolStripMenuItem("Quit Bingo", null, (_, _) => quit()));
 
@@ -67,6 +84,10 @@ public sealed class TrayIcon : IDisposable
             var current = settings();
             _collapse.Checked = current.Collapse;
             _remaining.Checked = current.Direction == Core.Settings.DisplayDirection.Remaining;
+
+            // Nothing to silence before the first reading, and an item that appears to work and
+            // does nothing is worse than one that is visibly unavailable.
+            _mute.Enabled = _canMute();
         };
 
         _icon = new Forms.NotifyIcon
@@ -98,6 +119,32 @@ public sealed class TrayIcon : IDisposable
         // Asked for the size the notification area wants. Left to itself the constructor takes
         // the first frame, which is not necessarily the one that will look right.
         return new System.Drawing.Icon(stream, Forms.SystemInformation.SmallIconSize);
+    }
+
+    /// <summary>
+    /// Raises a desktop notification (AC-14).
+    ///
+    /// <para>
+    /// Through the notification-area icon rather than a toast library. On Windows 10 and later
+    /// the system renders this as an ordinary toast and keeps it in the action centre, which is
+    /// what the criterion asks for, and it needs neither a package identity nor a second
+    /// dependency to do it.
+    /// </para>
+    /// <para>
+    /// Windows shows one of these at a time and will drop a second that arrives while the first
+    /// is up. Two windows can cross a threshold on the same reading, so this is a real loss —
+    /// see the deferred note at the call site.
+    /// </para>
+    /// </summary>
+    public void Notify(string title, string body, bool critical)
+    {
+        _icon.ShowBalloonTip(
+            // Windows decides how long a toast stays up; this value has been ignored since
+            // Windows Vista and is passed only because the signature demands one.
+            timeout: 10_000,
+            title,
+            body,
+            critical ? Forms.ToolTipIcon.Error : Forms.ToolTipIcon.Warning);
     }
 
     public void Dispose()

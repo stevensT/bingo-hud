@@ -31,6 +31,7 @@ public partial class App : Application
     private TrayIcon? _tray;
     private RefreshResult? _lastRefresh;
     private TranscriptActivity? _transcripts;
+    private AlertEngine? _alerts;
 
     protected override void OnStartup(StartupEventArgs e)
     {
@@ -49,27 +50,15 @@ public partial class App : Application
             _clock);
 
         _transcripts = new TranscriptActivity(TranscriptActivity.DefaultPath, _clock);
-        var alerts = new AlertEngine(new AlertStateStore(AlertStateStore.DefaultPath, _clock));
+        _alerts = new AlertEngine(new AlertStateStore(AlertStateStore.DefaultPath, _clock));
 
-        // deferred: no alert sink is supplied, so the loop evaluates nothing and the engine is
-        // never asked. That is deliberate: evaluating now would record each crossing as fired
-        // and the toasts 6.10 adds would never show for it.
         var loop = new PollLoop(
             _monitor,
             _clock,
             gatherSignals: GatherSignals,
-            alerts,
-            thresholds: () => _settings.Thresholds);
-
-        // Runs until shutdown, or until the endpoint says this account cannot use it; the loop
-        // completes normally in both cases, so there is nothing to await. Anything else that
-        // ends it is a bug, and a bug that stopped polling silently would leave the last number
-        // on screen looking alive. So it is thrown on the UI thread instead, where it ends the
-        // process with the cause attached.
-        loop.RunAsync(_shutdown.Token).ContinueWith(
-            stopped => Dispatcher.InvokeAsync(() => throw new InvalidOperationException(
-                "The poll loop stopped unexpectedly.", stopped.Exception)),
-            TaskContinuationOptions.OnlyOnFaulted);
+            _alerts,
+            thresholds: () => _settings.Thresholds,
+            onAlerts: Announce);
 
         MainWindow = new HudWindow(
             _settings.Position,
@@ -85,7 +74,24 @@ public partial class App : Application
             settings: () => _settings,
             change: Remember,
             openPanel: OpenPanel,
+            mute: Mute,
+            canMute: () => _monitor?.Current.Last is not null,
             quit: Shutdown);
+
+        // Started last, once there is somewhere for an alert to go. The first poll happens
+        // immediately, and an account already past a threshold would raise an alert from it; a
+        // notification dropped because the tray did not exist yet would be lost for good, since
+        // the engine records each crossing as fired whether or not anyone showed it.
+        //
+        // Runs until shutdown, or until the endpoint says this account cannot use it; the loop
+        // completes normally in both cases, so there is nothing to await. Anything else that
+        // ends it is a bug, and a bug that stopped polling silently would leave the last number
+        // on screen looking alive. So it is thrown on the UI thread instead, where it ends the
+        // process with the cause attached.
+        loop.RunAsync(_shutdown.Token).ContinueWith(
+            stopped => Dispatcher.InvokeAsync(() => throw new InvalidOperationException(
+                "The poll loop stopped unexpectedly.", stopped.Exception)),
+            TaskContinuationOptions.OnlyOnFaulted);
     }
 
     protected override void OnExit(ExitEventArgs e)
@@ -191,6 +197,64 @@ public partial class App : Application
         }
 
         return Readout.Lines(_monitor.Current, _settings, _clock.Now);
+    }
+
+    /// <summary>
+    /// Raises a desktop notification for each alert the engine says is due (AC-14).
+    ///
+    /// <para>
+    /// The loop runs off the UI thread, and the notification area may only be touched from the
+    /// thread that owns it, so this hops back. Core has already decided that these are due and
+    /// that each is due only once (AC-15); nothing here re-decides anything.
+    /// </para>
+    /// </summary>
+    private void Announce(IReadOnlyList<Alert> due)
+    {
+        Dispatcher.InvokeAsync(() =>
+        {
+            // One notification for the whole batch. Windows shows one at a time and drops any
+            // that arrive while it is up, so announcing them one by one loses all but the first
+            // — and the engine has already recorded every one as fired, so a lost one never
+            // comes back. Core decides the wording for one or many alike.
+            if (AlertMessage.Describe(due, _settings.Direction, _clock.Now) is not { } message)
+            {
+                return;
+            }
+
+            _tray?.Notify(
+                message.Title,
+                message.Body,
+                critical: due.Any(a => a.Severity == Severity.Critical));
+        });
+    }
+
+    /// <summary>
+    /// Silences every window's current occurrence (AC-18).
+    ///
+    /// <para>
+    /// "The current window" is read as every window on the reading rather than one of them. The
+    /// user reaching for mute is saying "not now" about the interruption, not about one of two
+    /// quotas they were not asked to choose between.
+    /// </para>
+    /// <para>
+    /// This cannot silence Bingo indefinitely, and that is the point: muting records the
+    /// thresholds as already fired for this occurrence only, so it lifts at the next reset with
+    /// no mechanism of its own to get wrong.
+    /// </para>
+    /// </summary>
+    private bool Mute()
+    {
+        if (_alerts is null || _monitor?.Current.Last is not { } snapshot)
+        {
+            return false;
+        }
+
+        foreach (var window in snapshot.Windows)
+        {
+            _alerts.Mute(window, _settings.Thresholds);
+        }
+
+        return true;
     }
 
     /// <summary>

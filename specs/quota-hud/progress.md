@@ -1,15 +1,14 @@
 # Quota HUD — Progress
 
 updated: 2026-09-07
-status: Phase 6 in progress — 6.1 to 6.9 and 6.11a done
+status: Phase 6 in progress — 6.1 to 6.11a done except 6.11
 blockers: none
-next_session: 6.10, wiring toasts to `AlertEngine`. 6.11a closed the AC-28 gap found at 6.9: the
-detail panel now has a refresh button, and a refusal says why and when the next attempt is
-possible. 6.12's list was widened to assess AC-28, which it did not name. Still open in Phase 6:
-6.10 toasts, 6.11 the P/Invoke audit. Two things about the tray are worth knowing before 6.10:
-Windows 11 puts every new tray icon in the hidden overflow, so the user has to promote it
-themselves, and `AC-18`'s mute has no menu entry yet because nothing raises an alert until 6.10.
-Green at 686 tests. Earlier notes
+next_session: 6.11, the P/Invoke audit, then the 6.12 checkpoint. 6.10 wired toasts and brought in
+the mute entry deferred from 6.9, so every cadence signal but battery now has a producer and every
+Phase 6 acceptance criterion has a route in the product. One open naming question: notifications
+show the sender as "BingoHud.App", the assembly name, rather than "Bingo" — see the 6.10 record.
+Windows 11 still puts every new tray icon in the hidden overflow, which is a setup note for the
+README rather than a defect. Green at 698 tests. Earlier notes
 from 6.6 follow:
 `App` now composes the credential provider, usage client, monitor, transcript activity, alert
 engine and poll loop, and the HUD re-reads the monitor once a second. Every word on the HUD is
@@ -23,7 +22,7 @@ Win32 from PowerShell, and capturing it to a PNG; that is the shell's runnable c
 records how it is assessed. 6.1 answered: cursor timer, no hook; see
 `specs/quota-hud/spikes/click-through-probe.md`. 6.2 put app state under `%LOCALAPPDATA%\Bingo`
 (`AppData.Directory`). Confirm reality first with `dotnet build` and `dotnet test`; both were
-green at the end of 6.11a with 686 passing tests. The status line probe stays up for the AC-2b
+green at the end of 6.10 with 698 passing tests. The status line probe stays up for the AC-2b
 label question and closes at 7.2. `Readout.Lines` takes the monitor's `ReadingState` and returns
 no lines unless the reading is fresh, so a stale or frozen number never sits on screen next to a
 moving countdown; 7.1 gives those states words and AC-8 its age line. See the 6.6 review record
@@ -513,6 +512,47 @@ declined:
 - Replacing the loop's three alert parameters with a single after-poll callback. Cleaner, but
   5a.2 settled that the loop connects the engine, and the manual-refresh alert test leans on it.
 - Inlining the single-use transcript pattern constant. Three lines; not worth the diff.
+
+### Task 6.10: toasts and mute — 2026-09-07
+
+The seam was already there: the loop hands alerts to a delegate and `Alert` deliberately carries
+no wording, so this was two pieces — the words, in Core, and a sink in the shell. The sink is the
+notification-area icon rather than a toast library. On Windows 10 and later the system renders a
+balloon tip as an ordinary toast and keeps it in the action centre, which is what AC-14 asks for,
+without a package identity or a second dependency.
+
+Verified by forcing a real crossing rather than by reasoning about one: the warning line was moved
+to 90% remaining in the real settings file, which any used window crosses, and the screen corner
+was photographed once a second. Both state files were backed up and restored afterwards.
+
+That is how the one real defect was found. With both windows crossing on the same reading, Windows
+showed the first notification and silently dropped the second, while the engine recorded both as
+fired — so the second crossing was gone until the window reset, which is exactly the failure AC-14
+exists to prevent. Announcing one at a time cannot be made safe, because the engine's record and
+the user's screen disagree the moment a toast is dropped. The batch is now one notification:
+"2 windows running low", with a line naming each. Confirmed by photograph, both windows present.
+
+An ordering bug found by reading: the loop was started before the tray existed, so an account
+already past a threshold on launch would have raised its first alert into nothing. The loop now
+starts last.
+
+Mute (AC-18) came here rather than staying in 6.9, because a menu item with no observable effect
+is a trap and nothing raised an alert until now. "The current window" is read as every window on
+the reading: a user reaching for mute is saying "not now" about the interruption, not choosing
+between two quotas they were not asked about. It is disabled until there is a reading to silence.
+Verified by driving the tray menu: clicking it wrote all four threshold keys, both windows at both
+lines, into the alert store.
+
+Open, and a naming decision rather than a defect: the notification names its sender
+"BingoHud.App", which is the assembly name. Windows takes it from the executable when an app has
+no registered identity. Fixing it means either renaming the assembly to `Bingo` — which changes
+the exe name, the publish paths, and what BV.3 measures — or registering an application user
+model id with a Start Menu shortcut. Both are Trevor's call.
+
+Worth recording about the verification itself: UI Automation cannot see the toast surface, so the
+first run reported no notification when one had in fact appeared. Screenshots settled it. Tray
+menu automation is also flaky across runs, because an icon flyout left open reports coordinates
+for a surface that no longer takes clicks; toggling it shut and open again forces a real one.
 
 ### Task 6.11a: the manual refresh control — 2026-09-07
 
