@@ -249,4 +249,33 @@ public class PanelReadoutTests
         Assert.Empty(content.Windows);
         Assert.Empty(content.PerModelCaps);
     }
+
+    // ---- Manual refresh (AC-28) ----
+
+    [Fact]
+    public void ThePanelSaysNothingAboutRefreshBeforeOneIsAsked()
+    {
+        Assert.Null(Compose(Reading(Snapshot(Window(WindowKind.Session, 12)))).RefreshNotice);
+    }
+
+    [Fact]
+    public void ARefusedRefreshIsReportedOnThePanel()
+    {
+        // The panel is where the button is, so it is where the answer belongs. See
+        // RefreshNoticeTests for the wording itself.
+        var refused = new RefreshResult.Refused(
+            "the panel is open", Now + TimeSpan.FromMinutes(2));
+
+        var content = PanelReadout.Compose(
+            Reading(Snapshot(Window(WindowKind.Session, 12))),
+            UserSettings.Default,
+            Version,
+            Now,
+            TwelveHour,
+            refused);
+
+        Assert.Equal(
+            "Not yet. Next attempt in 2 min, because the panel is open.",
+            content.RefreshNotice);
+    }
 }

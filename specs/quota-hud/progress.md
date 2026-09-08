@@ -1,15 +1,15 @@
 # Quota HUD — Progress
 
 updated: 2026-09-07
-status: Phase 6 in progress — 6.1 to 6.9 done
+status: Phase 6 in progress — 6.1 to 6.9 and 6.11a done
 blockers: none
-next_session: 6.10, wiring toasts to `AlertEngine`. 6.9 added the tray icon and its menu, which is
-now the only route to the collapse and direction settings and the only way to quit — the HUD no
-longer takes a taskbar button. Two things about the tray are worth knowing before 6.10 adds
-notifications: Windows 11 puts every new tray icon in the hidden overflow, so the user has to
-promote it themselves, and `AC-18`'s mute has no menu entry yet because nothing raises an alert
-until 6.10. Enabling Windows Forms for `NotifyIcon` required removing two implicit usings that
-collide with WPF. Green at 672 tests. Earlier notes
+next_session: 6.10, wiring toasts to `AlertEngine`. 6.11a closed the AC-28 gap found at 6.9: the
+detail panel now has a refresh button, and a refusal says why and when the next attempt is
+possible. 6.12's list was widened to assess AC-28, which it did not name. Still open in Phase 6:
+6.10 toasts, 6.11 the P/Invoke audit. Two things about the tray are worth knowing before 6.10:
+Windows 11 puts every new tray icon in the hidden overflow, so the user has to promote it
+themselves, and `AC-18`'s mute has no menu entry yet because nothing raises an alert until 6.10.
+Green at 686 tests. Earlier notes
 from 6.6 follow:
 `App` now composes the credential provider, usage client, monitor, transcript activity, alert
 engine and poll loop, and the HUD re-reads the monitor once a second. Every word on the HUD is
@@ -23,7 +23,7 @@ Win32 from PowerShell, and capturing it to a PNG; that is the shell's runnable c
 records how it is assessed. 6.1 answered: cursor timer, no hook; see
 `specs/quota-hud/spikes/click-through-probe.md`. 6.2 put app state under `%LOCALAPPDATA%\Bingo`
 (`AppData.Directory`). Confirm reality first with `dotnet build` and `dotnet test`; both were
-green at the end of 6.9 with 672 passing tests. The status line probe stays up for the AC-2b
+green at the end of 6.11a with 686 passing tests. The status line probe stays up for the AC-2b
 label question and closes at 7.2. `Readout.Lines` takes the monitor's `ReadingState` and returns
 no lines unless the reading is fresh, so a stale or frozen number never sits on screen next to a
 moving countdown; 7.1 gives those states words and AC-8 its age line. See the 6.6 review record
@@ -513,6 +513,34 @@ declined:
 - Replacing the loop's three alert parameters with a single after-poll callback. Cleaner, but
   5a.2 settled that the loop connects the engine, and the manual-refresh alert test leans on it.
 - Inlining the single-use transcript pattern constant. Three lines; not worth the diff.
+
+### Task 6.11a: the manual refresh control — 2026-09-07
+
+Added after 6.9 found that no Phase 6 task placed this control. The behaviour had been met and
+tested in Core since Phase 4, but AC-28 says the refresh is available from the detail panel, and
+nothing put it there. Left alone it would have reached the 6.12 checkpoint as a criterion that
+looked met in the test suite and was absent from the product. The checkpoint's own list did not
+name AC-28 either, so that was widened at the same time; fixing only the control would have left
+the gap invisible for a second time.
+
+The refusal wording is the substance of the criterion, and it lives in Core with the rest. It
+reads "Not yet. Next attempt in 4 min, because Claude Code is working." — both halves the
+criterion asks for, in one sentence. The reason comes from the cadence policy unchanged, which is
+why a test lists every reason that policy can choose: a new one worded as a noun phrase rather
+than a clause would read as nonsense mid-sentence, and this fails instead.
+
+The countdown is relative rather than a clock time. A refusal is never further off than the
+ceiling, and over that distance "in 4 min" answers the question a user actually has.
+
+A successful refresh says nothing. The age resetting to "just now" is the feedback, and a second
+line claiming success would only repeat it.
+
+Verified by driving the app: open the panel, click the button twice, photograph both. The first
+click refreshed and the age reset; the second was refused and the panel said why and when.
+
+The stock WPF button reads as a piece of another window on a dark panel, so it is templated
+rather than merely recoloured — a WPF button keeps its own light chrome on hover and press
+otherwise, and the chrome is the part that shows.
 
 ### Task 6.9: the tray icon and menu — 2026-09-07
 

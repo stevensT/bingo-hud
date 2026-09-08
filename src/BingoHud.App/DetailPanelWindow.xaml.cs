@@ -26,13 +26,39 @@ public partial class DetailPanelWindow : Window
     private static readonly Brush Dim = new SolidColorBrush(Color.FromArgb(0x99, 0xFF, 0xFF, 0xFF));
 
     private readonly Func<PanelContent> _content;
+    private readonly Func<Task> _refresh;
     private readonly DispatcherTimer _watch = new() { Interval = TimeSpan.FromSeconds(1) };
     private PanelContent? _shown;
 
-    public DetailPanelWindow(Func<PanelContent> content)
+    /// <param name="content">Everything the panel shows, composed in Core.</param>
+    /// <param name="refresh">
+    /// Asks for a refresh now (AC-28). Whether one happened is not returned: the answer shows up
+    /// in the next composed content, either as a newer reading or as a refusal that says why.
+    /// </param>
+    public DetailPanelWindow(Func<PanelContent> content, Func<Task> refresh)
     {
         InitializeComponent();
         _content = content;
+        _refresh = refresh;
+
+        Refresh.Click += async (_, _) =>
+        {
+            // Disabled only for the duration of the call. The monitor joins concurrent callers
+            // rather than starting a second fetch, so a double click is harmless; this is for
+            // the user, who otherwise gets no sign the button did anything.
+            Refresh.IsEnabled = false;
+
+            try
+            {
+                await _refresh();
+            }
+            finally
+            {
+                Refresh.IsEnabled = true;
+            }
+
+            Render();
+        };
 
         // Once a second, matching the HUD. The age and the last-poll time are the whole point of
         // this window, and a panel left open showing an age that stopped counting would be
@@ -65,6 +91,10 @@ public partial class DetailPanelWindow : Window
         PerModelCapsEmptyState.Text = content.PerModelCapsEmptyState ?? string.Empty;
         PerModelCapsEmptyState.Visibility =
             content.PerModelCapsEmptyState is null ? Visibility.Collapsed : Visibility.Visible;
+
+        RefreshNotice.Text = content.RefreshNotice ?? string.Empty;
+        RefreshNotice.Visibility =
+            content.RefreshNotice is null ? Visibility.Collapsed : Visibility.Visible;
 
         Facts.Children.Clear();
         Facts.RowDefinitions.Clear();
@@ -103,7 +133,8 @@ public partial class DetailPanelWindow : Window
         && a.Age == b.Age
         && a.LastPoll == b.LastPoll
         && a.NextPoll == b.NextPoll
-        && a.Version == b.Version;
+        && a.Version == b.Version
+        && a.RefreshNotice == b.RefreshNotice;
 
     private void Fill(Grid grid, IReadOnlyList<PanelRow> rows)
     {

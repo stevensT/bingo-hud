@@ -29,6 +29,8 @@ public partial class App : Application
     private DetailPanelWindow? _panel;
     private DateTimeOffset? _panelOpenedAt;
     private TrayIcon? _tray;
+    private RefreshResult? _lastRefresh;
+    private TranscriptActivity? _transcripts;
 
     protected override void OnStartup(StartupEventArgs e)
     {
@@ -46,7 +48,7 @@ public partial class App : Application
             new UsageClient(_http, _clock),
             _clock);
 
-        var transcripts = new TranscriptActivity(TranscriptActivity.DefaultPath, _clock);
+        _transcripts = new TranscriptActivity(TranscriptActivity.DefaultPath, _clock);
         var alerts = new AlertEngine(new AlertStateStore(AlertStateStore.DefaultPath, _clock));
 
         // deferred: no alert sink is supplied, so the loop evaluates nothing and the engine is
@@ -55,7 +57,7 @@ public partial class App : Application
         var loop = new PollLoop(
             _monitor,
             _clock,
-            gatherSignals: () => GatherSignals(transcripts),
+            gatherSignals: GatherSignals,
             alerts,
             thresholds: () => _settings.Thresholds);
 
@@ -98,12 +100,12 @@ public partial class App : Application
     /// <summary>
     /// What the machine and the user are doing, read immediately before each poll.
     /// </summary>
-    private PollSignals GatherSignals(TranscriptActivity transcripts) => new(
+    private PollSignals GatherSignals() => new(
         // deferred: battery state needs a Win32 call, so one row of the cadence table still
         // cannot be reached in the running app. Needs a task.
         PowerConstrained: false,
         SinceUserOpenedPanel: _panelOpenedAt is { } opened ? _clock.Now - opened : null,
-        SinceLocalTranscriptActivity: transcripts.SinceLastWrite());
+        SinceLocalTranscriptActivity: _transcripts?.SinceLastWrite());
 
     /// <summary>
     /// Opens the detail panel, or brings the open one forward (AC-23).
@@ -129,7 +131,7 @@ public partial class App : Application
             return;
         }
 
-        _panel = new DetailPanelWindow(CurrentPanelContent) { Owner = MainWindow };
+        _panel = new DetailPanelWindow(CurrentPanelContent, RefreshNowAsync) { Owner = MainWindow };
         _panel.Closed += (_, _) => _panel = null;
         _panel.Show();
     }
@@ -143,7 +145,30 @@ public partial class App : Application
         var state = _monitor?.Current
             ?? new ReadingState(null, Freshness.Fresh, null, TimeSpan.Zero, "not started");
 
-        return PanelReadout.Compose(state, _settings, Version, _clock.Now);
+        return PanelReadout.Compose(state, _settings, Version, _clock.Now, culture: null, _lastRefresh);
+    }
+
+    /// <summary>
+    /// Asks for a reading now, at the user's request (AC-28).
+    ///
+    /// <para>
+    /// Held to the same floor as an automatic poll, and refused when it has not elapsed. The
+    /// outcome is kept so the panel can say what happened; a refusal that vanished would leave a
+    /// button that appears to do nothing.
+    /// </para>
+    /// <para>
+    /// The signals are gathered fresh, exactly as the loop does before its own poll, so a manual
+    /// refresh is judged against the same cadence as everything else rather than a stale one.
+    /// </para>
+    /// </summary>
+    private async Task RefreshNowAsync()
+    {
+        if (_monitor is null)
+        {
+            return;
+        }
+
+        _lastRefresh = await _monitor.RefreshAsync(GatherSignals(), _shutdown.Token);
     }
 
     /// <summary>

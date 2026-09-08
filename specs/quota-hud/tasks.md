@@ -224,8 +224,16 @@ already known-correct.
 - [x] 6.9 Implement the tray icon and menu.
 - [ ] 6.10 Wire toasts to `AlertEngine`. (AC-14)
 - [ ] 6.11 Confirm all P/Invoke lives in one file and nothing else in `App` calls into Win32.
+- [x] 6.11a Place the manual refresh control in the detail panel. The behaviour is met and tested
+      in Core at 4.9; what is missing is the control and the words. A refusal must say why and
+      when the next attempt is possible, and like every other string on screen those words are
+      composed in Core rather than in the window. Added after 6.9 on finding that no Phase 6 task
+      placed this control, which would have left AC-28 unmeetable at the checkpoint below.
+      (AC-28)
 - [C] 6.12 Checkpoint: full suite green, build green, AC-1 through AC-3, AC-7, AC-19 through
-      AC-24 assessed, recorded in `progress.md`.
+      AC-24 and AC-28 assessed, recorded in `progress.md`. AC-28 added to this list at 6.11a: it
+      was met in Core from Phase 4 but had no control on screen, so assessing it here is what
+      makes the difference visible.
 
 ## Phase 7: Polish
 

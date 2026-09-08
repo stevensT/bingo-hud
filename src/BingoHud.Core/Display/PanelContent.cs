@@ -38,6 +38,11 @@ public sealed record PanelRow(string Label, string Percent, string Reset);
 /// <param name="LastPoll">When the last successful poll happened, written out in full (AC-24).</param>
 /// <param name="NextPoll">Why the next poll is scheduled when it is.</param>
 /// <param name="Version">The running build (AC-24).</param>
+/// <param name="RefreshNotice">
+/// What came of the refresh the user last asked for, or null if they have not asked or it
+/// succeeded (AC-28). A refusal is a normal outcome and has to say why and when the next attempt
+/// is possible; a success needs no words, because the age resetting is the feedback.
+/// </param>
 public sealed record PanelContent(
     IReadOnlyList<PanelRow> Windows,
     IReadOnlyList<PanelRow> PerModelCaps,
@@ -45,4 +50,5 @@ public sealed record PanelContent(
     string? Age,
     string LastPoll,
     string NextPoll,
-    string Version);
+    string Version,
+    string? RefreshNotice);

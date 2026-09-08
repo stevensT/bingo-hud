@@ -26,6 +26,41 @@
             <Setter Property="FontSize" Value="11" />
             <Setter Property="Margin" Value="0,0,0,6" />
         </Style>
+        <!-- The stock button is a light control, which on this panel reads as a piece of another
+             window. Templated rather than merely recoloured because a WPF button keeps its own
+             chrome on hover and press otherwise, and the light chrome is the part that shows. -->
+        <Style TargetType="Button">
+            <Setter Property="Foreground" Value="White" />
+            <Setter Property="Background" Value="#33FFFFFF" />
+            <Setter Property="BorderBrush" Value="#55FFFFFF" />
+            <Setter Property="BorderThickness" Value="1" />
+            <Setter Property="FontSize" Value="13" />
+            <Setter Property="Cursor" Value="Hand" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border x:Name="Chrome" Background="{TemplateBinding Background}"
+                                BorderBrush="{TemplateBinding BorderBrush}"
+                                BorderThickness="{TemplateBinding BorderThickness}"
+                                CornerRadius="4" Padding="{TemplateBinding Padding}">
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center" />
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="Chrome" Property="Background" Value="#4DFFFFFF" />
+                            </Trigger>
+                            <Trigger Property="IsPressed" Value="True">
+                                <Setter TargetName="Chrome" Property="Background" Value="#22FFFFFF" />
+                            </Trigger>
+                            <Trigger Property="IsEnabled" Value="False">
+                                <Setter TargetName="Chrome" Property="Background" Value="#1AFFFFFF" />
+                                <Setter Property="Foreground" Value="#66FFFFFF" />
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
     </Window.Resources>
     <StackPanel Margin="16,14,16,16">
         <TextBlock Text="WINDOWS" Style="{StaticResource Heading}" />
@@ -57,5 +92,13 @@
                 <ColumnDefinition Width="*" />
             </Grid.ColumnDefinitions>
         </Grid>
+
+        <!-- A manual refresh, held to the same floor as an automatic poll (AC-28). The button
+             cannot make Bingo poll faster; when it is refused it says so, and says when asking
+             again will work. -->
+        <Button x:Name="Refresh" Content="Refresh now" Margin="0,16,0,0" Padding="10,4"
+                HorizontalAlignment="Left" />
+        <TextBlock x:Name="RefreshNotice" Foreground="#99FFFFFF" TextWrapping="Wrap"
+                   Margin="0,8,0,0" />
     </StackPanel>
 </Window>

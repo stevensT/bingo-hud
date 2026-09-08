@@ -28,12 +28,16 @@ public static class PanelReadout
     /// <param name="version">The running build, which only the shell can know.</param>
     /// <param name="now">The moment of rendering, carrying the offset times are shown in.</param>
     /// <param name="culture">Whose clock conventions the times use.</param>
+    /// <param name="lastRefresh">
+    /// What came of the refresh the user last asked for, or null if they have not asked (AC-28).
+    /// </param>
     public static PanelContent Compose(
         ReadingState state,
         UserSettings settings,
         string version,
         DateTimeOffset now,
-        CultureInfo? culture = null)
+        CultureInfo? culture = null,
+        RefreshResult? lastRefresh = null)
     {
         var snapshot = state.Last;
 
@@ -62,7 +66,8 @@ public static class PanelReadout
             Age: snapshot is null ? null : Age(state.Age),
             LastPoll: snapshot is null ? "never" : ResetFormatter.Exact(snapshot.ObservedAt, now, culture),
             NextPoll: state.PollReason,
-            Version: version);
+            Version: version,
+            RefreshNotice: RefreshNotice.Describe(lastRefresh, now));
     }
 
     /// <summary>
