@@ -213,7 +213,7 @@ already known-correct.
       the policy the spike left open — literal hover makes the HUD clickable at exactly the
       moment someone is trying to click through it, so choose between hover, dwell, and a
       modifier key, and amend AC-21 to say which. (AC-21)
-- [ ] 6.6 Implement the readout: both windows, percentage labelled with its direction, reset
+- [x] 6.6 Implement the readout: both windows, percentage labelled with its direction, reset
       alongside on the same line. (AC-1, AC-2, AC-2a, AC-2b, AC-3)
 - [ ] 6.7 Implement collapse behaviour: default shows both windows; when enabled, show only the
       worst unless both are non-normal. (AC-7)

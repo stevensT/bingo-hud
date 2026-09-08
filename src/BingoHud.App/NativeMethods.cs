@@ -29,6 +29,48 @@ internal static class NativeMethods
     [DllImport("user32.dll")]
     private static extern bool GetCursorPos(out POINT lpPoint);
 
+    private const uint MONITOR_DEFAULTTONEAREST = 2;
+
+    [StructLayout(LayoutKind.Sequential)]
+    private struct MONITORINFO
+    {
+        public uint cbSize;
+        public RECT rcMonitor;
+        public RECT rcWork;
+        public uint dwFlags;
+    }
+
+    [DllImport("user32.dll")]
+    private static extern IntPtr MonitorFromPoint(POINT pt, uint dwFlags);
+
+    [DllImport("user32.dll", EntryPoint = "GetMonitorInfoW")]
+    private static extern bool GetMonitorInfo(IntPtr hMonitor, ref MONITORINFO lpmi);
+
+    /// <summary>
+    /// The work area of the monitor under the window's top-left corner, in physical pixels:
+    /// that monitor's rectangle minus the taskbar and any app bars. The nearest monitor if the
+    /// corner is on none. Null if Windows cannot say, which it can during a display change.
+    ///
+    /// <para>
+    /// The corner rather than the window, because the window is what has just changed size.
+    /// Asked by whole window, a HUD grown across the seam between two monitors would belong to
+    /// whichever held more of it, and be pulled fully onto the neighbour.
+    /// </para>
+    /// </summary>
+    public static (int Left, int Top, int Right, int Bottom)? WorkAreaAtCornerOf(IntPtr hwnd)
+    {
+        GetWindowRect(hwnd, out var r);
+        var monitor = MonitorFromPoint(new POINT { X = r.Left, Y = r.Top }, MONITOR_DEFAULTTONEAREST);
+        var info = new MONITORINFO { cbSize = (uint)Marshal.SizeOf<MONITORINFO>() };
+
+        if (monitor == IntPtr.Zero || !GetMonitorInfo(monitor, ref info))
+        {
+            return null;
+        }
+
+        return (info.rcWork.Left, info.rcWork.Top, info.rcWork.Right, info.rcWork.Bottom);
+    }
+
     /// <summary>
     /// Whether mouse input passes through the window to whatever is beneath it. Takes effect on
     /// the next click; the window needs no re-show. Proven by the click-through spike.

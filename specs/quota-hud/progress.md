@@ -1,17 +1,34 @@
 # Quota HUD — Progress
 
-updated: 2026-09-03
-status: Phase 6 in progress — 6.1 to 6.5 done
+updated: 2026-09-07
+status: Phase 6 in progress — 6.1 to 6.6 done
 blockers: none
-next_session: 6.6, the readout. This is where the shell first needs data, so it also composes
-the credential provider, usage client, monitor and poll loop in App — the last remaining wire
-carried since 5a. AC-21 was amended to dwell (400 ms) at 6.5. The shell is verified by launching the built exe and reading its
-window styles and rectangle back through Win32 from PowerShell, then simulating a drag; that is
-the shell's runnable check until 6.12 records how it is assessed. 6.1 answered: cursor timer, no hook; see
+next_session: 6.7, collapse. 6.6 landed the readout and closed the last wire carried since 5a:
+`App` now composes the credential provider, usage client, monitor, transcript activity, alert
+engine and poll loop, and the HUD re-reads the monitor once a second. Every word on the HUD is
+decided by `Readout.Lines` in Core ("5h" / "Week", "12% used" / "88% left", the reset phrase);
+the shell only places the strings, so 6.7 belongs in `Readout` too — it decides which lines are
+returned. Two cadence signals still have no producer: battery (needs a Win32 call, no task yet)
+and panel-open (arrives with 6.8). Alerts are not evaluated until 6.10 supplies a sink. The empty HUD says
+"no reading yet" for every reason until 7.1 writes the copy. AC-21 was amended to dwell (400 ms)
+at 6.5. The shell is verified by launching the built exe, reading its rectangle back through
+Win32 from PowerShell, and capturing it to a PNG; that is the shell's runnable check until 6.12
+records how it is assessed. 6.1 answered: cursor timer, no hook; see
 `specs/quota-hud/spikes/click-through-probe.md`. 6.2 put app state under `%LOCALAPPDATA%\Bingo`
-(`AppData.Directory`), which closes the `DefaultPath` question carried since 5.5. Confirm reality first
-with `dotnet build` and `dotnet test`; both were green at the 2026-09-03 review with 554 passing
-tests. The status line probe stays up for the AC-2b label question and closes at 7.2.
+(`AppData.Directory`). Confirm reality first with `dotnet build` and `dotnet test`; both were
+green at the end of 6.6 with 629 passing tests. The status line probe stays up for the AC-2b
+label question and closes at 7.2. `Readout.Lines` takes the monitor's `ReadingState` and returns
+no lines unless the reading is fresh, so a stale or frozen number never sits on screen next to a
+moving countdown; 7.1 gives those states words and AC-8 its age line. See the 6.6 review record
+below for what was fixed and what was declined.
+
+Found at 6.6, on the first launch with real numbers: the HUD is sized to its text, so it grew
+past the right edge of the primary monitor into the gap of a staggered layout — inside the
+virtual screen's bounding box and on no monitor at all, which is the exact case the deferred
+note in `HudPlacement` described. Fixed with `HudPlacement.KeepWithin` (tested) driven from
+`SizeChanged`, against the work area of the monitor the HUD is on, read through the one interop
+file. Snapping on drop and restore now uses that same monitor rather than the primary one; on a
+single monitor nothing changes.
 
 ## Notes carried into execution
 
@@ -489,3 +506,62 @@ declined:
 - Replacing the loop's three alert parameters with a single after-poll callback. Cleaner, but
   5a.2 settled that the loop connects the engine, and the manual-refresh alert test leans on it.
 - Inlining the single-use transcript pattern constant. Three lines; not worth the diff.
+
+### Review: task 6.6, the readout and the composition root — 2026-09-07
+tests: 629 pass / 0 fail / 0 skip (616 before the review; 13 added by it)
+build: pass (0 warnings, 0 errors)
+
+Four reviewers over the working tree: general, test coverage, silent failures, comment accuracy.
+Verified after the fixes by launching the exe on the staggered three-monitor desk and capturing
+the HUD: both lines, flush with the primary's right edge.
+
+fixed:
+- The two directions could disagree at a midpoint: 62.5 rounded to "63% used" and "38% left",
+  101 between them, while the comment claimed the opposite. Now rounded once and inverted as a
+  whole number; pinned at 62.5, 0 and 100.
+- The poll loop task was discarded, so any exception other than cancellation would have ended
+  polling silently and left the last number on screen with its countdown still moving. The task
+  now has a faulted continuation that rethrows on the UI thread with the cause attached; a loop
+  that stops for a reason nobody planned ends the process rather than lying.
+- `App.ReadoutLines` kept only `Current.Last`, discarding freshness, so a frozen reading after a
+  sign-out would have rendered as a plain percentage. `Readout.Lines` now takes the
+  `ReadingState` and returns nothing unless it is fresh; frozen, stale, and no-reading each have
+  a test, and a fresh reading with a transient failure beside it still shows.
+- `GetMonitorInfo`'s failure return was ignored, and a zeroed rectangle would have sent the HUD to
+  the origin on its next resize. The interop call now returns null on failure and the shell falls
+  back to the primary work area, which is what every caller used before.
+- The monitor was resolved from the whole window, so a HUD grown across a seam would belong to
+  whichever monitor held more of it and be pulled fully onto the neighbour. Resolved from the
+  top-left corner instead.
+- `Restore` never applied `KeepWithin`, so a remembered position in the gap between staggered
+  monitors passed `Fits` and restored to nowhere. It is now kept within the nearest monitor too,
+  which lifts most of the deferred note on `Fits`; the note was rewritten to say what remains.
+- Two null-forgiving operators replaced with a throw that names the precondition.
+- Comments corrected: the alert wiring evaluates nothing rather than "decides and drops" (the
+  distinction matters, since evaluating would mark crossings fired before 6.10 can toast them);
+  `EdgeSnap`'s deferred note described the primary-only area the shell no longer passes;
+  `ScreenArea` and the `HudPlacement` summary now say which rectangle each function wants; the
+  composition-root rule allows a pure policy to be newed where it is used, which `DwellPolicy`
+  already was; and a countdown example in the placement tests ran backwards.
+- Tests added: culture reaches the reset phrase through `Readout`; a snapshot with only
+  model-scoped windows yields no lines; `KeepWithin` at the left edge, wider than the area, and
+  with an unplaced position.
+
+declined or deferred:
+- A body that drops mid-read was reported as escaping the usage client's catch and stopping the
+  loop. Checked: `SendAsync` buffers the body by default, so the fault surfaces inside the
+  existing catch and is already `Transient`. The client is unchanged; the case is pinned by a
+  test so a switch to `ResponseHeadersRead` would be caught.
+- Per-monitor DPI. The app declares no DPI awareness, so the work area of a second monitor at a
+  different scale comes back off by the ratio. Marked `// deferred:` in `WorkAreaUnderHud`; a
+  PerMonitorV2 manifest verified on a mixed-DPI desk lifts it. No such desk here.
+- A stale reading shows nothing rather than its number with an age. The constitution's own
+  words ("say so and show nothing"); AC-8's age line is copy, and 7.1 owns the copy.
+- A utilization above 100 would render "-1% left". Nothing clamps, on purpose, because a clamped
+  figure is not what the server sent either; but whether to show it as reported or cap it is a
+  principle-6 call not yet made. Open for 7.1.
+- `AlertEngine` and `AlertStateStore` are constructed with nothing reading them. Kept, so 6.10
+  adds one delegate rather than rewiring the loop.
+- `_settings` is read from the poll thread without a memory barrier. Benign: the record is
+  immutable and a reference assignment is atomic, so the worst case is one poll on the previous
+  thresholds.

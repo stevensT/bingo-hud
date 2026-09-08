@@ -59,4 +59,73 @@ public class HudPlacementTests
     {
         Assert.False(HudPlacement.Fits(new HudPosition(double.NaN, 100), Width, Height, Screens));
     }
+
+    // The readout resizes the HUD as its text changes: a placeholder becomes two lines, and
+    // "resets 11:34 AM" becomes "resets Thu 11:34 AM". A HUD parked at a right or bottom edge
+    // grows past it, so after a resize it is pulled back just far enough to stay in view.
+    // KeepWithin clamps to whatever area it is given and does nothing else; in the app that
+    // area is the monitor the HUD is on. Position is not re-saved for this; only a drop is,
+    // so the user's anchor survives.
+
+    [Fact]
+    public void AHudThatStillFitsAfterGrowingIsLeftWhereItIs()
+    {
+        var position = new HudPosition(100, 100);
+
+        Assert.Equal(position, HudPlacement.KeepWithin(position, 300, 60, Screens));
+    }
+
+    [Fact]
+    public void AHudThatGrewPastTheRightEdgeIsPulledBackFlush()
+    {
+        // Parked flush right at 200 wide, then widened to 350.
+        var parked = new HudPosition(1920 - 200, 24);
+
+        Assert.Equal(new HudPosition(1920 - 350, 24), HudPlacement.KeepWithin(parked, 350, 60, Screens));
+    }
+
+    [Fact]
+    public void AHudThatGrewPastTheBottomEdgeIsPulledUpFlush()
+    {
+        var parked = new HudPosition(24, 1080 - 30);
+
+        Assert.Equal(new HudPosition(24, 1080 - 60), HudPlacement.KeepWithin(parked, 300, 60, Screens));
+    }
+
+    [Fact]
+    public void ANegativeCoordinateInsideTheAreaIsLeftAlone()
+    {
+        // Ordinary on a monitor left of the primary.
+        var position = new HudPosition(-1000, 100);
+
+        Assert.Equal(position, HudPlacement.KeepWithin(position, 300, 60, Screens));
+    }
+
+    [Fact]
+    public void AHudPastTheLeftEdgeIsPulledBackFlush()
+    {
+        Assert.Equal(
+            new HudPosition(-1920, 100),
+            HudPlacement.KeepWithin(new HudPosition(-1930, 100), 300, 60, Screens));
+    }
+
+    [Fact]
+    public void AHudWiderThanTheAreaKeepsItsLeftEdgeVisible()
+    {
+        // No position fits. The top-left corner is what the user can grab, so that is the
+        // corner that stays on screen.
+        Assert.Equal(
+            new HudPosition(-1920, 0),
+            HudPlacement.KeepWithin(new HudPosition(0, 0), 5000, 3000, Screens));
+    }
+
+    [Fact]
+    public void AnUnplacedPositionPassesThroughKeepWithin()
+    {
+        // Pinned for consistency with Fits: NaN in, NaN out, and the shell moves nothing.
+        var kept = HudPlacement.KeepWithin(new HudPosition(double.NaN, double.NaN), 300, 60, Screens);
+
+        Assert.True(double.IsNaN(kept.Left));
+        Assert.True(double.IsNaN(kept.Top));
+    }
 }

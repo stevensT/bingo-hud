@@ -10,9 +10,24 @@
         SizeToContent="WidthAndHeight"
         UseLayoutRounding="True"
         WindowStartupLocation="Manual">
-    <!-- The readout arrives at 6.6; until then this is only something to drag. -->
+    <Window.Resources>
+        <Style TargetType="TextBlock">
+            <Setter Property="Foreground" Value="White" />
+            <Setter Property="FontSize" Value="14" />
+            <Setter Property="VerticalAlignment" Value="Center" />
+        </Style>
+    </Window.Resources>
     <Border x:Name="Panel" Background="#DD1E1E1E" BorderBrush="Transparent" BorderThickness="1"
             CornerRadius="6" Padding="12,6">
-        <TextBlock Text="Bingo" Foreground="White" FontSize="14" />
+        <!-- One row per readout line: window, percent with its direction, reset. The columns
+             are shared so the figures line up whatever the window names are. Rows are built in
+             code from what Core decided; nothing here composes a string. -->
+        <Grid x:Name="Lines">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="Auto" />
+                <ColumnDefinition Width="Auto" />
+                <ColumnDefinition Width="Auto" />
+            </Grid.ColumnDefinitions>
+        </Grid>
     </Border>
 </Window>

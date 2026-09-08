@@ -17,8 +17,8 @@ public static class EdgeSnap
 {
     public const double Distance = 16;
 
-    // deferred: the area is the primary work area, so the far edges of a second monitor do not
-    // snap. Ask the monitor under the window for its own work area if that ever matters.
+    // The area is whatever the caller passes. The shell passes the work area of the monitor the
+    // HUD is on, so the far edges of a second monitor snap like the primary's.
     public static HudPosition Snap(HudPosition dropped, double width, double height, ScreenArea area)
     {
         var right = area.Left + area.Width;

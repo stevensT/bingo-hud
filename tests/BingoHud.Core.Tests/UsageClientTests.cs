@@ -131,6 +131,31 @@ public class UsageClientTests
     }
 
     [Fact]
+    public async Task ABodyThatDropsMidReadIsTransient()
+    {
+        // The headers arrived and the connection died before the body did. SendAsync buffers
+        // the whole body by default, so today the fault surfaces there and lands in the same
+        // catch as no network at all. Pinned because a switch to ResponseHeadersRead would move
+        // it to the body read, outside that catch, and the loop would stop on it.
+        var handler = new StubHttpMessageHandler(_ =>
+            new HttpResponseMessage(HttpStatusCode.OK) { Content = new DroppingContent() });
+
+        Assert.IsType<FetchOutcome.Transient>(await FetchWith(handler));
+    }
+
+    private sealed class DroppingContent : HttpContent
+    {
+        protected override Task SerializeToStreamAsync(Stream stream, TransportContext? context) =>
+            throw new HttpRequestException("The connection was closed while reading the body.");
+
+        protected override bool TryComputeLength(out long length)
+        {
+            length = 0;
+            return false;
+        }
+    }
+
+    [Fact]
     public async Task ARetryAfterInSecondsIsCarriedThrough()
     {
         var handler = new StubHttpMessageHandler(_ =>
