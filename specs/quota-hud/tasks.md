@@ -215,7 +215,7 @@ already known-correct.
       modifier key, and amend AC-21 to say which. (AC-21)
 - [x] 6.6 Implement the readout: both windows, percentage labelled with its direction, reset
       alongside on the same line. (AC-1, AC-2, AC-2a, AC-2b, AC-3)
-- [ ] 6.7 Implement collapse behaviour: default shows both windows; when enabled, show only the
+- [x] 6.7 Implement collapse behaviour: default shows both windows; when enabled, show only the
       worst unless both are non-normal. (AC-7)
 - [ ] 6.8 Implement the detail panel: per-model weekly caps, exact reset times, current status,
       app version, and last successful poll time. Per-model caps have been null on every capture

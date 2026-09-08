@@ -32,13 +32,19 @@ public class ReadoutTests
     private static ReadingState Fresh(QuotaSnapshot snapshot, FetchOutcome? lastFailure = null) =>
         new(snapshot, Freshness.Fresh, lastFailure, Age: TimeSpan.Zero, PollReason: "test");
 
+    private static UserSettings Settings(
+        DisplayDirection direction = DisplayDirection.Consumed,
+        bool collapse = false) =>
+        UserSettings.Default with { Direction = direction, Collapse = collapse };
+
     private static IReadOnlyList<ReadoutLine> Lines(
         QuotaSnapshot snapshot,
-        DisplayDirection direction = DisplayDirection.Consumed) =>
-        Readout.Lines(Fresh(snapshot), direction, Now, TwelveHour);
+        DisplayDirection direction = DisplayDirection.Consumed,
+        bool collapse = false) =>
+        Readout.Lines(Fresh(snapshot), Settings(direction, collapse), Now, TwelveHour);
 
     private static IReadOnlyList<ReadoutLine> Lines(ReadingState state) =>
-        Readout.Lines(state, DisplayDirection.Consumed, Now, TwelveHour);
+        Readout.Lines(state, Settings(), Now, TwelveHour);
 
     // ---- What may be shown at all (constitution principle 6, AC-8, AC-10, AC-13) ----
 
@@ -186,7 +192,7 @@ public class ReadoutTests
         // letting the phrase fall back to whatever the process culture happens to be.
         var snapshot = Snapshot(Window(WindowKind.WeeklyAll, 37, Now.AddDays(3).AddHours(2)));
 
-        var line = Assert.Single(Readout.Lines(Fresh(snapshot), DisplayDirection.Consumed, Now, new CultureInfo("de-DE")));
+        var line = Assert.Single(Readout.Lines(Fresh(snapshot), Settings(), Now, new CultureInfo("de-DE")));
 
         Assert.Equal("resets Do 11:34", line.Reset);
     }
@@ -237,5 +243,88 @@ public class ReadoutTests
             Window(WindowKind.WeeklyScoped, 5)));
 
         Assert.Equal(["5h", "Week"], lines.Select(line => line.Window));
+    }
+
+    // ---- Collapse (AC-7) ----
+
+    [Fact]
+    public void BothWindowsAreShownByDefault()
+    {
+        // The default is not a preference, it is the honest state: two windows exist, so two
+        // windows are named. Collapse is the user opting into less.
+        var snapshot = Snapshot(Window(WindowKind.Session, 30), Window(WindowKind.WeeklyAll, 60));
+
+        Assert.Equal(2, Lines(snapshot).Count);
+    }
+
+    [Fact]
+    public void CollapseShowsOnlyTheFullerWindowWhenBothAreNormal()
+    {
+        var snapshot = Snapshot(Window(WindowKind.Session, 30), Window(WindowKind.WeeklyAll, 60));
+
+        var line = Assert.Single(Lines(snapshot, collapse: true));
+
+        Assert.Equal("Week", line.Window);
+        Assert.Equal("60% used", line.Percent);
+    }
+
+    [Fact]
+    public void CollapseShowsOnlyTheWindowThatIsInTrouble()
+    {
+        // Session at 20% remaining has crossed the warning line; the weekly window has not.
+        // Severity decides, so the fuller-looking window does not win by percentage alone.
+        var snapshot = Snapshot(Window(WindowKind.Session, 80), Window(WindowKind.WeeklyAll, 10));
+
+        var line = Assert.Single(Lines(snapshot, collapse: true));
+
+        Assert.Equal("5h", line.Window);
+    }
+
+    [Fact]
+    public void CollapseShowsBothWindowsWhenBothAreInTrouble()
+    {
+        // The one case collapse gives way. Hiding either window here would hide a limit the
+        // user is about to hit, which is the opposite of what the HUD is for.
+        var snapshot = Snapshot(Window(WindowKind.Session, 80), Window(WindowKind.WeeklyAll, 95));
+
+        Assert.Equal(2, Lines(snapshot, collapse: true).Count);
+    }
+
+    [Fact]
+    public void CollapsePrefersTheWindowTheServerIsRefusing()
+    {
+        // The weekly window looks the healthier of the two by percentage. The server refusing
+        // work against it outranks that, because it is a fact rather than an opinion (AC-6).
+        var snapshot = Snapshot(
+            Window(WindowKind.Session, 70),
+            new QuotaWindow(WindowKind.WeeklyAll, 20, null, ServerSeverity.Rejected));
+
+        var line = Assert.Single(Lines(snapshot, collapse: true));
+
+        Assert.Equal("Week", line.Window);
+    }
+
+    [Fact]
+    public void CollapseBreaksAnExactTieTowardTheSessionWindow()
+    {
+        // Equal severity and equal percentage. The session window is the one that stops work
+        // first, so it is the one worth the single line.
+        var snapshot = Snapshot(Window(WindowKind.Session, 40), Window(WindowKind.WeeklyAll, 40));
+
+        var line = Assert.Single(Lines(snapshot, collapse: true));
+
+        Assert.Equal("5h", line.Window);
+    }
+
+    [Fact]
+    public void CollapseLeavesASingleReportedWindowAlone()
+    {
+        // Nothing to choose between. A window the server did not report still has no line, and
+        // collapse must not turn the one that was reported into none.
+        var snapshot = Snapshot(Window(WindowKind.Session, 30));
+
+        var line = Assert.Single(Lines(snapshot, collapse: true));
+
+        Assert.Equal("5h", line.Window);
     }
 }

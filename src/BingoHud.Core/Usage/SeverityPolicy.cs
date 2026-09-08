@@ -37,11 +37,28 @@ public static class SeverityPolicy
 
         foreach (var window in snapshot.Windows)
         {
-            worst = Worst(worst, Worst(FromThresholds(window, thresholds), FromServer(window)));
+            worst = Worst(worst, Evaluate(window, thresholds));
         }
 
         return worst;
     }
+
+    /// <summary>
+    /// The severity of one window on its own.
+    ///
+    /// <para>
+    /// The same two opinions the whole-reading rule combines — the user's thresholds and what
+    /// the server said — applied to a single window. Collapse (AC-7) needs to rank the two
+    /// windows against each other, and ranking them by percentage alone would put a window the
+    /// server is refusing below a fuller one that is merely full.
+    /// </para>
+    /// <para>
+    /// Freshness is not a parameter here, because it is a property of the reading rather than of
+    /// a window. A frozen reading is excluded once, by the caller above.
+    /// </para>
+    /// </summary>
+    public static Severity Evaluate(QuotaWindow window, Thresholds thresholds) =>
+        Worst(FromThresholds(window, thresholds), FromServer(window));
 
     /// <summary>
     /// Bingo's own opinion about a percentage, from the user's thresholds. Stored values are

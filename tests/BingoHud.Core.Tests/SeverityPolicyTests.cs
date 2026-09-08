@@ -165,4 +165,22 @@ public class SeverityPolicyTests
         Assert.Equal(25, Thresholds.Default.WarningAtRemaining);
         Assert.Equal(10, Thresholds.Default.CriticalAtRemaining);
     }
+
+    // ---- One window on its own (6.7 needs it to rank the two for collapse) ----
+
+    [Fact]
+    public void AWindowOnItsOwnCarriesTheSeverityItsPercentageEarns()
+    {
+        Assert.Equal(Severity.Warning, SeverityPolicy.Evaluate(Window(80), Thresholds.Default));
+    }
+
+    [Fact]
+    public void AWindowOnItsOwnStillTakesTheServersWordOverItsPercentage()
+    {
+        // 20% consumed looks healthy. The server refusing work against it is a fact, and the
+        // per-window rule must not lose what the whole-snapshot rule already respects (AC-6).
+        var refused = Window(20, severity: ServerSeverity.Rejected);
+
+        Assert.Equal(Severity.RateLimited, SeverityPolicy.Evaluate(refused, Thresholds.Default));
+    }
 }

@@ -1,9 +1,15 @@
 # Quota HUD — Progress
 
 updated: 2026-09-07
-status: Phase 6 in progress — 6.1 to 6.6 done
+status: Phase 6 in progress — 6.1 to 6.7 done
 blockers: none
-next_session: 6.7, collapse. 6.6 landed the readout and closed the last wire carried since 5a:
+next_session: 6.8, the detail panel. 6.7 put collapse (AC-7) in `Readout.Lines`, which now takes
+the whole `UserSettings` rather than just the direction, because the rule needs the collapse flag
+and the thresholds too. Nothing toggles `Collapse` yet — the setting persists and the behaviour is
+live, but the only way to turn it on today is to edit the settings file by hand; the toggle belongs
+to the tray menu at 6.9. Ranking the two windows needed a per-window severity, so
+`SeverityPolicy.Evaluate` gained a `(QuotaWindow, Thresholds)` overload and the whole-snapshot
+version now folds over it. Green at 638 tests. Earlier notes from 6.6 follow:
 `App` now composes the credential provider, usage client, monitor, transcript activity, alert
 engine and poll loop, and the HUD re-reads the monitor once a second. Every word on the HUD is
 decided by `Readout.Lines` in Core ("5h" / "Week", "12% used" / "88% left", the reset phrase);
@@ -16,7 +22,7 @@ Win32 from PowerShell, and capturing it to a PNG; that is the shell's runnable c
 records how it is assessed. 6.1 answered: cursor timer, no hook; see
 `specs/quota-hud/spikes/click-through-probe.md`. 6.2 put app state under `%LOCALAPPDATA%\Bingo`
 (`AppData.Directory`). Confirm reality first with `dotnet build` and `dotnet test`; both were
-green at the end of 6.6 with 629 passing tests. The status line probe stays up for the AC-2b
+green at the end of 6.7 with 638 passing tests. The status line probe stays up for the AC-2b
 label question and closes at 7.2. `Readout.Lines` takes the monitor's `ReadingState` and returns
 no lines unless the reading is fresh, so a stale or frozen number never sits on screen next to a
 moving countdown; 7.1 gives those states words and AC-8 its age line. See the 6.6 review record
@@ -506,6 +512,34 @@ declined:
 - Replacing the loop's three alert parameters with a single after-poll callback. Cleaner, but
   5a.2 settled that the loop connects the engine, and the manual-refresh alert test leans on it.
 - Inlining the single-use transcript pattern constant. Three lines; not worth the diff.
+
+### Task 6.7: collapse — 2026-09-07
+
+AC-7 lives in `Readout.Lines`, alongside every other decision about what appears on the HUD. The
+shell was not touched: it rebuilds its rows from the returned list each render and the window is
+sized to its content, so two lines becoming one shrinks the window with no code.
+
+The signature changed from `DisplayDirection` to `UserSettings`. Collapse needs three settings at
+once — the flag, the direction, and the thresholds severity is measured against — and threading
+them separately would have made a six-parameter call. Three call sites moved; the ripple was the
+whole cost.
+
+Ranking the two windows is the part that had a wrong answer available. Ordering by percentage
+alone would have put a window the server is actively refusing below a fuller one that is merely
+full, so the order is severity first and percentage only as a tie-break within a severity. That
+needed a severity for one window rather than for a whole reading, which
+`SeverityPolicy.Evaluate(QuotaWindow, Thresholds)` now provides; the snapshot version folds over
+it, so the two can never drift apart. An exact tie goes to the session window, on the grounds that
+it is the shorter of the two and therefore the one that stops work first.
+
+Three of the seven new tests pass with collapse ignored, because they assert both lines or the
+only line. They were kept as guards but they drive nothing; the four that do drive the rule were
+each confirmed to fail against a mutation that ignored the setting, and the tie-break separately
+against `>` widened to `>=`.
+
+Not done here, and not in scope: nothing in the UI toggles `Collapse`. The setting is read and
+persisted, so the behaviour is reachable only by editing the settings file. The tray menu at 6.9
+is where the toggle belongs.
 
 ### Review: task 6.6, the readout and the composition root — 2026-09-07
 tests: 629 pass / 0 fail / 0 skip (616 before the review; 13 added by it)

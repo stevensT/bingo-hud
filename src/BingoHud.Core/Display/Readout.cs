@@ -6,8 +6,8 @@ using BingoHud.Core.Usage;
 namespace BingoHud.Core.Display;
 
 /// <summary>
-/// Decides every word on the HUD (AC-1 through AC-3), and whether any number may be shown at
-/// all (AC-8, AC-10, AC-13). The WPF layer places the strings; it does not compose them.
+/// Decides every word on the HUD (AC-1 through AC-3), which windows get a line at all (AC-7),
+/// and whether any number may be shown (AC-8, AC-10, AC-13). The WPF layer places the strings; it does not compose them.
 ///
 /// <para>
 /// A pure function over the current reading state, the display direction, the moment of
@@ -36,12 +36,12 @@ public static class Readout
     /// </para>
     /// </summary>
     /// <param name="state">The monitor's current state.</param>
-    /// <param name="direction">Which way the percentage reads (AC-2a).</param>
+    /// <param name="settings">The user's display preferences: direction, collapse, thresholds.</param>
     /// <param name="now">The moment of rendering, carrying the offset reset times are shown in.</param>
     /// <param name="culture">Whose clock conventions the reset phrase uses.</param>
     public static IReadOnlyList<ReadoutLine> Lines(
         ReadingState state,
-        DisplayDirection direction,
+        UserSettings settings,
         DateTimeOffset now,
         CultureInfo? culture = null)
     {
@@ -50,25 +50,105 @@ public static class Readout
             return [];
         }
 
-        var lines = new List<ReadoutLine>(2);
+        var shown = Shown(snapshot, settings);
+        var lines = new List<ReadoutLine>(shown.Count);
 
-        foreach (var kind in new[] { WindowKind.Session, WindowKind.WeeklyAll })
+        foreach (var window in shown)
         {
-            var window = snapshot.Windows.FirstOrDefault(w => w.Kind == kind);
-
-            if (window is null)
-            {
-                continue;
-            }
-
             lines.Add(new ReadoutLine(
-                Name(kind),
-                Percent(window.UsedPercent, direction),
+                Name(window.Kind),
+                Percent(window.UsedPercent, settings.Direction),
                 ResetFormatter.Describe(window.ResetsAt, now, culture)));
         }
 
         return lines;
     }
+
+    /// <summary>
+    /// Which windows get a line, session first (AC-7).
+    ///
+    /// <para>
+    /// Both, unless the user has asked for collapse; then only the worst, unless both are in
+    /// trouble. That last exception is the whole point of the setting: collapse buys quiet while
+    /// nothing is wrong, and gives it back the moment two limits are closing at once, because a
+    /// hidden window the user is about to hit is the one thing the HUD must never do.
+    /// </para>
+    /// <para>
+    /// A window the server did not report is absent rather than normal, so a reading with one
+    /// window collapses to that window rather than to nothing.
+    /// </para>
+    /// </summary>
+    private static IReadOnlyList<QuotaWindow> Shown(QuotaSnapshot snapshot, UserSettings settings)
+    {
+        var windows = new[] { WindowKind.Session, WindowKind.WeeklyAll }
+            .Select(kind => snapshot.Windows.FirstOrDefault(w => w.Kind == kind))
+            .OfType<QuotaWindow>()
+            .ToList();
+
+        if (!settings.Collapse || windows.Count < 2)
+        {
+            return windows;
+        }
+
+        var severities = windows
+            .Select(w => SeverityPolicy.Evaluate(w, settings.Thresholds))
+            .ToList();
+
+        if (severities.All(s => s != Severity.Normal))
+        {
+            return windows;
+        }
+
+        return [Worst(windows, severities)];
+    }
+
+    /// <summary>
+    /// The one window a collapsed HUD names.
+    ///
+    /// <para>
+    /// Severity first, so a window the server is refusing outranks a fuller one that is merely
+    /// full. Percentage breaks a tie within a severity, because between two windows the HUD
+    /// calls equally normal, the fuller one is the one about to stop being normal. An exact tie
+    /// goes to the session window: it is the shorter of the two, so it is the one that stops
+    /// work first.
+    /// </para>
+    /// </summary>
+    private static QuotaWindow Worst(IReadOnlyList<QuotaWindow> windows, IReadOnlyList<Severity> severities)
+    {
+        var worst = 0;
+
+        for (var i = 1; i < windows.Count; i++)
+        {
+            var better = Rank(severities[i]) > Rank(severities[worst])
+                || (Rank(severities[i]) == Rank(severities[worst])
+                    && windows[i].UsedPercent > windows[worst].UsedPercent);
+
+            if (better)
+            {
+                worst = i;
+            }
+        }
+
+        return windows[worst];
+    }
+
+    /// <summary>
+    /// How serious a severity is, as a number that can be compared.
+    ///
+    /// <para>
+    /// <see cref="Severity.RateLimited"/> is the top of the order rather than a fourth step past
+    /// critical; the enum orders it last already, but saying so here means the ranking does not
+    /// silently depend on the order members happen to be declared in.
+    /// </para>
+    /// </summary>
+    private static int Rank(Severity severity) => severity switch
+    {
+        Severity.Normal => 0,
+        Severity.Warning => 1,
+        Severity.Critical => 2,
+        Severity.RateLimited => 3,
+        _ => throw new ArgumentOutOfRangeException(nameof(severity), severity, null),
+    };
 
     private static string Name(WindowKind kind) => kind switch
     {

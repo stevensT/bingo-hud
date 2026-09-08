@@ -103,7 +103,7 @@ public partial class App : Application
             return [];
         }
 
-        return Readout.Lines(_monitor.Current, _settings.Direction, _clock.Now);
+        return Readout.Lines(_monitor.Current, _settings, _clock.Now);
     }
 
     // deferred: a failed save is dropped on the floor here. The settings still apply for this
