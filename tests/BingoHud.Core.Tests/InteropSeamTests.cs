@@ -59,7 +59,7 @@ public class InteropSeamTests
     {
         // LibraryImport is the modern spelling of the same thing. Nothing uses it today, and the
         // point of naming it is that a future migration cannot quietly escape this fence.
-        Assert.Empty(FilesContaining("LibraryImport").Where(f => f != TheInteropFile));
+        Assert.DoesNotContain(FilesContaining("LibraryImport"), f => f != TheInteropFile);
     }
 
     [Fact]

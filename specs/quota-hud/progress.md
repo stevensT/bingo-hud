@@ -1,14 +1,14 @@
 # Quota HUD — Progress
 
 updated: 2026-09-07
-status: Phase 6 — every implementation task done; 6.12 checkpoint outstanding
+status: Phase 6 complete — checkpoint 6.12 passed 2026-09-07
 blockers: none
-next_session: the 6.12 checkpoint. Every Phase 6 task is complete, so what remains is assessing
-AC-1 to AC-3, AC-7, AC-19 to AC-24 and AC-28 against the spec and recording the result. Two things
-to weigh there rather than treat as passing quietly: notifications name their sender "BingoHud.App"
-rather than "Bingo", and Windows 11 puts every new tray icon in the hidden overflow. The first is a
-naming decision, the second a README setup note. Battery is still the one cadence signal with no
-producer, and it has no task. Green at 703 tests. Earlier notes
+next_session: 7.1, the error copy. Every Phase 6 criterion was assessed and met; the one clause
+still thin is AC-23's "current status", which 7.1 closes by giving the failure states words. Three
+things carried forward that are decisions rather than defects: notifications name their sender
+"BingoHud.App" rather than "Bingo", Windows 11 hides new tray icons in the overflow, and a drag can
+leave the HUD partly off screen until the next restart recovers it. Battery is still the one
+cadence signal with no producer and no task. Green at 703 tests on a clean build. Earlier notes
 from 6.6 follow:
 `App` now composes the credential provider, usage client, monitor, transcript activity, alert
 engine and poll loop, and the HUD re-reads the monitor once a second. Every word on the HUD is
@@ -22,7 +22,7 @@ Win32 from PowerShell, and capturing it to a PNG; that is the shell's runnable c
 records how it is assessed. 6.1 answered: cursor timer, no hook; see
 `specs/quota-hud/spikes/click-through-probe.md`. 6.2 put app state under `%LOCALAPPDATA%\Bingo`
 (`AppData.Directory`). Confirm reality first with `dotnet build` and `dotnet test`; both were
-green at the end of 6.11 with 703 passing tests. The status line probe stays up for the AC-2b
+green at the 6.12 checkpoint with 703 passing tests. The status line probe stays up for the AC-2b
 label question and closes at 7.2. `Readout.Lines` takes the monitor's `ReadingState` and returns
 no lines unless the reading is fresh, so a stale or frozen number never sits on screen next to a
 moving countdown; 7.1 gives those states words and AC-8 its age line. See the 6.6 review record
@@ -512,6 +512,64 @@ declined:
 - Replacing the loop's three alert parameters with a single after-poll callback. Cleaner, but
   5a.2 settled that the loop connects the engine, and the manual-refresh alert test leans on it.
 - Inlining the single-use transcript pattern constant. Three lines; not worth the diff.
+
+### CP: Phase 6 Shell — 2026-09-07
+
+`dotnet clean`, then build and full suite: 703 passing, 0 skipped, 0 warnings, 0 errors. Task
+marks audited — every Phase 6 task is `[x]`, and nothing outside Phase 7 and the build
+verification block is left open.
+
+The clean build earned its place immediately. It reported five warnings that every incremental
+build had been reporting as zero, all of them mine from 6.10 and 6.11: four nullable dereferences
+in the alert wording tests, where the batch overload returns null for an empty batch, and one
+xUnit analyser note preferring `Assert.DoesNotContain` over an `Assert.Empty` on a filtered
+sequence. Fixed, and the clean build is now silent. Worth remembering at BV.1: an incremental
+build does not re-report warnings for projects it did not rebuild, so "0 warnings" from a warm
+build means nothing.
+
+**Assessment, by criterion.** Every one below was exercised against the built application rather
+than argued from the source.
+
+- AC-1: met. Both windows carry a percentage — "5h 83% used", "Week 24% used".
+- AC-2: met. Consumed by default, matching what the endpoint reports.
+- AC-2a: met. Switching the setting redraws as "17% left".
+- AC-2b: met. The direction word travels with the figure in both settings.
+- AC-3: met. The reset sits on the same line, absolute at distance ("resets Tue 12:50 AM",
+  "resets Fri 6:00 PM"), relative as it nears, in local time.
+- AC-7: met. Collapsed, with the session window in warning and the weekly window normal, the HUD
+  shows the session window alone. Measured 33 units tall against 52 for two lines.
+- AC-19: met. No `WS_CAPTION`, `WS_EX_TOPMOST` set, and a drag moved it.
+- AC-20: met. Dropped with its left edge 10 units inside the work area — within the 16-unit snap
+  distance — it landed flush at 0.
+- AC-21: met. `WS_EX_TRANSPARENT` is set at rest, still set 200 ms into a dwell, and cleared after
+  it. The dwell is what AC-21 was amended to at 6.5.
+- AC-22: met. The drop was written as 0,400 and came back as 0,400 after a restart.
+- AC-23: met for per-model caps and exact reset times; the "current status" clause is thin. The
+  panel gives the reading's age and why the next poll is scheduled when it is, but a signed-out or
+  unreadable state still shows the last reading with no words explaining it. 7.1 writes those.
+- AC-24: met. "1.0.0 (6382562)" and "Mon 7 Sep 2026, 11:00 PM".
+- AC-28: met. The button refreshed on the first press and on the second said "Not yet. Next
+  attempt in 4 min, because Claude Code is working."
+
+**A false failure, recorded because the lesson is about the test.** AC-20 and AC-22 both failed
+the first pass. The cause was the test, not the app: it dragged the HUD 93 units past the left
+edge, which is far outside the snap distance, and the restart then correctly declined to restore a
+position that no longer fits on any monitor. Both passed when dropped within snap range. An
+acceptance test that puts the app in a state the criterion does not describe reports a failure the
+product does not have.
+
+**Finding, not a criterion failure, deferred rather than fixed here.** That first pass did expose
+something real: a drag can leave the HUD mostly off screen and nothing pulls it back until the next
+launch. `StayOnScreen` runs when the text changes size, not on drop, so only the `Fits` check at
+startup recovers it. The app already has an opinion that the HUD should sit fully on a monitor —
+that is what `KeepWithin` enforces when the text grows — so not enforcing it on drop is an
+inconsistency rather than a deliberate allowance. The fix is to keep the dropped position within
+the monitor the same way. Left for Trevor to schedule; a checkpoint assesses rather than builds.
+
+**Carried into Phase 7 as decisions.** Notifications name their sender "BingoHud.App", the
+assembly name, because Windows takes it from the executable when an app has no registered
+identity. Windows 11 places every new tray icon in the hidden overflow, which is a README setup
+note. Battery remains the only cadence signal with no producer, and it has no task.
 
 ### Task 6.11: the interop audit — 2026-09-07
 

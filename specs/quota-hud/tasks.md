@@ -232,7 +232,7 @@ already known-correct.
       composed in Core rather than in the window. Added after 6.9 on finding that no Phase 6 task
       placed this control, which would have left AC-28 unmeetable at the checkpoint below.
       (AC-28)
-- [C] 6.12 Checkpoint: full suite green, build green, AC-1 through AC-3, AC-7, AC-19 through
+- [x] 6.12 Checkpoint passed 2026-09-07: full suite green, build green, AC-1 through AC-3, AC-7, AC-19 through
       AC-24 and AC-28 assessed, recorded in `progress.md`. AC-28 added to this list at 6.11a: it
       was met in Core from Phase 4 but had no control on screen, so assessing it here is what
       makes the difference visible.

@@ -44,6 +44,14 @@ public class AlertMessageTests
         DisplayDirection direction = DisplayDirection.Remaining) =>
         AlertMessage.Describe(alert, direction, Now, TwelveHour);
 
+    /// <summary>
+    /// The message for a batch, asserted to exist. Only the empty batch returns null, and it has
+    /// a test of its own; asserting it here keeps every other test to one assertion about words.
+    /// </summary>
+    private static AlertMessage DescribeAll(params Alert[] due) =>
+        Assert.IsType<AlertMessage>(
+            AlertMessage.Describe(due, DisplayDirection.Remaining, Now, TwelveHour));
+
     [Fact]
     public void AWarningNamesTheWindowAndSaysItIsRunningLow()
     {
@@ -115,7 +123,7 @@ public class AlertMessageTests
     [Fact]
     public void OneAlertIsAnnouncedOnItsOwnTerms()
     {
-        var message = AlertMessage.Describe([Alert()], DisplayDirection.Remaining, Now, TwelveHour);
+        var message = DescribeAll(Alert());
 
         Assert.Equal("5h window running low", message.Title);
         Assert.Equal("22% left, resets in 53 min.", message.Body);
@@ -124,9 +132,7 @@ public class AlertMessageTests
     [Fact]
     public void TwoAlertsAreCountedInTheTitleRatherThanRacingEachOther()
     {
-        var both = new[] { Alert(), Alert(kind: WindowKind.WeeklyAll, used: 80) };
-
-        var message = AlertMessage.Describe(both, DisplayDirection.Remaining, Now, TwelveHour);
+        var message = DescribeAll(Alert(), Alert(kind: WindowKind.WeeklyAll, used: 80));
 
         Assert.Equal("2 windows running low", message.Title);
     }
@@ -135,9 +141,7 @@ public class AlertMessageTests
     public void EveryWindowIsNamedInTheBodyWhenSeveralCrossedAtOnce()
     {
         // The title no longer says which windows, so each line has to.
-        var both = new[] { Alert(), Alert(kind: WindowKind.WeeklyAll, used: 80) };
-
-        var message = AlertMessage.Describe(both, DisplayDirection.Remaining, Now, TwelveHour);
+        var message = DescribeAll(Alert(), Alert(kind: WindowKind.WeeklyAll, used: 80));
 
         Assert.Equal(
             "5h: 22% left, resets in 53 min." + Environment.NewLine +
@@ -150,13 +154,9 @@ public class AlertMessageTests
     {
         // Erring toward the more urgent word. A title that called a critical crossing "running
         // low" would understate it, and the body still says which is which.
-        var mixed = new[]
-        {
+        var message = DescribeAll(
             Alert(),
-            Alert(kind: WindowKind.WeeklyAll, threshold: 10, severity: Severity.Critical, used: 93),
-        };
-
-        var message = AlertMessage.Describe(mixed, DisplayDirection.Remaining, Now, TwelveHour);
+            Alert(kind: WindowKind.WeeklyAll, threshold: 10, severity: Severity.Critical, used: 93));
 
         Assert.Equal("2 windows nearly used up", message.Title);
     }
