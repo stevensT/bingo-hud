@@ -37,6 +37,16 @@ public static class SeverityPolicy
 
         foreach (var window in snapshot.Windows)
         {
+            if (window.Kind == WindowKind.WeeklyScoped)
+            {
+                // AC-5 names the worst of the two windows the HUD shows, not the worst of
+                // everything the response reported. A per-model cap lives in the detail panel
+                // (AC-23); letting one drive the headline would colour a HUD that carries no
+                // line saying which cap did it, and the user would have no way to find out
+                // without opening the panel.
+                continue;
+            }
+
             worst = Worst(worst, Evaluate(window, thresholds));
         }
 

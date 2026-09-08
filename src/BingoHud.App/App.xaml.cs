@@ -1,4 +1,5 @@
 using System.Net.Http;
+using System.Reflection;
 using System.Windows;
 using BingoHud.Core.Alerts;
 using BingoHud.Core.Credentials;
@@ -25,6 +26,8 @@ public partial class App : Application
 
     private UserSettings _settings = UserSettings.Default;
     private QuotaMonitor? _monitor;
+    private DetailPanelWindow? _panel;
+    private DateTimeOffset? _panelOpenedAt;
 
     protected override void OnStartup(StartupEventArgs e)
     {
@@ -69,7 +72,8 @@ public partial class App : Application
             _settings.Position,
             position => Remember(_settings with { Position = position }),
             _clock,
-            ReadoutLines);
+            ReadoutLines,
+            OpenPanel);
         MainWindow.Show();
     }
 
@@ -84,13 +88,61 @@ public partial class App : Application
     /// <summary>
     /// What the machine and the user are doing, read immediately before each poll.
     /// </summary>
-    private static PollSignals GatherSignals(TranscriptActivity transcripts) => new(
-        // deferred: battery state needs a Win32 call and the panel does not exist yet. Both sit
-        // at their "nothing to react to" values, so two rows of the cadence table cannot be
-        // reached in the running app. The panel signal arrives with 6.8; battery needs a task.
+    private PollSignals GatherSignals(TranscriptActivity transcripts) => new(
+        // deferred: battery state needs a Win32 call, so one row of the cadence table still
+        // cannot be reached in the running app. Needs a task.
         PowerConstrained: false,
-        SinceUserOpenedPanel: null,
+        SinceUserOpenedPanel: _panelOpenedAt is { } opened ? _clock.Now - opened : null,
         SinceLocalTranscriptActivity: transcripts.SinceLastWrite());
+
+    /// <summary>
+    /// Opens the detail panel, or brings the open one forward (AC-23).
+    ///
+    /// <para>
+    /// One panel, reused. A second window would be a second copy of the same facts, and closing
+    /// one of them would leave the other looking authoritative.
+    /// </para>
+    /// <para>
+    /// Opening it is also a cadence signal: someone looking at the numbers is someone who wants
+    /// them current, and the poll loop is told so it can tighten the interval. The signal is the
+    /// time since the panel was last opened, so it decays on its own without anything having to
+    /// clear it.
+    /// </para>
+    /// </summary>
+    private void OpenPanel()
+    {
+        _panelOpenedAt = _clock.Now;
+
+        if (_panel is not null)
+        {
+            _panel.Activate();
+            return;
+        }
+
+        _panel = new DetailPanelWindow(CurrentPanelContent) { Owner = MainWindow };
+        _panel.Closed += (_, _) => _panel = null;
+        _panel.Show();
+    }
+
+    /// <summary>
+    /// The panel's contents as of this instant. Unlike the HUD, this shows a stale or frozen
+    /// reading rather than hiding it, because the panel is where the user asks why.
+    /// </summary>
+    private PanelContent CurrentPanelContent()
+    {
+        var state = _monitor?.Current
+            ?? new ReadingState(null, Freshness.Fresh, null, TimeSpan.Zero, "not started");
+
+        return PanelReadout.Compose(state, _settings, Version, _clock.Now);
+    }
+
+    /// <summary>
+    /// The running build (AC-24). Read from the assembly rather than written down, so it cannot
+    /// disagree with what was actually shipped; Core decides how it reads.
+    /// </summary>
+    private static string Version => VersionLabel.Describe(
+        typeof(App).Assembly
+            .GetCustomAttribute<AssemblyInformationalVersionAttribute>()?.InformationalVersion);
 
     /// <summary>
     /// The HUD's lines as of this instant. Core decides whether the reading may be shown at
@@ -107,7 +159,8 @@ public partial class App : Application
     }
 
     // deferred: a failed save is dropped on the floor here. The settings still apply for this
-    // session; surface it in the detail panel once 6.8 gives it somewhere to go.
+    // session. The panel now exists to carry the news, but it has no place to put it until
+    // 7.1 writes the copy for states like this one.
     private void Remember(UserSettings changed)
     {
         _settings = changed;

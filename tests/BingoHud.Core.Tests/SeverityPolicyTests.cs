@@ -183,4 +183,28 @@ public class SeverityPolicyTests
 
         Assert.Equal(Severity.RateLimited, SeverityPolicy.Evaluate(refused, Thresholds.Default));
     }
+
+    // ---- Per-model caps stay out of the headline (AC-5) ----
+
+    [Fact]
+    public void APerModelCapDoesNotDriveOverallSeverity()
+    {
+        // AC-5 names the worst of the two HUD windows, not the worst of everything reported. A
+        // per-model cap belongs to the detail panel (AC-23), and letting one turn the whole HUD
+        // critical would colour a display that has no line explaining why.
+        var snapshot = Snapshot(
+            Window(10, WindowKind.Session),
+            new QuotaWindow(WindowKind.WeeklyScoped, 99, null, ServerSeverity.Normal, "claude-opus-4"));
+
+        Assert.Equal(Severity.Normal, Evaluate(snapshot));
+    }
+
+    [Fact]
+    public void APerModelCapDoesNotDriveOverallSeverityEvenWhenTheServerRefusesIt()
+    {
+        var refused = new QuotaWindow(
+            WindowKind.WeeklyScoped, 99, null, ServerSeverity.Rejected, "claude-opus-4");
+
+        Assert.Equal(Severity.Normal, Evaluate(Snapshot(Window(10, WindowKind.Session), refused)));
+    }
 }

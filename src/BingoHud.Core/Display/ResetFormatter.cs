@@ -24,6 +24,37 @@ public static class ResetFormatter
     private static readonly TimeSpan RelativeWithin = TimeSpan.FromMinutes(60);
 
     /// <summary>
+    /// An instant written out in full, for the detail panel.
+    ///
+    /// <para>
+    /// The HUD abbreviates because it has one line and switches to a countdown as a reset nears.
+    /// The panel does neither. It is the screen a user opens to check a number against their own
+    /// clock, and a countdown cannot be checked against anything; nor can a bare time of day be
+    /// told apart from the same time five days out.
+    /// </para>
+    /// </summary>
+    /// <param name="instant">The moment to write out.</param>
+    /// <param name="now">The current instant, carrying the offset the phrase is rendered in.</param>
+    /// <param name="culture">Whose clock conventions to use.</param>
+    public static string Exact(
+        DateTimeOffset instant,
+        DateTimeOffset now,
+        CultureInfo? culture = null)
+    {
+        culture ??= CultureInfo.CurrentCulture;
+
+        var local = instant.ToOffset(now.Offset);
+        var day = culture.DateTimeFormat.AbbreviatedDayNames[(int)local.DayOfWeek];
+        var month = culture.DateTimeFormat.AbbreviatedMonthNames[local.Month - 1];
+        var time = local.ToString(culture.DateTimeFormat.ShortTimePattern, culture);
+
+        // Day name, day number, month, year, time — in that order regardless of culture, because
+        // the ambiguity this line exists to remove is 5/9 against 9/5, and only a named month
+        // removes it. The names and the clock format still come from the user's culture.
+        return $"{day} {local.Day} {month} {local.Year}, {time}";
+    }
+
+    /// <summary>
     /// The reset phrase, or null when there is nothing to say.
     /// </summary>
     /// <param name="resetsAt">

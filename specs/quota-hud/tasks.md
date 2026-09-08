@@ -217,7 +217,7 @@ already known-correct.
       alongside on the same line. (AC-1, AC-2, AC-2a, AC-2b, AC-3)
 - [x] 6.7 Implement collapse behaviour: default shows both windows; when enabled, show only the
       worst unless both are non-normal. (AC-7)
-- [ ] 6.8 Implement the detail panel: per-model weekly caps, exact reset times, current status,
+- [x] 6.8 Implement the detail panel: per-model weekly caps, exact reset times, current status,
       app version, and last successful poll time. Per-model caps have been null on every capture
       so far, so the empty state is the common case and must be designed, not an afterthought.
       (AC-23, AC-24)

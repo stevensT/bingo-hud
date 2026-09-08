@@ -21,8 +21,15 @@ namespace BingoHud.Core.Usage;
 /// The server's own assessment, carried rather than derived. Local thresholds are a separate
 /// judgement made later; this is what the endpoint said.
 /// </param>
+/// <param name="Scope">
+/// What this window is restricted to, for a per-model weekly cap: the server's own scope string,
+/// shown in the detail panel exactly as sent. Null for the two windows the HUD shows, which are
+/// restricted to nothing. Bingo maps the string to no friendlier name, because a label invented
+/// for a cap is the panel saying something the server did not.
+/// </param>
 public sealed record QuotaWindow(
     WindowKind Kind,
     double UsedPercent,
     DateTimeOffset? ResetsAt,
-    ServerSeverity Severity);
+    ServerSeverity Severity,
+    string? Scope = null);

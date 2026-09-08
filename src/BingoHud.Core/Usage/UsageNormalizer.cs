@@ -173,7 +173,15 @@ public static class UsageNormalizer
                 return WindowReading.Malformed("An entry of the limits array was not an object.");
             }
 
-            if (ReadWindowKind(limit) is not { } kind)
+            var scope = ReadScope(limit);
+
+            // A scope names what the cap is restricted to, so an entry carrying one is a
+            // per-model weekly cap whatever its kind says. Checked before the kind map because
+            // the kind string a scoped entry uses has never been observed, and predicting it
+            // wrongly would drop the cap without a word.
+            var kind = scope is null ? ReadWindowKind(limit) : WindowKind.WeeklyScoped;
+
+            if (kind is not { } known)
             {
                 // A window this version does not know. Skipped, not rejected: the endpoint has
                 // already been observed carrying features that do not exist yet.
@@ -183,16 +191,16 @@ public static class UsageNormalizer
             if (!TryReadPercent(limit, "percent", out var percent))
             {
                 return WindowReading.Malformed(
-                    $"The {Describe(kind)} window reported no usable percentage.");
+                    $"The {Describe(known)} window reported no usable percentage.");
             }
 
             if (!TryReadResetsAt(limit, out var resetsAt))
             {
                 return WindowReading.Malformed(
-                    $"The {Describe(kind)} window reported an unreadable reset time.");
+                    $"The {Describe(known)} window reported an unreadable reset time.");
             }
 
-            windows.Add(new QuotaWindow(kind, percent, resetsAt, ReadSeverity(limit)));
+            windows.Add(new QuotaWindow(known, percent, resetsAt, ReadSeverity(limit), scope));
         }
 
         return WindowReading.Found(windows);
@@ -243,6 +251,28 @@ public static class UsageNormalizer
     /// <summary>
     /// Maps an entry's <c>kind</c> string, or null when it names a window Bingo does not know.
     /// </summary>
+    /// <summary>
+    /// The scope an entry is restricted to, or null when it is restricted to nothing.
+    ///
+    /// <para>
+    /// Null, absent, and empty all mean the same thing here: this entry names no model. An empty
+    /// string identifies nothing, so treating it as a scope would put a row in the panel with
+    /// nothing to label it.
+    /// </para>
+    /// </summary>
+    private static string? ReadScope(JsonElement limit)
+    {
+        if (!limit.TryGetProperty("scope", out var scope)
+            || scope.ValueKind != JsonValueKind.String)
+        {
+            return null;
+        }
+
+        var value = scope.GetString();
+
+        return string.IsNullOrWhiteSpace(value) ? null : value;
+    }
+
     private static WindowKind? ReadWindowKind(JsonElement limit)
     {
         if (!limit.TryGetProperty("kind", out var kind)

@@ -1,0 +1,61 @@
+<Window x:Class="BingoHud.App.DetailPanelWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="Bingo"
+        Width="400"
+        SizeToContent="Height"
+        ResizeMode="NoResize"
+        ShowInTaskbar="False"
+        UseLayoutRounding="True"
+        WindowStartupLocation="CenterScreen"
+        Background="#1E1E1E">
+    <!-- A conventional window, unlike the HUD. This one is read rather than glanced at, so it
+         keeps its title bar: it can be moved, closed and alt-tabbed the way every other window
+         can, and none of that has to be reinvented.
+
+         Centred on the screen rather than on the HUD it was opened from. The HUD lives parked
+         against an edge, so a panel centred on it would open half off the screen. -->
+    <Window.Resources>
+        <Style TargetType="TextBlock">
+            <Setter Property="Foreground" Value="White" />
+            <Setter Property="FontSize" Value="13" />
+            <Setter Property="VerticalAlignment" Value="Center" />
+        </Style>
+        <Style x:Key="Heading" TargetType="TextBlock">
+            <Setter Property="Foreground" Value="#99FFFFFF" />
+            <Setter Property="FontSize" Value="11" />
+            <Setter Property="Margin" Value="0,0,0,6" />
+        </Style>
+    </Window.Resources>
+    <StackPanel Margin="16,14,16,16">
+        <TextBlock Text="WINDOWS" Style="{StaticResource Heading}" />
+        <!-- Rows are built in code from what Core decided. Nothing here composes a string. The
+             columns are shared within each grid so the figures line up down the panel. -->
+        <Grid x:Name="Windows">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="Auto" />
+                <ColumnDefinition Width="Auto" />
+                <ColumnDefinition Width="*" />
+            </Grid.ColumnDefinitions>
+        </Grid>
+
+        <TextBlock Text="PER-MODEL WEEKLY CAPS" Style="{StaticResource Heading}" Margin="0,18,0,6" />
+        <Grid x:Name="PerModelCaps">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="Auto" />
+                <ColumnDefinition Width="Auto" />
+                <ColumnDefinition Width="*" />
+            </Grid.ColumnDefinitions>
+        </Grid>
+        <TextBlock x:Name="PerModelCapsEmptyState" Foreground="#99FFFFFF" TextWrapping="Wrap" />
+
+        <Border Background="#33FFFFFF" Height="1" Margin="0,18,0,14" />
+
+        <Grid x:Name="Facts">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="Auto" />
+                <ColumnDefinition Width="*" />
+            </Grid.ColumnDefinitions>
+        </Grid>
+    </StackPanel>
+</Window>

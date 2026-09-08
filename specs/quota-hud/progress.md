@@ -1,15 +1,17 @@
 # Quota HUD — Progress
 
 updated: 2026-09-07
-status: Phase 6 in progress — 6.1 to 6.7 done
+status: Phase 6 in progress — 6.1 to 6.8 done
 blockers: none
-next_session: 6.8, the detail panel. 6.7 put collapse (AC-7) in `Readout.Lines`, which now takes
-the whole `UserSettings` rather than just the direction, because the rule needs the collapse flag
-and the thresholds too. Nothing toggles `Collapse` yet — the setting persists and the behaviour is
-live, but the only way to turn it on today is to edit the settings file by hand; the toggle belongs
-to the tray menu at 6.9. Ranking the two windows needed a per-window severity, so
-`SeverityPolicy.Evaluate` gained a `(QuotaWindow, Thresholds)` overload and the whole-snapshot
-version now folds over it. Green at 638 tests. Earlier notes from 6.6 follow:
+next_session: 6.9, the tray icon and menu. 6.8 built the detail panel and closed the panel-open
+cadence signal, which had sat at null since 5a; only battery is still unproduced, and it needs a
+Win32 call and a task of its own. Clicking the HUD without moving it opens the panel, which is
+composed by `PanelReadout` in Core exactly as the HUD is by `Readout`. Before building it, 6.8
+found that per-model weekly caps were unreachable: the normalizer dropped every limits entry whose
+kind was not session or weekly_all, and `QuotaWindow` had no field to name a model, so
+`WindowKind.WeeklyScoped` was dead. That is now fixed by recognizing the observed `scope` field.
+Nothing toggles `Collapse` yet — the tray menu at 6.9 owns that. Green at 672 tests. Earlier notes
+from 6.6 follow:
 `App` now composes the credential provider, usage client, monitor, transcript activity, alert
 engine and poll loop, and the HUD re-reads the monitor once a second. Every word on the HUD is
 decided by `Readout.Lines` in Core ("5h" / "Week", "12% used" / "88% left", the reset phrase);
@@ -22,7 +24,7 @@ Win32 from PowerShell, and capturing it to a PNG; that is the shell's runnable c
 records how it is assessed. 6.1 answered: cursor timer, no hook; see
 `specs/quota-hud/spikes/click-through-probe.md`. 6.2 put app state under `%LOCALAPPDATA%\Bingo`
 (`AppData.Directory`). Confirm reality first with `dotnet build` and `dotnet test`; both were
-green at the end of 6.7 with 638 passing tests. The status line probe stays up for the AC-2b
+green at the end of 6.8 with 672 passing tests. The status line probe stays up for the AC-2b
 label question and closes at 7.2. `Readout.Lines` takes the monitor's `ReadingState` and returns
 no lines unless the reading is fresh, so a stale or frozen number never sits on screen next to a
 moving countdown; 7.1 gives those states words and AC-8 its age line. See the 6.6 review record
@@ -512,6 +514,60 @@ declined:
 - Replacing the loop's three alert parameters with a single after-poll callback. Cleaner, but
   5a.2 settled that the loop connects the engine, and the manual-refresh alert test leans on it.
 - Inlining the single-use transcript pattern constant. Three lines; not worth the diff.
+
+### Task 6.8: the detail panel — 2026-09-07
+
+Per-model weekly caps could not have worked, and that was found before building rather than after.
+`ReadWindowKind` returned null for any kind but session and weekly_all, so a scoped entry was
+skipped; `QuotaWindow` had no field to name a model; `WindowKind.WeeklyScoped` was constructed
+only by two tests and never by the parser. AC-23 asked the panel to show something nothing could
+produce.
+
+The fix guesses as little as the problem allows. An entry is a per-model cap when its `scope`
+names something — `scope` being a field the captured payload already carries, always null so far.
+Predicting the `kind` string a scoped entry would use was the available alternative and was
+rejected: a wrong guess there fails silently, because the entry is skipped and the panel shows an
+empty state indistinguishable from the honest one. The scope string is displayed exactly as sent,
+with no mapping to friendlier model names, because such a mapping would be invented vocabulary.
+
+A consequence that needed its own decision: per-model caps must not drive overall severity. AC-5
+says the worst of the two windows, and a scoped cap at 99% turning the whole HUD critical would
+colour a display carrying no line that explains why. `SeverityPolicy` now skips them, with two
+tests.
+
+The panel shows stale and frozen readings, which the HUD refuses to show. That is not a breach of
+principle 6 but the point of it: the HUD blanks a bare percentage that would be read as current,
+and the panel shows the same number with its age beside it. Otherwise "why has the HUD gone
+empty" has no answer anywhere in the app.
+
+Three pieces of shared phrasing were pulled out so the two screens cannot contradict each other:
+`Percentage.Describe` for the figure and its direction word, and `WindowName.Short` for "5h" and
+"Week". A user seeing 12% used on one screen and 88% left on the other at the same moment would
+be watching the app disagree with itself.
+
+The version is shown as `1.0.0 (cbf7c40)`. The SDK already stamps the commit into the
+informational version, and between releases the number alone identifies nothing — every build
+since the last tag carries it. `VersionLabel` does that shortening, in Core, with tests including
+the case where build metadata is not a commit hash at all.
+
+Distinguishing a click from a drag: `DragMove` returns on release, so the position is compared
+across it. Unmoved means clicked. A drag that opened a window on release would make the HUD
+impossible to place.
+
+Verified by driving the built exe from PowerShell: launch, rest the cursor past the dwell, press
+and release without moving, then capture both windows to PNG. The panel opened, and against a
+live account it showed both windows with exact reset times, "None reported for this account."
+under the per-model heading, and the four facts. Two defects were found that way and fixed — the
+title bar drew light against a dark body until `DWMWA_USE_IMMERSIVE_DARK_MODE` was set, and the
+window opened at an unset position, now centred on the screen rather than on a HUD parked against
+an edge.
+
+One bug found by reading rather than running: the panel's redraw guard compared two
+`PanelContent` records with `==`, which compares the row lists by reference and so reported every
+composition as different. The guard never fired. It now compares field by field.
+
+Not done here: no manual refresh button. AC-28 is met in Core and 4.9 tests it, but no task has
+placed the control, and 6.8 does not list it.
 
 ### Task 6.7: collapse — 2026-09-07
 

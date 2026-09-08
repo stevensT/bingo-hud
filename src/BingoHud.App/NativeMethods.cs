@@ -29,6 +29,12 @@ internal static class NativeMethods
     [DllImport("user32.dll")]
     private static extern bool GetCursorPos(out POINT lpPoint);
 
+    private const int DWMWA_USE_IMMERSIVE_DARK_MODE_BEFORE_20H1 = 19;
+    private const int DWMWA_USE_IMMERSIVE_DARK_MODE = 20;
+
+    [DllImport("dwmapi.dll")]
+    private static extern int DwmSetWindowAttribute(IntPtr hWnd, int attribute, ref int value, int size);
+
     private const uint MONITOR_DEFAULTTONEAREST = 2;
 
     [StructLayout(LayoutKind.Sequential)]
@@ -69,6 +75,23 @@ internal static class NativeMethods
         }
 
         return (info.rcWork.Left, info.rcWork.Top, info.rcWork.Right, info.rcWork.Bottom);
+    }
+
+    /// <summary>
+    /// Windows draws a window's title bar and border itself, in the system theme, so a dark
+    /// window gets a light frame unless it asks for otherwise. This asks.
+    /// </summary>
+    /// <remarks>
+    /// The attribute was numbered 19 before Windows 10 build 18985 and 20 from then on. Both are
+    /// set: the wrong one on a given build is an unrecognized attribute, which the call rejects
+    /// and nothing else. The result is ignored for the same reason — a light title bar is a
+    /// cosmetic mismatch, not a condition worth failing a window over.
+    /// </remarks>
+    public static void UseDarkTitleBar(IntPtr hwnd)
+    {
+        var on = 1;
+        DwmSetWindowAttribute(hwnd, DWMWA_USE_IMMERSIVE_DARK_MODE_BEFORE_20H1, ref on, sizeof(int));
+        DwmSetWindowAttribute(hwnd, DWMWA_USE_IMMERSIVE_DARK_MODE, ref on, sizeof(int));
     }
 
     /// <summary>

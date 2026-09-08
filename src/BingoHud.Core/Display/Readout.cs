@@ -56,8 +56,8 @@ public static class Readout
         foreach (var window in shown)
         {
             lines.Add(new ReadoutLine(
-                Name(window.Kind),
-                Percent(window.UsedPercent, settings.Direction),
+                WindowName.Short(window.Kind),
+                Percentage.Describe(window.UsedPercent, settings.Direction),
                 ResetFormatter.Describe(window.ResetsAt, now, culture)));
         }
 
@@ -150,29 +150,4 @@ public static class Readout
         _ => throw new ArgumentOutOfRangeException(nameof(severity), severity, null),
     };
 
-    private static string Name(WindowKind kind) => kind switch
-    {
-        WindowKind.Session => "5h",
-        WindowKind.WeeklyAll => "Week",
-        _ => throw new ArgumentOutOfRangeException(nameof(kind), kind, "Not a HUD window."),
-    };
-
-    /// <summary>
-    /// The figure with its direction beside it (AC-2b). Stored values are consumed; this is the
-    /// one place the figure is inverted for display, and the word changes with the number.
-    /// </summary>
-    private static string Percent(double usedPercent, DisplayDirection direction)
-    {
-        // Whole numbers, as /usage shows them (AC-2). Rounded once, then inverted as a whole
-        // number, so the two directions are always the same reading described two ways. Rounding
-        // each direction separately would put 63 used beside 38 left at 62.5.
-        var used = (int)Math.Round(usedPercent, MidpointRounding.AwayFromZero);
-
-        return direction switch
-        {
-            DisplayDirection.Consumed => $"{used}% used",
-            DisplayDirection.Remaining => $"{100 - used}% left",
-            _ => throw new ArgumentOutOfRangeException(nameof(direction), direction, null),
-        };
-    }
 }

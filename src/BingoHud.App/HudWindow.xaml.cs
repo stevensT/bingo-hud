@@ -12,7 +12,8 @@ namespace BingoHud.App;
 /// <summary>
 /// The always-on-top readout. Frameless and draggable (AC-19); reports where it was dropped so
 /// the position survives a restart (AC-22); click-through until the cursor rests on it (AC-21).
-/// Shows the lines Core decides, re-read once a second (AC-1 through AC-3).
+/// Shows the lines Core decides, re-read once a second (AC-1 through AC-3). A click that does
+/// not move it opens the detail panel (AC-23).
 /// </summary>
 public partial class HudWindow : Window
 {
@@ -26,6 +27,7 @@ public partial class HudWindow : Window
     private readonly Action<HudPosition> _moved;
     private readonly IClock _clock;
     private readonly Func<IReadOnlyList<ReadoutLine>> _readout;
+    private readonly Action _openPanel;
     private readonly DwellPolicy _dwell = new();
     private readonly DispatcherTimer _cursorWatch = new() { Interval = TimeSpan.FromMilliseconds(50) };
     private readonly DispatcherTimer _readoutWatch = new() { Interval = TimeSpan.FromSeconds(1) };
@@ -37,13 +39,15 @@ public partial class HudWindow : Window
         HudPosition? remembered,
         Action<HudPosition> moved,
         IClock clock,
-        Func<IReadOnlyList<ReadoutLine>> readout)
+        Func<IReadOnlyList<ReadoutLine>> readout,
+        Action openPanel)
     {
         InitializeComponent();
         _remembered = remembered;
         _moved = moved;
         _clock = clock;
         _readout = readout;
+        _openPanel = openPanel;
 
         // Click-through from the first frame. A click-through window is told nothing about the
         // mouse, so a timer asks the system where the cursor is and DwellPolicy decides.
@@ -79,7 +83,7 @@ public partial class HudWindow : Window
             // Only after placement: a resize before Loaded is layout settling, not text changing.
             SizeChanged += (_, _) => StayOnScreen();
         };
-        MouseLeftButtonDown += (_, _) => Drag();
+        MouseLeftButtonDown += (_, _) => Press();
     }
 
     /// <summary>
@@ -183,11 +187,29 @@ public partial class HudWindow : Window
         Panel.BorderBrush = solid ? SolidEdge : Brushes.Transparent;
     }
 
-    private void Drag()
+    /// <summary>
+    /// A press on the HUD is either a drag or a click, and which one is not known until the
+    /// button comes back up.
+    ///
+    /// <para>
+    /// The window is moved by <see cref="Window.DragMove"/>, which returns on release, so the
+    /// question "did this press move the HUD" is answered by comparing the position across it.
+    /// Unmoved means the user clicked, and a click opens the panel (AC-23). Dragging the HUD to
+    /// where they want it and having a window open on release would make the HUD unplaceable.
+    /// </para>
+    /// </summary>
+    private void Press()
     {
         // Only reachable while solid: a click-through window never receives the button press.
-        // DragMove returns when the button is released, so the position after it is the drop.
+        var before = new HudPosition(Left, Top);
+
         DragMove();
+
+        if (new HudPosition(Left, Top) == before)
+        {
+            _openPanel();
+            return;
+        }
 
         var snapped = EdgeSnap.Snap(new HudPosition(Left, Top), ActualWidth, ActualHeight, WorkAreaUnderHud());
         MoveTo(snapped);
