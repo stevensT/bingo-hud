@@ -224,7 +224,8 @@ already known-correct.
 - [x] 6.9 Implement the tray icon and menu.
 - [x] 6.10 Wire toasts to `AlertEngine`. Also carries the mute entry deferred from 6.9, which
       had no observable effect until alerts existed. (AC-14, AC-18)
-- [ ] 6.11 Confirm all P/Invoke lives in one file and nothing else in `App` calls into Win32.
+- [x] 6.11 Confirm all P/Invoke lives in one file and nothing else in `App` calls into Win32.
+      Confirmed, and the rule is now held by a fence test rather than by a one-time reading.
 - [x] 6.11a Place the manual refresh control in the detail panel. The behaviour is met and tested
       in Core at 4.9; what is missing is the control and the words. A refusal must say why and
       when the next attempt is possible, and like every other string on screen those words are

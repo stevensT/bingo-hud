@@ -37,4 +37,19 @@
     </Content>
   </ItemGroup>
 
+  <!--
+    The shell's source files, linked into the output so a test can read them. Task 6.11 fixes the
+    rule that every call into Win32 lives in one file, and reading the source is the only way to
+    assert that from here: this project references Core alone, deliberately, and taking a
+    reference on the WPF app in order to reflect over it would breach the very seam SeamTests
+    defends.
+  -->
+  <ItemGroup>
+    <Content Include="..\..\src\BingoHud.App\**\*.cs"
+             Exclude="..\..\src\BingoHud.App\obj\**;..\..\src\BingoHud.App\bin\**">
+      <Link>app-sources\%(RecursiveDir)%(Filename)%(Extension)</Link>
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+  </ItemGroup>
+
 </Project>

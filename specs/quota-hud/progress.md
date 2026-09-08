@@ -1,14 +1,14 @@
 # Quota HUD — Progress
 
 updated: 2026-09-07
-status: Phase 6 in progress — 6.1 to 6.11a done except 6.11
+status: Phase 6 — every implementation task done; 6.12 checkpoint outstanding
 blockers: none
-next_session: 6.11, the P/Invoke audit, then the 6.12 checkpoint. 6.10 wired toasts and brought in
-the mute entry deferred from 6.9, so every cadence signal but battery now has a producer and every
-Phase 6 acceptance criterion has a route in the product. One open naming question: notifications
-show the sender as "BingoHud.App", the assembly name, rather than "Bingo" — see the 6.10 record.
-Windows 11 still puts every new tray icon in the hidden overflow, which is a setup note for the
-README rather than a defect. Green at 698 tests. Earlier notes
+next_session: the 6.12 checkpoint. Every Phase 6 task is complete, so what remains is assessing
+AC-1 to AC-3, AC-7, AC-19 to AC-24 and AC-28 against the spec and recording the result. Two things
+to weigh there rather than treat as passing quietly: notifications name their sender "BingoHud.App"
+rather than "Bingo", and Windows 11 puts every new tray icon in the hidden overflow. The first is a
+naming decision, the second a README setup note. Battery is still the one cadence signal with no
+producer, and it has no task. Green at 703 tests. Earlier notes
 from 6.6 follow:
 `App` now composes the credential provider, usage client, monitor, transcript activity, alert
 engine and poll loop, and the HUD re-reads the monitor once a second. Every word on the HUD is
@@ -22,7 +22,7 @@ Win32 from PowerShell, and capturing it to a PNG; that is the shell's runnable c
 records how it is assessed. 6.1 answered: cursor timer, no hook; see
 `specs/quota-hud/spikes/click-through-probe.md`. 6.2 put app state under `%LOCALAPPDATA%\Bingo`
 (`AppData.Directory`). Confirm reality first with `dotnet build` and `dotnet test`; both were
-green at the end of 6.10 with 698 passing tests. The status line probe stays up for the AC-2b
+green at the end of 6.11 with 703 passing tests. The status line probe stays up for the AC-2b
 label question and closes at 7.2. `Readout.Lines` takes the monitor's `ReadingState` and returns
 no lines unless the reading is fresh, so a stale or frozen number never sits on screen next to a
 moving countdown; 7.1 gives those states words and AC-8 its age line. See the 6.6 review record
@@ -512,6 +512,37 @@ declined:
 - Replacing the loop's three alert parameters with a single after-poll callback. Cleaner, but
   5a.2 settled that the loop connects the engine, and the manual-refresh alert test leans on it.
 - Inlining the single-use transcript pattern constant. Three lines; not worth the diff.
+
+### Task 6.11: the interop audit — 2026-09-07
+
+The rule holds. All seven platform-invoke declarations are in `NativeMethods.cs`, and so is every
+use of the marshalling namespace. Core has no interop of any kind, and nothing anywhere is
+compiled unsafe. The seven entry points are the window style getter and setter, the window
+rectangle, the cursor position, the dark title bar attribute, and the two monitor calls.
+
+Three places in the shell touch interop surfaces without breaching the rule, and each is written
+down so a later reader does not mistake one for a violation. Two window classes obtain their own
+handle through `WindowInteropHelper`, and one reads a DPI transform through `PresentationSource`.
+Both are WPF APIs rather than calls into Win32. Obtaining a handle deliberately stays in the
+window classes: moving it into the interop file would make that file depend on WPF, which is a
+worse trade than the one it would buy. The tray icon reaches the notification area through a
+Windows Forms control, which calls `Shell_NotifyIcon` on our behalf — a framework call, the same
+category as WPF creating a window.
+
+A confirmation that is only a reading decays the moment someone adds a reasonable-looking
+`DllImport` beside the code that needs it. So the rule is now a fence test, in the same spirit as
+the Core seam and the no-process-launch fences: it reads the shell's sources and asserts that the
+interop declarations, and the interop namespace, appear in one file only. It also names
+`LibraryImport`, the modern spelling, so a future migration cannot slip past.
+
+Asserting it meant reading source rather than reflecting over the assembly. Taking a project
+reference on the WPF app from the Core test project would have breached the very seam the other
+fence defends, so the shell's `.cs` files are linked into the test output the way the recorded
+fixtures are. One of the five tests asserts only that those files are reachable, because without
+it every other assertion would pass by finding nothing.
+
+Verified by mutation, as the other fences were: with a `DllImport` and the interop namespace added
+to `TrayIcon.cs`, two of the tests failed naming that file. Both passed again once it was removed.
 
 ### Task 6.10: toasts and mute — 2026-09-07
 
