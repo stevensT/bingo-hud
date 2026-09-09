@@ -11,11 +11,10 @@ namespace BingoHud.Core.Display;
 ///
 /// <para>
 /// Where the HUD's job is to say as little as possible, the panel's is to make the HUD
-/// accountable. It shows readings the HUD refuses to show — stale ones, frozen ones — because
-/// the HUD blanking itself is not an explanation, and the panel is where a user goes to get one.
-/// Showing them here is not a breach of principle 6: a number carrying its age and its status is
-/// exactly what that principle asks for, and it is the bare percentage beside a live countdown
-/// that the HUD is protecting against.
+/// accountable. Both surfaces show a stale or frozen reading; the difference is room. The HUD has
+/// space for a mark saying the numbers are not current, and the panel is where the same state
+/// gets the sentence saying what to do about it, along with the exact times and the per-model
+/// caps the HUD never shows at all.
 /// </para>
 /// </summary>
 public static class PanelReadout

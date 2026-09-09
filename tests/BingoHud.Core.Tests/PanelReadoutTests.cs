@@ -171,9 +171,9 @@ public class PanelReadoutTests
     [Fact]
     public void ThePanelShowsAStaleReadingRatherThanHidingIt()
     {
-        // The HUD blanks a stale reading, because a percentage beside a moving countdown reads
-        // as current. The panel is where the user goes to ask why, so blanking it here would
-        // leave that question unanswerable.
+        // A fence rather than a contrast: the panel has never filtered on freshness, and this
+        // fails if anyone adds such a filter. Dropping rows as a reading ages would leave the
+        // user with no numbers anywhere, which is worse than numbers carrying their age.
         var state = Reading(
             Snapshot(Window(WindowKind.Session, 12)),
             Freshness.Stale,

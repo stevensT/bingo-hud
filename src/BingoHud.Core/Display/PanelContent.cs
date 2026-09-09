@@ -24,8 +24,8 @@ public sealed record PanelRow(string Label, string Percent, string Reset);
 /// <para>
 /// The panel answers the questions the HUD is too small to: which numbers these are, how old
 /// they are, when they were fetched, when the next fetch is due, and which build is doing the
-/// reading. It is also the only place a stale or frozen reading is shown as a number, because
-/// the HUD blanks those and "why is the HUD empty" has to be answerable somewhere.
+/// reading. It is also the only place the advice for a failure appears, because the HUD has room
+/// to name a state and not to say what to do about it (AC-11).
 /// </para>
 /// </summary>
 /// <param name="Windows">The two windows the HUD shows, session first. Empty before the first reading.</param>

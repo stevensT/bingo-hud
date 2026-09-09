@@ -13,9 +13,9 @@ namespace BingoHud.App;
 /// is, and the running version.
 ///
 /// <para>
-/// This is where the HUD is held to account. The HUD blanks a stale or frozen reading rather
-/// than show a percentage that will be read as current; the panel shows it with its age, because
-/// otherwise "why has the HUD gone empty" has no answer anywhere in the app.
+/// This is where the HUD is held to account. The HUD marks a reading that is no longer current
+/// but has room for little more than that; the panel is where the state gets its sentence, so
+/// that "what do I do about this" has an answer somewhere in the app.
 /// </para>
 /// <para>
 /// Every word here is <see cref="PanelReadout"/>'s. This file places strings and composes none.

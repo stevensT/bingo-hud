@@ -1,40 +1,35 @@
 # Quota HUD — Progress
 
-updated: 2026-09-07
-status: Phase 6 complete — checkpoint 6.12 passed 2026-09-07
+updated: 2026-09-08
+status: Phase 7 in progress — 7.1 code-complete, its review findings resolved
 blockers: none
-next_session: 7.1, the error copy. Every Phase 6 criterion was assessed and met; the one clause
-still thin is AC-23's "current status", which 7.1 closes by giving the failure states words. Three
-things carried forward that are decisions rather than defects: notifications name their sender
-"BingoHud.App" rather than "Bingo", Windows 11 hides new tray icons in the overflow, and a drag can
-leave the HUD partly off screen until the next restart recovers it. Battery is still the one
-cadence signal with no producer and no task. Green at 703 tests on a clean build. Earlier notes
-from 6.6 follow:
-`App` now composes the credential provider, usage client, monitor, transcript activity, alert
-engine and poll loop, and the HUD re-reads the monitor once a second. Every word on the HUD is
-decided by `Readout.Lines` in Core ("5h" / "Week", "12% used" / "88% left", the reset phrase);
-the shell only places the strings, so 6.7 belongs in `Readout` too — it decides which lines are
-returned. Two cadence signals still have no producer: battery (needs a Win32 call, no task yet)
-and panel-open (arrives with 6.8). Alerts are not evaluated until 6.10 supplies a sink. The empty HUD says
-"no reading yet" for every reason until 7.1 writes the copy. AC-21 was amended to dwell (400 ms)
-at 6.5. The shell is verified by launching the built exe, reading its rectangle back through
-Win32 from PowerShell, and capturing it to a PNG; that is the shell's runnable check until 6.12
-records how it is assessed. 6.1 answered: cursor timer, no hook; see
-`specs/quota-hud/spikes/click-through-probe.md`. 6.2 put app state under `%LOCALAPPDATA%\Bingo`
-(`AppData.Directory`). Confirm reality first with `dotnet build` and `dotnet test`; both were
-green at the 6.12 checkpoint with 703 passing tests. The status line probe stays up for the AC-2b
-label question and closes at 7.2. `Readout.Lines` takes the monitor's `ReadingState` and returns
-no lines unless the reading is fresh, so a stale or frozen number never sits on screen next to a
-moving countdown; 7.1 gives those states words and AC-8 its age line. See the 6.6 review record
-below for what was fixed and what was declined.
+next_session: 7.2, closing the status line probe. 7.1 wrote the copy for every reading state and
+reversed the rule that the HUD blanks a stale or frozen reading: both now stay on screen carrying
+a mark, and constitution principle 6 plus AC-9 and AC-10 were amended to say so. Green at 773
+tests on a clean build with no warnings.
 
-Found at 6.6, on the first launch with real numbers: the HUD is sized to its text, so it grew
-past the right edge of the primary monitor into the gap of a staggered layout — inside the
-virtual screen's bounding box and on no monitor at all, which is the exact case the deferred
-note in `HudPlacement` described. Fixed with `HudPlacement.KeepWithin` (tested) driven from
-`SizeChanged`, against the work area of the monitor the HUD is on, read through the one interop
-file. Snapping on drop and restore now uses that same monitor rather than the primary one; on a
-single monitor nothing changes.
+Three decisions are still carried forward rather than being defects: notifications name their
+sender "BingoHud.App" rather than "Bingo", Windows 11 hides new tray icons in the overflow, and a
+drag can leave the HUD partly off screen until the next restart recovers it. Battery remains the
+one cadence signal with no producer and no task. Two questions 7.1 raised and did not answer are
+recorded in its entry below: whether a frozen window should be able to expand a collapsed HUD, and
+whether a failed settings save deserves a notice slot on the panel.
+
+Earlier orientation, still true except where 7.1 changed it:
+`App` composes the credential provider, usage client, monitor, transcript activity, alert engine
+and poll loop, and the HUD re-reads the monitor once a second. Every word on the HUD is decided in
+Core — `Readout.Content` returns either lines ("5h" / "Week", "12% used" / "88% left", the reset
+phrase) with an optional mark, or the words that stand in for them; the shell places strings and
+composes none. A reading is shown whatever its freshness, and a reading that is no longer current
+carries a mark instead of being hidden: the age when it is merely stale, the age and the cause
+when it is frozen. Two cadence signals still have no producer: battery (needs a Win32 call, no
+task yet) and panel-open. AC-21 was amended to dwell (400 ms) at 6.5. The shell is verified by
+launching the built exe, reading its rectangle back through Win32 from PowerShell, and capturing
+it to a PNG. 6.1 answered: cursor timer, no hook; see
+`specs/quota-hud/spikes/click-through-probe.md`. 6.2 put app state under `%LOCALAPPDATA%\Bingo`
+(`AppData.Directory`). Confirm reality first with `dotnet build` and `dotnet test`. The status line
+probe stays up for the AC-2b label question and closes at 7.2. See the 7.1 entry and the 6.6
+review record below for what was fixed and what was declined.
 
 ## Notes carried into execution
 
@@ -831,19 +826,21 @@ carries a note saying it was amended at 7.1 and why. Worth naming plainly: when 
 to Trevor the stated cost was rewording principle 6 alone. AC-9 and AC-10 carry the same
 "no percentages" clause and needed the same fix, and that was missed when the question was asked.
 
-**The mark displaces the countdown rather than joining it.** A line that is not current gives up
-its reset phrase to its status: "5h 83% used  frozen, signed out". The countdown is the part that
-reads as live — it moves every second whether or not anything behind it is still being fetched —
-so a dead percentage beside a running "resets in 52 min" is the exact display the principle
-forbids. The exact reset time is still in the panel, which is where a user goes for it. The third
-field of `ReadoutLine` was renamed from `Reset` to `Note` to stop the name claiming more than the
-slot holds.
+**Where the mark goes** was settled twice. It first displaced each line reset phrase, on the
+grounds that a running countdown is what makes a dead number look alive. The review found the cost:
+the mark is one fact about the reading, so stamping it on every line printed it once per window on
+the display with the least room to spare — the same duplication `Readout.Content` refuses for the
+headline. It now sits on its own row beneath the numbers, said once, and each line keeps the reset
+time it reported. `ReadoutLine` keeps its original third field, `Reset`, because that is again all
+it holds.
 
-**Where the words live.** One table, in `StatusMessage.Describe`, over `ReadingState`. Three
-fields: a headline sized for the HUD, which is all the HUD has room for; the advice, for the panel,
-which is the half AC-11 turns on; and the mark, for beside a number that is on screen but not
-current. Deriving the mark's cause from the headline rather than keeping a second table is
-deliberate — two user-facing tables for one state is how a HUD and a panel end up naming it
+**Where the words live.** One table, in `StatusMessage.Describe`, over `ReadingState`: a headline
+sized for the HUD, which is all the HUD has room for, and the advice for the panel, which is the
+half AC-11 turns on. The mark is a second static on the same type rather than a third field, which
+the review argued for and which holds up — no caller wanted all three, and the mark answers a
+different question from the headline: not what state the app is in, but whether what is drawn can
+still be acted on. Deriving the mark's cause from the headline rather than keeping a second table
+is deliberate — two user-facing tables for one state is how a HUD and a panel end up naming it
 differently — and it rests on no headline beginning with a proper noun, which is stated at the
 call.
 
@@ -872,13 +869,117 @@ phrase together for that reason, and the shell compares both halves.
 **Deferred, with the reason recorded.** A utilization above 100 still renders as "-1% left" in the
 remaining direction. Nothing clamps, on purpose, but whether to show it as reported or cap it is a
 principle 6 call; the 6.6 review left it open for 7.1 and Trevor deferred it past 0.1.0 on the
-grounds that no capture has ever produced such a figure. It is a known gap rather than a decision.
+grounds that no capture has ever produced such a figure. It is a known gap rather than a decision,
+and it now carries a `// deferred:` marker in `Percentage` so it is greppable from the code rather
+than only from here.
 
 **Not verified on screen yet.** The app was launched and runs clean, but every state written here
 except "no reading yet" needs a failure to see, and producing one means interfering with the
 credential file. AC-9, AC-10 and AC-11 are therefore assessed against tests only at this point.
 7.4 is where they get exercised against the built application, and doing that will need a
 deliberate way to force each state.
+
+### Review: task 7.1, the error copy — 2026-09-08
+tests: 773 pass / 0 fail / 0 skip (737 at the start of the review; 36 added by it)
+build: pass on a clean build, 0 warnings, 0 errors
+
+Five reviewers over commit `71cbd06`: general, test coverage, comment accuracy, silent failures,
+type design. Every one of them independently found the same defect, and two confirmed it by
+executing the built assembly rather than by reading the source.
+
+**The defect, which was a regression.** A response carrying only per-model caps is a success — the
+normalizer accepts any snapshot with at least one window — but the HUD draws only the session and
+weekly-all windows. That produced no lines, no failure and no staleness, so the status was null and
+the HUD rendered a `TextBlock` with null text: a window with nothing written on it. Before 7.1 the
+same state showed a hardcoded "no reading yet". Worse than the blank itself, `HudContent` carried a
+doc comment asserting the phrase was "never null when Lines is empty", so the next reader would
+have trusted an invariant nothing held. Two existing passing tests already composed to prove the
+state was reachable; nothing tested the two of them together.
+
+The fix is the shape rather than a guard. `HudContent` is now a closed hierarchy in the idiom
+`FetchOutcome` and `RefreshResult` already use — either a `Reading` with lines and an optional
+mark, or an `Empty` with a phrase that cannot be null. `Readout.Content` therefore cannot compile
+without deciding what the scoped-only case says, and it says "No 5h or weekly window reported"
+with panel advice pointing at the per-model section. A theory now holds the invariant over every
+state that draws no lines, rather than one case at a time.
+
+**Three decisions went back to Trevor**, because each changed what a user reads:
+
+- An unreadable response does not freeze a reading, so for up to 45 minutes the HUD showed a
+  percentage nothing would ever update beside a countdown ticking every second — and the amended
+  AC-9 claimed such a reading "carries its status". Chosen: mark it, do not freeze it. Freezing was
+  the reviewer's first suggestion and would have been wrong: `Freshness.Frozen` is excluded from
+  severity by AC-13, so an endpoint that merely changed shape would also have silently stopped the
+  account driving warnings and alerts. A transient blip stays unmarked, as 6.6 decided.
+- A frozen reading was marked with its cause and not its age, and a frozen reading never becomes
+  stale — so a machine left signed out for a week showed a week-old number with nothing saying so,
+  while principle 6 still required every figure to carry its age. Chosen: carry both, age first, so
+  every mark leads with the age and does not change shape as time passes.
+- The mark printed once per line. Chosen: hoist it out of `ReadoutLine` onto the reading, said once
+  beneath the numbers.
+
+That third choice had a consequence worth naming: with the mark gone from the line, the third field
+holds only a reset phrase again, so the `Reset` to `Note` rename was reverted and the
+two-meanings-in-one-slot question the type reviewer raised disappeared rather than being answered.
+
+**Found by a test that was written for something else.** Pinning the frozen mark at six days old
+produced "144 hours old, signed out" — `AgeText` had no day unit, because until the frozen mark
+carried an age nothing had ever asked for one. Days added, with the boundaries pinned from both
+sides this time.
+
+**Also fixed:**
+- The stale-with-no-failure branch of `Describe` had no test at all: deleting it entirely left the
+  suite green, and swapping the sentence phrasing for the label phrasing would have shipped "No
+  poll has succeeded in 48 min old." Both halves are now pinned, and so is the failure-outranks-
+  staleness rule for a stale reading rather than only a frozen one.
+- `AuthFailureKind.Unspecified` is matched explicitly instead of by a catch-all arm. The arm would
+  have swallowed any kind added later and attached sign-in advice to it — the precise failure AC-11
+  exists to prevent, and an odd asymmetry: a new `FetchOutcome` crashed loudly while a new
+  `AuthFailureKind` would have mis-advised quietly forever.
+- Two fences over the hand-written table: one reflects over `FetchOutcome` nested subtypes so a new
+  outcome fails a test rather than throwing once a second from the render timer, and one runs over
+  every `AuthFailureKind`.
+- `AgeText` boundaries were pinned from one side only — 59 seconds but not 60, 75 minutes but not
+  exactly 60 — and `Span` had no hour case, so "1 hours" survived as a mutation.
+- The repaint comparison moved from the shell into `HudContent.SameAs`, where tests can reach it.
+  The shell has no test project, and this was the riskiest untested line in the change: a record
+  compares an `IReadOnlyList` member by reference, so the obvious `==` would have rebuilt the
+  visual tree every second. The comment that invited that mistake is gone.
+- The shell no longer composes a user-facing string. `App.HudReadout` duplicated "No reading yet";
+  the phrase is now a constant on `StatusMessage`. Its null-monitor guard was also dead code with a
+  plausible-sounding justification, and it now throws naming the precondition — the field is never
+  reassigned, so a null there means nothing is polling and never will, and the phrase that is true
+  for one second would have sat there forever.
+- Five comments still described the rule this task reversed, in `PanelReadout`, `PanelContent`,
+  `DetailPanelWindow`, `FetchOutcome` and `PanelReadoutTests` — the last two outside the diff, which
+  is why they were missed. In a codebase whose comments carry the reasoning, that is how a later
+  session re-derives the old policy and restores it.
+- The orientation block at the top of this file still described the old rule, which is the first
+  thing a new session reads.
+- The `// deferred:` note on a failed settings save claimed to be blocked on 7.1 writing the copy.
+  The copy exists now, so the note was rewritten to say what is actually missing.
+
+**Declined, with reasons.** `StatusMessage` keeps a public positional constructor. The type reviewer
+wanted construction closed in the `FetchOutcome` idiom, but that idiom belongs to the discriminated
+unions here; every message record in `Display` — `AlertMessage`, `PanelRow`, `ReadoutLine` — is a
+public positional record with a static composer, and breaking that pattern for one type buys a
+guarantee nothing in the app threatens.
+
+**Raised, not decided, and belonging to no task.** Two things the review surfaced that are neither
+defects nor 7.1's to settle:
+
+1. `Readout` ranks windows for collapse through the per-window `SeverityPolicy.Evaluate`, whose own
+   doc says a frozen reading is excluded once, by the caller above it. `Readout` is a second caller
+   and applies no exclusion, so a frozen reading can expand a collapsed HUD to two lines on
+   severity that the same reading is barred from contributing to the headline (AC-13). It may well
+   be right — hiding a window the user is about to hit is what AC-7 refuses to do — but nothing
+   records or tests the intent.
+2. A failed settings save still reaches nobody. The panel has a status area now, but its status is
+   composed from the reading, and a settings failure is not part of one.
+
+**Still not verified on screen.** Unchanged from the task entry: every state except "no reading
+yet" needs a failure to see, and forcing one means interfering with the credential file. 7.4 is
+where these meet the built application, and it will need a deliberate way to force each state.
 
 ### Review: task 6.6, the readout and the composition root — 2026-09-07
 tests: 629 pass / 0 fail / 0 skip (616 before the review; 13 added by it)

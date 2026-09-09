@@ -17,6 +17,10 @@ public static class Percentage
     /// The figure with the word that says which way it reads. The word travels with the number
     /// so the two can never be separated on screen.
     /// </summary>
+    // deferred: a utilization above 100 renders a negative figure in the remaining direction,
+    // such as "-1% left". Nothing clamps, on purpose — a clamped number is not what the server
+    // sent either — but whether to show it as reported or cap it is an open call. Deciding it
+    // against a capture that actually carries such a figure is what would lift this.
     /// <param name="usedPercent">Utilization as stored: consumed, 0 to 100.</param>
     /// <param name="direction">Which way the user reads it.</param>
     public static string Describe(double usedPercent, DisplayDirection direction)

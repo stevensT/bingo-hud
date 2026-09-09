@@ -6,8 +6,9 @@ using BingoHud.Core.Usage;
 namespace BingoHud.Core.Display;
 
 /// <summary>
-/// Decides every word on the HUD (AC-1 through AC-3), which windows get a line at all (AC-7),
-/// and whether any number may be shown (AC-8, AC-10, AC-13). The WPF layer places the strings; it does not compose them.
+/// Decides every word on the HUD (AC-1 through AC-3), which windows get a line (AC-7), and how a
+/// reading that is no longer current is marked (AC-8, AC-13). The WPF layer places the strings;
+/// it does not compose them.
 ///
 /// <para>
 /// A pure function over the current reading state, the display direction, the moment of
@@ -23,12 +24,12 @@ public static class Readout
     /// The HUD's lines, session first, then the all-models weekly window; or none.
     ///
     /// <para>
-    /// None until the first reading arrives; the shell shows the status headline in their place.
-    /// After that a reading is always shown, including a stale or frozen one, because the last
-    /// thing the server actually said is the best answer available and hiding it answers
-    /// nothing. What principle 6 forbids is not the old number but the old number presented as
-    /// current, so every line that is not current carries its status where its countdown would
-    /// otherwise be.
+    /// None until the first reading arrives, and none when the reading named no window the HUD
+    /// draws; <see cref="Content"/> supplies words in their place. Otherwise a reading is always
+    /// shown, including a stale or frozen one, because the last thing the server actually said is
+    /// the best answer available and hiding it answers nothing. What principle 6 forbids is not
+    /// the old number but the old number read as current, which is the mark's job rather than
+    /// this one's.
     /// </para>
     /// <para>
     /// A window the server did not report has no line. It is not shown as zero, because a zero
@@ -51,11 +52,6 @@ public static class Readout
             return [];
         }
 
-        // While the reading is current the slot after the figure holds its reset time. While it
-        // is not, the status takes that slot instead, so that no line can pair a number that is
-        // no longer being refreshed with a countdown that is still running.
-        var mark = StatusMessage.Describe(state)?.Mark;
-
         var shown = Shown(snapshot, settings);
         var lines = new List<ReadoutLine>(shown.Count);
 
@@ -64,7 +60,7 @@ public static class Readout
             lines.Add(new ReadoutLine(
                 WindowName.Short(window.Kind),
                 Percentage.Describe(window.UsedPercent, settings.Direction),
-                mark ?? ResetFormatter.Describe(window.ResetsAt, now, culture)));
+                ResetFormatter.Describe(window.ResetsAt, now, culture)));
         }
 
         return lines;
@@ -93,13 +89,25 @@ public static class Readout
     {
         var lines = Lines(state, settings, now, culture);
 
-        // Only when there is nothing else to show. While there are lines each one carries its
-        // own status in the mark, and a headline over the top would repeat it on the display
-        // with the least room to spare.
-        return new HudContent(
-            lines,
-            lines.Count == 0 ? StatusMessage.Describe(state)?.Headline : null);
+        if (lines.Count == 0)
+        {
+            // Every state that yields no lines has words for itself: no reading yet, a failure,
+            // or a response naming no window the HUD draws. The floor below is unreachable
+            // today and exists so that narrowing Shown() cannot silently produce a blank HUD —
+            // the compiler demands a phrase here, which is the point of the two cases.
+            return new HudContent.Empty(
+                StatusMessage.Describe(state)?.Headline ?? StatusMessage.NoWindowToShow);
+        }
+
+        return new HudContent.Reading(lines, StatusMessage.MarkFor(state));
     }
+
+    /// <summary>
+    /// The windows the HUD draws a line for, session first. Named here because
+    /// <see cref="StatusMessage"/> has to ask the same question to tell a reading that named none
+    /// of them from a reading that has not arrived.
+    /// </summary>
+    internal static readonly WindowKind[] HudKinds = [WindowKind.Session, WindowKind.WeeklyAll];
 
     /// <summary>
     /// Which windows get a line, session first (AC-7).
@@ -117,7 +125,7 @@ public static class Readout
     /// </summary>
     private static IReadOnlyList<QuotaWindow> Shown(QuotaSnapshot snapshot, UserSettings settings)
     {
-        var windows = new[] { WindowKind.Session, WindowKind.WeeklyAll }
+        var windows = HudKinds
             .Select(kind => snapshot.Windows.FirstOrDefault(w => w.Kind == kind))
             .OfType<QuotaWindow>()
             .ToList();

@@ -46,6 +46,17 @@ public class ReadoutTests
     private static IReadOnlyList<ReadoutLine> Lines(ReadingState state) =>
         Readout.Lines(state, Settings(), Now, TwelveHour);
 
+    private static HudContent Content(ReadingState state) =>
+        Readout.Content(state, Settings(), Now, TwelveHour);
+
+    private static ReadingState Frozen(QuotaSnapshot snapshot) =>
+        new(
+            snapshot,
+            Freshness.Frozen,
+            new FetchOutcome.AuthFailed(AuthFailureKind.SignedOut),
+            Age: TimeSpan.FromHours(3),
+            PollReason: "test");
+
     // ---- What may be shown at all (constitution principle 6, AC-8, AC-10, AC-13) ----
 
     [Fact]
@@ -57,26 +68,38 @@ public class ReadoutTests
     }
 
     [Fact]
-    public void AFrozenReadingKeepsItsNumbersAndSaysWhyTheyWillNotMove()
+    public void AFrozenReadingKeepsItsNumbersAndItsResetTime()
     {
         // The token was invalidated after a good poll. The number is real and still the last
-        // thing the server said, so it stays; what it must never do is read as current. The mark
-        // is what prevents that, and it names the cause rather than an age, because no newer
-        // reading is coming until the user signs in (AC-10, AC-13).
-        var frozen = new ReadingState(
-            Snapshot(Window(WindowKind.Session, 12, Now.AddMinutes(53))),
-            Freshness.Frozen,
-            new FetchOutcome.AuthFailed(AuthFailureKind.Invalidated),
-            TimeSpan.FromMinutes(3),
-            "test");
+        // thing the server said, so it stays, and so does the reset time it reported — that time
+        // is a fact about the window, not about how current the reading is. What stops the pair
+        // reading as live is the mark, which belongs to the reading as a whole (AC-10, AC-13).
+        var frozen = Frozen(Snapshot(Window(WindowKind.Session, 12, Now.AddMinutes(53))));
 
         Assert.Equal(
-            [new ReadoutLine("5h", "12% used", "frozen, sign-in expired")],
+            [new ReadoutLine("5h", "12% used", "resets in 53 min")],
             Lines(frozen));
     }
 
     [Fact]
-    public void AStaleReadingKeepsItsNumbersAndCarriesItsAge()
+    public void AFrozenReadingIsMarkedOnceForTheWholeReading()
+    {
+        // Said once rather than per line. The mark answers whether these numbers can be acted
+        // on, which is one question about the reading however many windows are drawn — stamping
+        // it on each line would repeat it down the display with the least room to spare.
+        var frozen = Frozen(
+            Snapshot(
+                Window(WindowKind.Session, 12, Now.AddMinutes(53)),
+                Window(WindowKind.WeeklyAll, 37, Now.AddDays(3))));
+
+        var reading = Assert.IsType<HudContent.Reading>(Content(frozen));
+
+        Assert.Equal(2, reading.Lines.Count);
+        Assert.Equal("3 hours old, signed out", reading.Mark);
+    }
+
+    [Fact]
+    public void AStaleReadingKeepsItsNumbersAndIsMarkedWithItsAge()
     {
         // AC-8, in the words the criterion asks for. A reading that missed a poll is still the
         // best thing known, and an age beside it is what makes it honest rather than hidden.
@@ -87,26 +110,9 @@ public class ReadoutTests
             TimeSpan.FromMinutes(48),
             "test");
 
-        Assert.Equal(
-            [new ReadoutLine("5h", "12% used", "48 min old")],
-            Lines(stale));
-    }
+        var reading = Assert.IsType<HudContent.Reading>(Content(stale));
 
-    [Fact]
-    public void ANonCurrentLineGivesUpItsResetCountdownToTheMark()
-    {
-        // The countdown is the part that reads as live: it moves every second whether or not
-        // anything behind it is still being fetched. A frozen percentage beside a ticking
-        // "resets in 52 min" is precisely the display principle 6 forbids, so the mark takes
-        // that slot rather than sitting next to it. The exact reset time is still in the panel.
-        var frozen = new ReadingState(
-            Snapshot(Window(WindowKind.Session, 12, Now.AddMinutes(53))),
-            Freshness.Frozen,
-            new FetchOutcome.AuthFailed(AuthFailureKind.SignedOut),
-            TimeSpan.FromMinutes(3),
-            "test");
-
-        Assert.DoesNotContain("resets", Lines(frozen).Single().Note);
+        Assert.Equal("48 min old", reading.Mark);
     }
 
     [Fact]
@@ -119,6 +125,16 @@ public class ReadoutTests
         Assert.Single(Lines(blip));
     }
 
+    [Fact]
+    public void APassingFailureLeavesTheReadingUnmarked()
+    {
+        // The number is still current, so there is nothing to qualify. A mark on every network
+        // blip would empty the mark of meaning by the time one mattered.
+        var blip = Fresh(Snapshot(Window(WindowKind.Session, 12)), new FetchOutcome.Transient(null));
+
+        Assert.Null(Assert.IsType<HudContent.Reading>(Content(blip)).Mark);
+    }
+
     // ---- What replaces the lines when there are none ----
 
     [Fact]
@@ -126,14 +142,9 @@ public class ReadoutTests
     {
         // An empty HUD is indistinguishable from a broken one. Every launch passes through this
         // state, so it has to read as a normal thing rather than as a failure.
-        var content = Readout.Content(
-            new ReadingState(null, Freshness.Fresh, null, TimeSpan.Zero, "test"),
-            Settings(),
-            Now,
-            TwelveHour);
+        var content = Content(new ReadingState(null, Freshness.Fresh, null, TimeSpan.Zero, "test"));
 
-        Assert.Empty(content.Lines);
-        Assert.Equal("No reading yet", content.EmptyState);
+        Assert.Equal("No reading yet", Assert.IsType<HudContent.Empty>(content).Phrase);
     }
 
     [Fact]
@@ -142,34 +153,114 @@ public class ReadoutTests
         // AC-10. A user who has never signed in gets no reading at all, so the failure has
         // nowhere to appear except in place of the lines. "No reading yet" here would be true
         // and useless: it would never change, and it would not say why.
-        var content = Readout.Content(
-            new ReadingState(
-                null,
-                Freshness.Fresh,
-                new FetchOutcome.AuthFailed(AuthFailureKind.SignedOut),
-                TimeSpan.Zero,
-                "test"),
-            Settings(),
-            Now,
-            TwelveHour);
+        var content = Content(new ReadingState(
+            null,
+            Freshness.Fresh,
+            new FetchOutcome.AuthFailed(AuthFailureKind.SignedOut),
+            TimeSpan.Zero,
+            "test"));
 
-        Assert.Empty(content.Lines);
-        Assert.Equal("Signed out", content.EmptyState);
+        Assert.Equal("Signed out", Assert.IsType<HudContent.Empty>(content).Phrase);
     }
 
     [Fact]
-    public void WhileThereAreLinesThereIsNoEmptyStatePhrase()
+    public void AReadingNamingNoWindowTheHudDrawsStillSaysSomething()
     {
-        // The lines carry their own status in the mark. A headline above them would say a second
-        // time what each line already says, on the display with the least room to spare.
-        var content = Readout.Content(
-            Fresh(Snapshot(Window(WindowKind.Session, 12))),
-            Settings(),
-            Now,
-            TwelveHour);
+        // The defect this shape exists to prevent. A response carrying only per-model caps is a
+        // success with at least one window, so nothing fails and nothing is stale — and the HUD
+        // has no line to draw. Before the two cases existed this produced a HUD with no words on
+        // it at all, which principle 6 names as its own kind of dishonesty.
+        var scopedOnly = Fresh(Snapshot(Window(WindowKind.WeeklyScoped, 5)));
 
-        Assert.Single(content.Lines);
-        Assert.Null(content.EmptyState);
+        var empty = Assert.IsType<HudContent.Empty>(Content(scopedOnly));
+
+        Assert.Equal("No 5h or weekly window reported", empty.Phrase);
+    }
+
+    [Theory]
+    [MemberData(nameof(EveryEmptyHudState))]
+    public void AnEmptyHudAlwaysSaysWhyItIsEmpty(ReadingState state)
+    {
+        // The invariant, held over every state that draws no lines rather than one at a time.
+        // This is the test that would have caught the blank HUD, and it keeps catching it as
+        // states are added.
+        Assert.NotEmpty(Assert.IsType<HudContent.Empty>(Content(state)).Phrase);
+    }
+
+    public static TheoryData<ReadingState> EveryEmptyHudState()
+    {
+        var scopedOnly = new QuotaSnapshot(
+            [new QuotaWindow(WindowKind.WeeklyScoped, 5, null, ServerSeverity.Normal, "a-model")],
+            Now,
+            RawBody: "{}");
+
+        var data = new TheoryData<ReadingState>
+        {
+            new ReadingState(null, Freshness.Fresh, null, TimeSpan.Zero, "test"),
+            new ReadingState(scopedOnly, Freshness.Fresh, null, TimeSpan.Zero, "test"),
+            new ReadingState(scopedOnly, Freshness.Stale, null, TimeSpan.FromHours(2), "test"),
+        };
+
+        foreach (var kind in Enum.GetValues<AuthFailureKind>())
+        {
+            data.Add(new ReadingState(
+                null,
+                Freshness.Frozen,
+                new FetchOutcome.AuthFailed(kind),
+                TimeSpan.Zero,
+                "test"));
+        }
+
+        return data;
+    }
+
+    // ---- Skipping a repaint (the shell has no tests of its own) ----
+
+    [Fact]
+    public void TwoReadingsWithTheSameLinesAndMarkAreTheSameHud()
+    {
+        // The shell repaints only when this says something changed, and it cannot use the
+        // record own equality: a record compares an IReadOnlyList member by reference, so two
+        // identical readings would compare different and the HUD would rebuild every second.
+        var first = Content(Fresh(Snapshot(Window(WindowKind.Session, 12, Now.AddMinutes(53)))));
+        var second = Content(Fresh(Snapshot(Window(WindowKind.Session, 12, Now.AddMinutes(53)))));
+
+        Assert.True(first.SameAs(second));
+    }
+
+    [Fact]
+    public void AChangedMarkIsADifferentHudEvenWhenTheLinesMatch()
+    {
+        var snapshot = Snapshot(Window(WindowKind.Session, 12, Now.AddMinutes(53)));
+        var current = Content(Fresh(snapshot));
+        var frozen = Content(Frozen(snapshot));
+
+        Assert.False(current.SameAs(frozen));
+    }
+
+    [Fact]
+    public void AChangedEmptyStatePhraseIsADifferentHud()
+    {
+        // The case that made both halves travel together. Two empty HUDs whose reason differs
+        // would otherwise compare equal on their line lists and never repaint.
+        var before = Content(new ReadingState(null, Freshness.Fresh, null, TimeSpan.Zero, "test"));
+        var after = Content(new ReadingState(
+            null,
+            Freshness.Frozen,
+            new FetchOutcome.AuthFailed(AuthFailureKind.SignedOut),
+            TimeSpan.Zero,
+            "test"));
+
+        Assert.False(before.SameAs(after));
+    }
+
+    [Fact]
+    public void AnEmptyHudAndAReadingAreNeverTheSameHud()
+    {
+        var reading = Content(Fresh(Snapshot(Window(WindowKind.Session, 12))));
+        var empty = Content(new ReadingState(null, Freshness.Fresh, null, TimeSpan.Zero, "test"));
+
+        Assert.False(reading.SameAs(empty));
     }
 
     // ---- The lines themselves (AC-1 through AC-3) ----
@@ -268,7 +359,7 @@ public class ReadoutTests
 
         var line = Assert.Single(Readout.Lines(Fresh(snapshot), Settings(), Now, new CultureInfo("de-DE")));
 
-        Assert.Equal("resets Do 11:34", line.Note);
+        Assert.Equal("resets Do 11:34", line.Reset);
     }
 
     [Fact]
@@ -283,7 +374,7 @@ public class ReadoutTests
         // Observed on a live account. Nothing beside the percentage, never a guessed time.
         var line = Assert.Single(Lines(Snapshot(Window(WindowKind.Session, 12))));
 
-        Assert.Null(line.Note);
+        Assert.Null(line.Reset);
     }
 
     [Fact]

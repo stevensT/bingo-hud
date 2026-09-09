@@ -239,9 +239,19 @@ already known-correct.
 
 ## Phase 7: Polish
 
-- [~] 7.1 Write the error copy for every state: sign-in, permission-denied, unreadable,
+- [x] 7.1 Write the error copy for every state: sign-in, permission-denied, unreadable,
       unavailable, unsupported, stale, frozen. Each says what happened and what to do about it.
-      (AC-9, AC-10, AC-11)
+      (AC-9, AC-10, AC-11) Done 2026-09-08. The task turned on a decision rather than on wording:
+      the spec and the constitution disagreed about whether the HUD may show a stale or frozen
+      reading at all. Settled as keep the number and mark it, so constitution principle 6, AC-9 and
+      AC-10 were amended to match, each carrying a note saying why. Reviewed by five reviewers;
+      every finding is resolved, including a regression they all caught — a response naming no
+      window the HUD draws rendered a blank window, now impossible by construction rather than
+      merely guarded. Two items were raised and deliberately not decided here, and neither has a
+      task: whether a frozen reading should be able to expand a collapsed HUD on severity it is
+      barred from contributing to the headline (AC-7 against AC-13), and whether a failed settings
+      save deserves a notice slot on the panel. Both are recorded in the review entry in
+      `progress.md` for Trevor to schedule or dismiss.
 - [ ] 7.2 Close the spike: record the result in the spike document, delete
       `scripts/quota-statusline.ps1`, and remove the `statusLine` entry from settings.
 - [ ] 7.3 Set `<Version>` to `0.1.0` in `BingoHud.App.csproj`, move the `[Unreleased]` entries

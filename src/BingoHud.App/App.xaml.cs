@@ -192,11 +192,14 @@ public partial class App : Application
     /// </summary>
     private HudContent HudReadout()
     {
+        // Unreachable as startup is ordered: the monitor is built before the window that asks.
+        // It throws rather than substituting a phrase, because the field is never reassigned — a
+        // null here means nothing is polling and never will, and "No reading yet" would sit on
+        // screen forever looking like the ordinary first second of a run.
         if (_monitor is null)
         {
-            // Only reachable if the HUD renders before startup finishes wiring the monitor. The
-            // honest phrase for it is the same one the first second of every run shows.
-            return new HudContent([], "No reading yet");
+            throw new InvalidOperationException(
+                "The HUD asked for a reading before startup wired the monitor.");
         }
 
         return Readout.Content(_monitor.Current, _settings, _clock.Now);
@@ -264,9 +267,11 @@ public partial class App : Application
     /// Applies a settings change and writes it down (AC-22). The HUD and panel both re-read
     /// once a second, so a change made from the tray shows up without anything being told.
     /// </summary>
-    // deferred: a failed save is dropped on the floor here. The settings still apply for this
-    // session. The panel now exists to carry the news, but it has no place to put it until
-    // 7.1 writes the copy for states like this one.
+    // deferred: a failed save is dropped on the floor here, so a locked settings file means the
+    // user drags the HUD, sees it move, and finds it back where it was next launch with nothing
+    // saying why. The panel can carry the news now that it has a status area; what is missing is
+    // a state for it, since the panel status is composed from the reading and a settings failure
+    // is not part of one. An independent notice slot on the panel is what would lift this.
     private void Remember(UserSettings changed)
     {
         _settings = changed;

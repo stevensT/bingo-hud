@@ -94,39 +94,53 @@ public partial class HudWindow : Window
     {
         var content = _readout();
 
-        // Both halves compared, not just the lines. An empty HUD whose reason changed — from not
-        // having polled yet to having been signed out — is a change nobody would see otherwise.
-        if (_shown is not null
-            && _shown.EmptyState == content.EmptyState
-            && _shown.Lines.SequenceEqual(content.Lines))
+        // Asked of Core rather than compared here: a record compares its line list by reference,
+        // so the obvious equality check would report every reading as changed and rebuild the
+        // tree every second. Core owns the comparison because Core is what has tests.
+        if (_shown is not null && _shown.SameAs(content))
         {
             return;
         }
 
         _shown = content;
-        var lines = content.Lines;
         Lines.Children.Clear();
         Lines.RowDefinitions.Clear();
 
-        if (lines.Count == 0)
+        if (content is HudContent.Empty empty)
         {
-            // Core's words for whichever state left the HUD with nothing to show: signed out,
-            // unreadable, or simply not having finished the first poll (AC-9, AC-10).
+            // Core words for whichever state left the HUD with nothing to draw: signed out,
+            // unreadable, a response naming no window it shows, or simply not having finished
+            // the first poll (AC-9, AC-10). Never blank.
             Lines.RowDefinitions.Add(new RowDefinition());
-            Lines.Children.Add(new TextBlock { Text = content.EmptyState, Foreground = Dim });
+            Lines.Children.Add(new TextBlock { Text = empty.Phrase, Foreground = Dim });
             return;
         }
 
-        for (var row = 0; row < lines.Count; row++)
+        var reading = (HudContent.Reading)content;
+
+        for (var row = 0; row < reading.Lines.Count; row++)
         {
             Lines.RowDefinitions.Add(new RowDefinition());
-            Place(new TextBlock { Text = lines[row].Window, Foreground = Dim }, row, column: 0);
-            Place(new TextBlock { Text = lines[row].Percent, Margin = new Thickness(10, 0, 0, 0) }, row, column: 1);
+            Place(new TextBlock { Text = reading.Lines[row].Window, Foreground = Dim }, row, column: 0);
+            Place(new TextBlock { Text = reading.Lines[row].Percent, Margin = new Thickness(10, 0, 0, 0) }, row, column: 1);
 
-            if (lines[row].Note is { } note)
+            if (reading.Lines[row].Reset is { } reset)
             {
-                Place(new TextBlock { Text = note, Foreground = Dim, Margin = new Thickness(10, 0, 0, 0) }, row, column: 2);
+                Place(new TextBlock { Text = reset, Foreground = Dim, Margin = new Thickness(10, 0, 0, 0) }, row, column: 2);
             }
+        }
+
+        if (reading.Mark is { } mark)
+        {
+            // One row under the numbers, spanning them, because the mark qualifies all of them
+            // at once. Not dimmed like the reset times beside it: this is the line that says the
+            // figures above cannot be trusted, which makes it the last thing to fade out.
+            Lines.RowDefinitions.Add(new RowDefinition());
+            var text = new TextBlock { Text = mark, Margin = new Thickness(0, 2, 0, 0) };
+            Grid.SetRow(text, reading.Lines.Count);
+            Grid.SetColumn(text, 0);
+            Grid.SetColumnSpan(text, 3);
+            Lines.Children.Add(text);
         }
     }
 

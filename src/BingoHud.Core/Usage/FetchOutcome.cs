@@ -5,7 +5,7 @@ namespace BingoHud.Core.Usage;
 ///
 /// <para>
 /// There is deliberately no "success with partial data" case. Either a response yielded windows
-/// we recognize, or it did not and the app says so and shows nothing. A zero is a reading; the
+/// we recognize, or it did not and no reading is recorded for it. A zero is a reading; the
 /// absence of a reading must never be able to look like one.
 /// </para>
 /// </summary>
@@ -26,7 +26,8 @@ public abstract record FetchOutcome
     public sealed record Unreadable(string Reason) : FetchOutcome;
 
     /// <summary>
-    /// The request was not authenticated. Shows a sign-in state and no percentages.
+    /// The request was not authenticated. Shows a sign-in state, and an earlier reading stays on
+    /// screen marked with the cause rather than being hidden.
     /// </summary>
     /// <param name="Kind">
     /// Why, to the extent the response established it. Not a guess: see

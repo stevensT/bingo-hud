@@ -4,7 +4,7 @@ using BingoHud.Core.Usage;
 namespace BingoHud.Core.Display;
 
 /// <summary>
-/// What Bingo says when it is not simply showing two current numbers (AC-9, AC-10, AC-11).
+/// What Bingo says when it is not simply showing current numbers (AC-9, AC-10, AC-11).
 ///
 /// <para>
 /// Every state that is not a plain current reading says two things: what happened, and what to
@@ -16,7 +16,8 @@ namespace BingoHud.Core.Display;
 /// <para>
 /// One table for all of it, so a state cannot be named one way on the HUD and another in the
 /// panel. The words live in Core with every other string the user sees; the WPF layer places
-/// them and composes none of them.
+/// them and composes none of them. <see cref="Describe"/> is the only way to obtain one, which is
+/// what makes that guarantee hold rather than merely be intended.
 /// </para>
 /// </summary>
 /// <param name="Headline">
@@ -27,41 +28,59 @@ namespace BingoHud.Core.Display;
 /// What to do about it, for the panel, which has room for a sentence. Always present: a headline
 /// naming a state the user cannot act on is a dead end.
 /// </param>
-/// <param name="Mark">
-/// What goes beside a number that is still on screen but is not current, or null when the
-/// reading is current. This is what stops a stale or frozen figure being read as live (AC-8,
-/// AC-13).
-/// </param>
-public sealed record StatusMessage(string Headline, string Advice, string? Mark)
+public sealed record StatusMessage(string Headline, string Advice)
 {
+    /// <summary>
+    /// Said before the first poll finishes. Public because the shell needs the same words for
+    /// the instant before Core exists to ask, and two copies of one phrase is how two surfaces
+    /// end up disagreeing.
+    /// </summary>
+    public const string NoReadingYet = "No reading yet";
+
+    /// <summary>
+    /// The floor that keeps the HUD from ever being blank: said only if a state yields no lines
+    /// and no words of its own, which nothing does today. It exists so that narrowing which
+    /// windows get a line cannot quietly produce an empty display.
+    /// </summary>
+    public const string NoWindowToShow = "No window to show";
+
     /// <summary>
     /// The current state in words, or null when a current reading has nothing wrong with it.
     ///
     /// <para>
     /// A failure outranks staleness, because it is the more specific fact: a reading that is
-    /// forty minutes old because the token expired should say the token expired, not that it is
-    /// forty minutes old. The age is not lost — it goes to <see cref="Mark"/>, which sits beside
-    /// the numbers, so both facts are on screen at once.
+    /// forty minutes old because the token expired should say the token expired rather than that
+    /// it is forty minutes old. The age is not lost — <see cref="MarkFor"/> carries it to the
+    /// place it belongs, beside the numbers, so both facts are on screen at once.
     /// </para>
     /// </summary>
     /// <param name="state">The monitor's current state.</param>
     public static StatusMessage? Describe(ReadingState state)
     {
-        var mark = MarkFor(state);
-
         if (state.LastFailure is { } failure)
         {
             var (headline, advice) = Words(failure);
 
-            return new StatusMessage(headline, advice, mark);
+            return new StatusMessage(headline, advice);
         }
 
-        if (state.Last is null)
+        if (state.Last is not { } snapshot)
         {
             return new StatusMessage(
-                "No reading yet",
-                "Bingo has not finished a poll since it started.",
-                mark);
+                NoReadingYet,
+                "Bingo has not finished a poll since it started.");
+        }
+
+        // A response can succeed and still name nothing the HUD draws: the normalizer accepts any
+        // snapshot with at least one window, and a per-model cap is a window. Without this the
+        // app would have a reading, no failure, nothing to draw and nothing to say, which is a
+        // blank HUD — indistinguishable from a crashed one.
+        if (!snapshot.Windows.Any(w => Readout.HudKinds.Contains(w.Kind)))
+        {
+            return new StatusMessage(
+                "No 5h or weekly window reported",
+                "The response carried only per-model caps, which the panel lists. Either this "
+                + "account has no 5-hour or weekly limit, or the endpoint has renamed them.");
         }
 
         if (state.Freshness != Freshness.Fresh)
@@ -71,12 +90,44 @@ public sealed record StatusMessage(string Headline, string Advice, string? Mark)
             // and nothing to advise, so it says the one true thing and gives the age.
             return new StatusMessage(
                 "Reading is stale",
-                $"No poll has succeeded in {AgeText.Span(state.Age)}.",
-                mark);
+                $"No poll has succeeded in {AgeText.Span(state.Age)}.");
         }
 
         return null;
     }
+
+    /// <summary>
+    /// What sits beside the numbers when they are on screen but not current, or null when they
+    /// are current.
+    ///
+    /// <para>
+    /// Asked for separately rather than carried as a field, because it answers a different
+    /// question from the headline: not what state the app is in, but whether what is drawn can
+    /// still be acted on. Only the caller that draws numbers has any use for it.
+    /// </para>
+    /// <para>
+    /// Every mark leads with the age, so its shape does not change under the reader as time
+    /// passes. A frozen reading adds the cause, because a frozen reading never becomes stale and
+    /// would otherwise carry no hint that it is waiting on the user rather than on a poll.
+    /// </para>
+    /// </summary>
+    /// <param name="state">The monitor's current state.</param>
+    public static string? MarkFor(ReadingState state) => state.Freshness switch
+    {
+        Freshness.Stale => AgeText.Old(state.Age),
+
+        Freshness.Frozen => state.LastFailure is { } failure
+            ? $"{AgeText.Old(state.Age)}, {Lowered(Words(failure).Headline)}"
+            // Unreachable as the monitor is written: it freezes a reading only on a failure that
+            // cannot pass. Kept because a display that throws takes the window down with it.
+            : AgeText.Old(state.Age),
+
+        // A reading can be current and still have stopped being refreshed. A dropped connection
+        // is expected to pass on its own and is deliberately left unmarked, but a response that
+        // no longer parses will not fix itself, and a figure nothing is updating must not sit
+        // there bare beside a countdown that keeps moving (AC-9).
+        _ => state.LastFailure is FetchOutcome.Unreadable ? "last poll unreadable" : null,
+    };
 
     /// <summary>
     /// The words for one failure: what happened, and what to do about it.
@@ -103,8 +154,10 @@ public sealed record StatusMessage(string Headline, string Advice, string? Mark)
             + "change nothing."),
 
         // No evidence either way, so no diagnosis. Naming a cause here would be a guess dressed
-        // as a finding, and the user would act on it.
-        FetchOutcome.AuthFailed => (
+        // as a finding, and the user would act on it. Matched explicitly rather than as a
+        // catch-all for AuthFailed, so that a kind added later reaches the default arm and fails
+        // a test instead of quietly inheriting sign-in advice that may be wrong for it.
+        FetchOutcome.AuthFailed { Kind: AuthFailureKind.Unspecified } => (
             "Sign-in failed",
             "Authentication failed and the response did not say why. Running claude in a "
             + "terminal to sign in again is the first thing to try."),
@@ -134,28 +187,7 @@ public sealed record StatusMessage(string Headline, string Advice, string? Mark)
     };
 
     /// <summary>
-    /// What sits beside a number that is on screen but not current, or null when it is current.
-    ///
-    /// <para>
-    /// A stale reading is marked with its age, because a poll was merely missed and a newer one
-    /// is coming. A frozen reading is marked with the reason instead: an age alone would suggest
-    /// a refresh is on its way, when in fact nothing will change until the user does something,
-    /// and the mark is the only place the HUD can say which something.
-    /// </para>
-    /// </summary>
-    private static string? MarkFor(ReadingState state) => state.Freshness switch
-    {
-        Freshness.Stale => AgeText.Old(state.Age),
-        Freshness.Frozen => state.LastFailure is { } failure
-            ? $"frozen, {Lowered(Words(failure).Headline)}"
-            // Unreachable as the monitor is written: it freezes a reading only on a failure that
-            // cannot pass. Kept because a display that throws takes the window down with it.
-            : "frozen",
-        _ => null,
-    };
-
-    /// <summary>
-    /// A headline recased to sit inside the mark, after the word "frozen".
+    /// A headline recased to sit inside the mark, after the age.
     ///
     /// <para>
     /// Derived from the headline rather than kept as a second table, so the two can never drift
