@@ -16,9 +16,9 @@ namespace BingoHud.Core.Tests;
 /// them.
 /// </para>
 /// <para>
-/// The panel is where the honesty rules become visible. The HUD blanks a stale reading; the
-/// panel has to show it, with its age, because "why is the HUD empty" is exactly the question
-/// the panel exists to answer.
+/// The panel is where the honesty rules become visible. The HUD has room for a status and
+/// nothing else; the panel is where the same state gets the sentence that says what to do about
+/// it, which is the half of AC-9 through AC-11 the HUD cannot carry.
 /// </para>
 /// </summary>
 public class PanelReadoutTests
@@ -47,8 +47,47 @@ public class PanelReadoutTests
         QuotaSnapshot? snapshot,
         Freshness freshness = Freshness.Fresh,
         TimeSpan? age = null,
-        string pollReason = "steady state") =>
-        new(snapshot, freshness, null, age ?? TimeSpan.FromMinutes(3), pollReason);
+        string pollReason = "steady state",
+        FetchOutcome? failure = null) =>
+        new(snapshot, freshness, failure, age ?? TimeSpan.FromMinutes(3), pollReason);
+
+    // ---- The status, and the advice the HUD has no room for (AC-9, AC-10, AC-11) ----
+
+    [Fact]
+    public void ACurrentReadingWithNothingWrongCarriesNoStatus()
+    {
+        // Nothing to explain. A status area that is always populated trains the eye to ignore
+        // it, which costs exactly when something is finally wrong.
+        Assert.Null(Compose(Reading(Snapshot(Window(WindowKind.Session, 12)))).Status);
+    }
+
+    [Fact]
+    public void ThePanelCarriesTheAdviceForAFailureTheHudOnlyNames()
+    {
+        // The division of labour: the HUD says "Signed out" because that is all it has room
+        // for, and the panel is where the user finds out what to do about it.
+        var state = Reading(
+            Snapshot(Window(WindowKind.Session, 12)),
+            Freshness.Frozen,
+            failure: new FetchOutcome.AuthFailed(AuthFailureKind.SignedOut));
+
+        var status = Compose(state).Status;
+
+        Assert.NotNull(status);
+        Assert.Equal("Signed out", status.Headline);
+        Assert.Contains("claude", status.Advice);
+    }
+
+    [Fact]
+    public void ThePanelExplainsItselfBeforeTheFirstReadingArrives()
+    {
+        // The panel is empty at this point — no rows, no age, "never" for the last poll. Without
+        // a status beside them those blanks read as a panel that failed to load.
+        var status = Compose(Reading(null)).Status;
+
+        Assert.NotNull(status);
+        Assert.Equal("No reading yet", status.Headline);
+    }
 
     private static PanelContent Compose(ReadingState state) =>
         PanelReadout.Compose(state, UserSettings.Default, Version, Now, TwelveHour);

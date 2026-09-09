@@ -63,6 +63,20 @@
         </Style>
     </Window.Resources>
     <StackPanel Margin="16,14,16,16">
+        <!-- The state Bingo is in, and what to do about it (AC-9, AC-10, AC-11). Above the
+             numbers rather than below them, because when it is showing at all it qualifies
+             everything under it: a reading can be on screen and out of date at the same time,
+             and the order these are read in is what says so. Hidden entirely when a current
+             reading has nothing wrong with it. -->
+        <Border x:Name="StatusArea" Background="#33FFFFFF" CornerRadius="4" Padding="10,8"
+                Margin="0,0,0,14">
+            <StackPanel>
+                <TextBlock x:Name="StatusHeadline" FontWeight="SemiBold" TextWrapping="Wrap" />
+                <TextBlock x:Name="StatusAdvice" Foreground="#CCFFFFFF" TextWrapping="Wrap"
+                           Margin="0,4,0,0" />
+            </StackPanel>
+        </Border>
+
         <TextBlock Text="WINDOWS" Style="{StaticResource Heading}" />
         <!-- Rows are built in code from what Core decided. Nothing here composes a string. The
              columns are shared within each grid so the figures line up down the panel. -->

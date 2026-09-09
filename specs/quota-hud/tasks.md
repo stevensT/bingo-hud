@@ -239,7 +239,7 @@ already known-correct.
 
 ## Phase 7: Polish
 
-- [ ] 7.1 Write the error copy for every state: sign-in, permission-denied, unreadable,
+- [~] 7.1 Write the error copy for every state: sign-in, permission-denied, unreadable,
       unavailable, unsupported, stale, frozen. Each says what happened and what to do about it.
       (AC-9, AC-10, AC-11)
 - [ ] 7.2 Close the spike: record the result in the spike document, delete

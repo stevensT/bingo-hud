@@ -38,6 +38,11 @@ public sealed record PanelRow(string Label, string Percent, string Reset);
 /// <param name="LastPoll">When the last successful poll happened, written out in full (AC-24).</param>
 /// <param name="NextPoll">Why the next poll is scheduled when it is.</param>
 /// <param name="Version">The running build (AC-24).</param>
+/// <param name="Status">
+/// The state the app is in and what to do about it, or null when a current reading has nothing
+/// wrong with it (AC-9, AC-10, AC-11). The HUD has room for the headline alone; this is where
+/// the advice that goes with it lives.
+/// </param>
 /// <param name="RefreshNotice">
 /// What came of the refresh the user last asked for, or null if they have not asked or it
 /// succeeded (AC-28). A refusal is a normal outcome and has to say why and when the next attempt
@@ -51,4 +56,5 @@ public sealed record PanelContent(
     string LastPoll,
     string NextPoll,
     string Version,
+    StatusMessage? Status,
     string? RefreshNotice);

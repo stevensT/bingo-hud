@@ -63,10 +63,15 @@ public static class PanelReadout
             Windows: windows,
             PerModelCaps: perModel,
             PerModelCapsEmptyState: perModel.Count == 0 ? NoPerModelCaps : null,
-            Age: snapshot is null ? null : Age(state.Age),
+            // Always shown, rather than only once a reading goes stale. A number on this
+            // screen without its age is what principle 6 forbids, and a user who only ever sees
+            // the age appear when something is wrong has no idea what it looks like when things
+            // are right.
+            Age: snapshot is null ? null : AgeText.Old(state.Age),
             LastPoll: snapshot is null ? "never" : ResetFormatter.Exact(snapshot.ObservedAt, now, culture),
             NextPoll: state.PollReason,
             Version: version,
+            Status: StatusMessage.Describe(state),
             RefreshNotice: RefreshNotice.Describe(lastRefresh, now));
     }
 
@@ -113,31 +118,5 @@ public static class PanelReadout
                     ? ResetFormatter.Exact(resetsAt, now, culture)
                     : NoResetTime))
             .ToList();
-    }
-
-    /// <summary>
-    /// How old the displayed reading is, in the coarsest unit that is still true.
-    ///
-    /// <para>
-    /// Always shown, rather than only once a reading goes stale. A number on this screen without
-    /// its age is what principle 6 forbids, and a user who only ever sees the age appear when
-    /// something is wrong has no idea what it looks like when things are right.
-    /// </para>
-    /// </summary>
-    private static string Age(TimeSpan age)
-    {
-        if (age < TimeSpan.FromMinutes(1))
-        {
-            return "just now";
-        }
-
-        if (age < TimeSpan.FromHours(1))
-        {
-            return $"{(int)age.TotalMinutes} min old";
-        }
-
-        var hours = (int)age.TotalHours;
-
-        return hours == 1 ? "1 hour old" : $"{hours} hours old";
     }
 }

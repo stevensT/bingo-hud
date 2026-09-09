@@ -23,11 +23,12 @@ public static class Readout
     /// The HUD's lines, session first, then the all-models weekly window; or none.
     ///
     /// <para>
-    /// None while there is no reading, and none while the reading is not fresh. A frozen
-    /// reading will never refresh and a stale one has missed a poll; either one shown as a
-    /// plain percentage next to a countdown that keeps moving would be read as current, which
-    /// is the lie principle 6 exists to prevent. The words for those states are 7.1's; until
-    /// then the shell shows its one empty-state phrase for all of them.
+    /// None until the first reading arrives; the shell shows the status headline in their place.
+    /// After that a reading is always shown, including a stale or frozen one, because the last
+    /// thing the server actually said is the best answer available and hiding it answers
+    /// nothing. What principle 6 forbids is not the old number but the old number presented as
+    /// current, so every line that is not current carries its status where its countdown would
+    /// otherwise be.
     /// </para>
     /// <para>
     /// A window the server did not report has no line. It is not shown as zero, because a zero
@@ -45,10 +46,15 @@ public static class Readout
         DateTimeOffset now,
         CultureInfo? culture = null)
     {
-        if (state.Last is not { } snapshot || state.Freshness != Freshness.Fresh)
+        if (state.Last is not { } snapshot)
         {
             return [];
         }
+
+        // While the reading is current the slot after the figure holds its reset time. While it
+        // is not, the status takes that slot instead, so that no line can pair a number that is
+        // no longer being refreshed with a countdown that is still running.
+        var mark = StatusMessage.Describe(state)?.Mark;
 
         var shown = Shown(snapshot, settings);
         var lines = new List<ReadoutLine>(shown.Count);
@@ -58,10 +64,41 @@ public static class Readout
             lines.Add(new ReadoutLine(
                 WindowName.Short(window.Kind),
                 Percentage.Describe(window.UsedPercent, settings.Direction),
-                ResetFormatter.Describe(window.ResetsAt, now, culture)));
+                mark ?? ResetFormatter.Describe(window.ResetsAt, now, culture)));
         }
 
         return lines;
+    }
+
+    /// <summary>
+    /// Everything the HUD puts on screen: its lines, and the phrase that stands in for them when
+    /// there are none.
+    ///
+    /// <para>
+    /// One value rather than two calls, because the shell only repaints when what it holds
+    /// differs from what is on screen. Asked separately, a change from "No reading yet" to
+    /// "Signed out" would be a change in neither the line count nor the lines, and the HUD would
+    /// go on showing the older phrase until something else happened to move it.
+    /// </para>
+    /// </summary>
+    /// <param name="state">The monitor's current state.</param>
+    /// <param name="settings">The user's display preferences: direction, collapse, thresholds.</param>
+    /// <param name="now">The moment of rendering, carrying the offset reset times are shown in.</param>
+    /// <param name="culture">Whose clock conventions the reset phrase uses.</param>
+    public static HudContent Content(
+        ReadingState state,
+        UserSettings settings,
+        DateTimeOffset now,
+        CultureInfo? culture = null)
+    {
+        var lines = Lines(state, settings, now, culture);
+
+        // Only when there is nothing else to show. While there are lines each one carries its
+        // own status in the mark, and a headline over the top would repeat it on the display
+        // with the least room to spare.
+        return new HudContent(
+            lines,
+            lines.Count == 0 ? StatusMessage.Describe(state)?.Headline : null);
     }
 
     /// <summary>

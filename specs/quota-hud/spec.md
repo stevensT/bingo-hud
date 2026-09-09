@@ -50,16 +50,27 @@ the 5-hour and weekly windows remain, and when each resets. It answers one quest
 
 ### Honesty
 - [ ] AC-8: Every reading carries an age, and the HUD shows that age once a reading is stale.
-- [ ] AC-9: When the response cannot be parsed, the HUD displays an explicit error state and no
-      percentages.
-- [ ] AC-10: When authentication fails, the HUD displays an explicit sign-in state and no
-      percentages.
+- [ ] AC-9: When the response cannot be parsed, Bingo says so explicitly and never presents an
+      unparsed response as a reading. With no earlier reading to stand on, the HUD shows the error
+      state in place of percentages; with one, that reading stays and carries its status, and the
+      sentence explaining it is in the panel.
+- [ ] AC-10: When authentication fails, Bingo displays an explicit sign-in state. With no earlier
+      reading, the HUD shows it in place of percentages; with one, the reading is marked frozen
+      with the cause, so it cannot be read as current.
 - [ ] AC-11: A "permission denied" credential failure is reported differently from a "signed out"
       failure, so recovery advice points the right way.
 - [ ] AC-12: The HUD never displays a percentage derived from estimation, interpolation, or a
       hardcoded plan limit.
 - [ ] AC-13: A reading that can no longer be refreshed is frozen and marked, and does not
       determine overall severity.
+
+AC-9 and AC-10 were amended at task 7.1. Both originally said the HUD shows an explicit state
+"and no percentages", which contradicted AC-8 and AC-13: those two require a stale reading to
+carry its age and a frozen one to stay on screen marked, and a stale or frozen reading is exactly
+what an auth failure produces. Blanking the numbers would also have made the two states
+indistinguishable on the HUD from a crash. The line moved to where it belongs — a figure may
+remain on screen, but never without the status that says it is not current, and never beside a
+countdown still ticking next to it. Constitution principle 6 was reworded to match.
 
 ### Alerts
 - [ ] AC-14: Crossing a threshold raises a desktop notification.

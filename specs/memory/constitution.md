@@ -34,6 +34,17 @@ match the actual shape of the problem, and you end up fighting them.
 ### 6. Never Display an Unbacked Number
 This project reads an undocumented upstream endpoint and renders numbers a person makes decisions
 from. Any figure on screen must be traceable to a response we actually received and successfully
-parsed, and must carry its age. When the source is unavailable, unreadable, or stale, say so and
-show nothing rather than falling back to a cached, estimated, or interpolated value. A readout
-that is trusted at a glance is worse than useless if it can silently lie.
+parsed, and must carry its age. Never estimate, interpolate, or fall back to a hardcoded plan
+limit; a figure the server did not send does not go on screen at any age.
+
+When the source is unavailable, unreadable, or stale, say so. The last figure the server did send
+may stay on screen, because it remains the best answer known and hiding it answers nothing — but
+its status travels with it and displaces anything that would imply it is still moving. A frozen
+percentage beside a running countdown is the failure this principle exists to prevent; the same
+percentage labelled with why it is not moving is not.
+
+Amended at task 7.1. The original wording said to show nothing at all when the source was
+unavailable, unreadable, or stale, which read on the surface as forbidding the marked stale
+reading that AC-8 and AC-13 require. The line was in the wrong place: what makes a readout lie is
+not the age of the number but the absence of the label, and a HUD that blanks itself is its own
+kind of dishonesty, since it looks identical to a HUD that has crashed.

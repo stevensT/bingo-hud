@@ -57,35 +57,56 @@ public class ReadoutTests
     }
 
     [Fact]
-    public void AFrozenReadingShowsNoPercentages()
+    public void AFrozenReadingKeepsItsNumbersAndSaysWhyTheyWillNotMove()
     {
-        // The token was invalidated after a good poll. The number is still in memory, but
-        // it will never refresh, and a percentage that cannot move is one that will be read
-        // as current. AC-10 and AC-13: an explicit state and no percentages; 7.1 writes the
-        // words.
+        // The token was invalidated after a good poll. The number is real and still the last
+        // thing the server said, so it stays; what it must never do is read as current. The mark
+        // is what prevents that, and it names the cause rather than an age, because no newer
+        // reading is coming until the user signs in (AC-10, AC-13).
         var frozen = new ReadingState(
-            Snapshot(Window(WindowKind.Session, 12)),
+            Snapshot(Window(WindowKind.Session, 12, Now.AddMinutes(53))),
             Freshness.Frozen,
             new FetchOutcome.AuthFailed(AuthFailureKind.Invalidated),
             TimeSpan.FromMinutes(3),
             "test");
 
-        Assert.Empty(Lines(frozen));
+        Assert.Equal(
+            [new ReadoutLine("5h", "12% used", "frozen, sign-in expired")],
+            Lines(frozen));
     }
 
     [Fact]
-    public void AStaleReadingShowsNoPercentages()
+    public void AStaleReadingKeepsItsNumbersAndCarriesItsAge()
     {
-        // Older than a missed poll. Principle 6 says say so and show nothing rather than let
-        // a number that may be an hour out sit there looking current; AC-8's age line is 7.1's.
+        // AC-8, in the words the criterion asks for. A reading that missed a poll is still the
+        // best thing known, and an age beside it is what makes it honest rather than hidden.
         var stale = new ReadingState(
-            Snapshot(Window(WindowKind.Session, 12)),
+            Snapshot(Window(WindowKind.Session, 12, Now.AddMinutes(53))),
             Freshness.Stale,
             null,
-            QuotaMonitor.StaleAfter + TimeSpan.FromMinutes(1),
+            TimeSpan.FromMinutes(48),
             "test");
 
-        Assert.Empty(Lines(stale));
+        Assert.Equal(
+            [new ReadoutLine("5h", "12% used", "48 min old")],
+            Lines(stale));
+    }
+
+    [Fact]
+    public void ANonCurrentLineGivesUpItsResetCountdownToTheMark()
+    {
+        // The countdown is the part that reads as live: it moves every second whether or not
+        // anything behind it is still being fetched. A frozen percentage beside a ticking
+        // "resets in 52 min" is precisely the display principle 6 forbids, so the mark takes
+        // that slot rather than sitting next to it. The exact reset time is still in the panel.
+        var frozen = new ReadingState(
+            Snapshot(Window(WindowKind.Session, 12, Now.AddMinutes(53))),
+            Freshness.Frozen,
+            new FetchOutcome.AuthFailed(AuthFailureKind.SignedOut),
+            TimeSpan.FromMinutes(3),
+            "test");
+
+        Assert.DoesNotContain("resets", Lines(frozen).Single().Note);
     }
 
     [Fact]
@@ -96,6 +117,59 @@ public class ReadoutTests
         var blip = Fresh(Snapshot(Window(WindowKind.Session, 12)), new FetchOutcome.Transient(null));
 
         Assert.Single(Lines(blip));
+    }
+
+    // ---- What replaces the lines when there are none ----
+
+    [Fact]
+    public void BeforeTheFirstPollTheHudSaysThereIsNoReadingRatherThanNothing()
+    {
+        // An empty HUD is indistinguishable from a broken one. Every launch passes through this
+        // state, so it has to read as a normal thing rather than as a failure.
+        var content = Readout.Content(
+            new ReadingState(null, Freshness.Fresh, null, TimeSpan.Zero, "test"),
+            Settings(),
+            Now,
+            TwelveHour);
+
+        Assert.Empty(content.Lines);
+        Assert.Equal("No reading yet", content.EmptyState);
+    }
+
+    [Fact]
+    public void WithNoReadingTheEmptyStateNamesTheFailureRatherThanTheAbsence()
+    {
+        // AC-10. A user who has never signed in gets no reading at all, so the failure has
+        // nowhere to appear except in place of the lines. "No reading yet" here would be true
+        // and useless: it would never change, and it would not say why.
+        var content = Readout.Content(
+            new ReadingState(
+                null,
+                Freshness.Fresh,
+                new FetchOutcome.AuthFailed(AuthFailureKind.SignedOut),
+                TimeSpan.Zero,
+                "test"),
+            Settings(),
+            Now,
+            TwelveHour);
+
+        Assert.Empty(content.Lines);
+        Assert.Equal("Signed out", content.EmptyState);
+    }
+
+    [Fact]
+    public void WhileThereAreLinesThereIsNoEmptyStatePhrase()
+    {
+        // The lines carry their own status in the mark. A headline above them would say a second
+        // time what each line already says, on the display with the least room to spare.
+        var content = Readout.Content(
+            Fresh(Snapshot(Window(WindowKind.Session, 12))),
+            Settings(),
+            Now,
+            TwelveHour);
+
+        Assert.Single(content.Lines);
+        Assert.Null(content.EmptyState);
     }
 
     // ---- The lines themselves (AC-1 through AC-3) ----
@@ -194,7 +268,7 @@ public class ReadoutTests
 
         var line = Assert.Single(Readout.Lines(Fresh(snapshot), Settings(), Now, new CultureInfo("de-DE")));
 
-        Assert.Equal("resets Do 11:34", line.Reset);
+        Assert.Equal("resets Do 11:34", line.Note);
     }
 
     [Fact]
@@ -209,7 +283,7 @@ public class ReadoutTests
         // Observed on a live account. Nothing beside the percentage, never a guessed time.
         var line = Assert.Single(Lines(Snapshot(Window(WindowKind.Session, 12))));
 
-        Assert.Null(line.Reset);
+        Assert.Null(line.Note);
     }
 
     [Fact]

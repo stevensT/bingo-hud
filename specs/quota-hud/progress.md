@@ -805,6 +805,81 @@ Not done here, and not in scope: nothing in the UI toggles `Collapse`. The setti
 persisted, so the behaviour is reachable only by editing the settings file. The tray menu at 6.9
 is where the toggle belongs.
 
+### Task 7.1: the error copy — 2026-09-08
+tests: 737 pass / 0 fail / 0 skip (703 before, 34 added)
+build: pass (0 warnings, 0 errors) after `dotnet clean` was not needed — the warm build was
+confirmed against a cold one at the end, and the app had to be closed first because a running
+instance holds a lock on `BingoHud.Core.dll`.
+
+**The decision this task turned on, and it was not the copy.** Writing words for the seven states
+meant first answering what the HUD does with a reading that is stale or frozen, and the three
+source documents disagreed. AC-8 says the HUD shows a reading's age once it is stale. AC-13 and
+`plan.md:170` say a frozen reading stays on screen, marked. Constitution principle 6 said to show
+nothing at all when the source is unavailable, unreadable, or stale — and AC-9 and AC-10 both said
+"an explicit error state and no percentages". The code had taken the strict reading since 6.6:
+`Readout.Lines` returned nothing for anything not `Fresh`.
+
+Settled by Trevor: keep the number, mark it. A stale reading shows its figures with their age, a
+frozen one with the reason it will not move. What principle 6 exists to prevent is not an old
+number but an old number that reads as current, which is the argument `PanelReadout` had already
+made in its own doc comment for the panel — the panel has shown marked stale readings since 6.8.
+A HUD that blanks itself is also indistinguishable from a HUD that has crashed, which is its own
+dishonesty.
+
+So three documents were amended rather than worked around: principle 6, AC-9 and AC-10. Each
+carries a note saying it was amended at 7.1 and why. Worth naming plainly: when the choice was put
+to Trevor the stated cost was rewording principle 6 alone. AC-9 and AC-10 carry the same
+"no percentages" clause and needed the same fix, and that was missed when the question was asked.
+
+**The mark displaces the countdown rather than joining it.** A line that is not current gives up
+its reset phrase to its status: "5h 83% used  frozen, signed out". The countdown is the part that
+reads as live — it moves every second whether or not anything behind it is still being fetched —
+so a dead percentage beside a running "resets in 52 min" is the exact display the principle
+forbids. The exact reset time is still in the panel, which is where a user goes for it. The third
+field of `ReadoutLine` was renamed from `Reset` to `Note` to stop the name claiming more than the
+slot holds.
+
+**Where the words live.** One table, in `StatusMessage.Describe`, over `ReadingState`. Three
+fields: a headline sized for the HUD, which is all the HUD has room for; the advice, for the panel,
+which is the half AC-11 turns on; and the mark, for beside a number that is on screen but not
+current. Deriving the mark's cause from the headline rather than keeping a second table is
+deliberate — two user-facing tables for one state is how a HUD and a panel end up naming it
+differently — and it rests on no headline beginning with a proper noun, which is stated at the
+call.
+
+A failure outranks staleness when both are true. A reading forty minutes old because the token
+expired should say the token expired; the age is not lost, it goes to the mark, so both facts are
+on screen at once.
+
+**Checked rather than assumed:** the copy for the unsupported case claims polling has stopped and
+will not resume until a restart. `PollLoop.IsTerminal` confirms only `Unsupported` is terminal, and
+that an auth failure deliberately is not — a signed-out user can sign in at any moment and a
+stopped loop would never find out. That fact is now in the sign-in advice too, which says the next
+poll will pick it up.
+
+**`AgeText` was extracted** from `PanelReadout`, where the age phrasing had been private since 6.8.
+The HUD needs the same words for its mark, and two vocabularies for one fact is how "21 min old"
+in the panel ends up beside "21m" on the HUD, reading as two different readings. Two phrasings from
+one measurement: `Old` for a label, `Span` for inside a sentence, because "in just now" is not
+English.
+
+**A defect avoided by the shell, not by Core.** The HUD repaints only when what Core hands it
+differs from what is drawn. Had the status headline been fetched through a second delegate, an
+empty HUD whose reason changed — from not having polled yet to having been signed out — would have
+compared equal to itself and never repainted. `HudContent` carries the lines and the empty-state
+phrase together for that reason, and the shell compares both halves.
+
+**Deferred, with the reason recorded.** A utilization above 100 still renders as "-1% left" in the
+remaining direction. Nothing clamps, on purpose, but whether to show it as reported or cap it is a
+principle 6 call; the 6.6 review left it open for 7.1 and Trevor deferred it past 0.1.0 on the
+grounds that no capture has ever produced such a figure. It is a known gap rather than a decision.
+
+**Not verified on screen yet.** The app was launched and runs clean, but every state written here
+except "no reading yet" needs a failure to see, and producing one means interfering with the
+credential file. AC-9, AC-10 and AC-11 are therefore assessed against tests only at this point.
+7.4 is where they get exercised against the built application, and doing that will need a
+deliberate way to force each state.
+
 ### Review: task 6.6, the readout and the composition root — 2026-09-07
 tests: 629 pass / 0 fail / 0 skip (616 before the review; 13 added by it)
 build: pass (0 warnings, 0 errors)

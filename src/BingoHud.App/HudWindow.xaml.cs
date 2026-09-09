@@ -26,12 +26,12 @@ public partial class HudWindow : Window
     private readonly HudPosition? _remembered;
     private readonly Action<HudPosition> _moved;
     private readonly IClock _clock;
-    private readonly Func<IReadOnlyList<ReadoutLine>> _readout;
+    private readonly Func<HudContent> _readout;
     private readonly Action _openPanel;
     private readonly DwellPolicy _dwell = new();
     private readonly DispatcherTimer _cursorWatch = new() { Interval = TimeSpan.FromMilliseconds(50) };
     private readonly DispatcherTimer _readoutWatch = new() { Interval = TimeSpan.FromSeconds(1) };
-    private IReadOnlyList<ReadoutLine>? _shown;
+    private HudContent? _shown;
     private IntPtr _hwnd;
     private bool _solid;
 
@@ -39,7 +39,7 @@ public partial class HudWindow : Window
         HudPosition? remembered,
         Action<HudPosition> moved,
         IClock clock,
-        Func<IReadOnlyList<ReadoutLine>> readout,
+        Func<HudContent> readout,
         Action openPanel)
     {
         InitializeComponent();
@@ -92,23 +92,28 @@ public partial class HudWindow : Window
     /// </summary>
     private void Render()
     {
-        var lines = _readout();
+        var content = _readout();
 
-        if (_shown is not null && _shown.SequenceEqual(lines))
+        // Both halves compared, not just the lines. An empty HUD whose reason changed — from not
+        // having polled yet to having been signed out — is a change nobody would see otherwise.
+        if (_shown is not null
+            && _shown.EmptyState == content.EmptyState
+            && _shown.Lines.SequenceEqual(content.Lines))
         {
             return;
         }
 
-        _shown = lines;
+        _shown = content;
+        var lines = content.Lines;
         Lines.Children.Clear();
         Lines.RowDefinitions.Clear();
 
         if (lines.Count == 0)
         {
-            // deferred: one phrase for every reason there is nothing to show. 7.1 writes the
-            // copy that tells signed-out from unreadable from not-yet-fetched.
+            // Core's words for whichever state left the HUD with nothing to show: signed out,
+            // unreadable, or simply not having finished the first poll (AC-9, AC-10).
             Lines.RowDefinitions.Add(new RowDefinition());
-            Lines.Children.Add(new TextBlock { Text = "no reading yet", Foreground = Dim });
+            Lines.Children.Add(new TextBlock { Text = content.EmptyState, Foreground = Dim });
             return;
         }
 
@@ -118,9 +123,9 @@ public partial class HudWindow : Window
             Place(new TextBlock { Text = lines[row].Window, Foreground = Dim }, row, column: 0);
             Place(new TextBlock { Text = lines[row].Percent, Margin = new Thickness(10, 0, 0, 0) }, row, column: 1);
 
-            if (lines[row].Reset is { } reset)
+            if (lines[row].Note is { } note)
             {
-                Place(new TextBlock { Text = reset, Foreground = Dim, Margin = new Thickness(10, 0, 0, 0) }, row, column: 2);
+                Place(new TextBlock { Text = note, Foreground = Dim, Margin = new Thickness(10, 0, 0, 0) }, row, column: 2);
             }
         }
     }

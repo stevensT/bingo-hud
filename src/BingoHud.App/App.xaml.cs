@@ -64,7 +64,7 @@ public partial class App : Application
             _settings.Position,
             position => Remember(_settings with { Position = position }),
             _clock,
-            ReadoutLines,
+            HudReadout,
             OpenPanel);
         MainWindow.Show();
 
@@ -186,17 +186,20 @@ public partial class App : Application
             .GetCustomAttribute<AssemblyInformationalVersionAttribute>()?.InformationalVersion);
 
     /// <summary>
-    /// The HUD's lines as of this instant. Core decides whether the reading may be shown at
-    /// all, so a stale or frozen one comes back as no lines.
+    /// What the HUD shows as of this instant. Core decides all of it: which windows get a line,
+    /// how a reading that is no longer current is marked, and what stands in for the lines when
+    /// there are none.
     /// </summary>
-    private IReadOnlyList<ReadoutLine> ReadoutLines()
+    private HudContent HudReadout()
     {
         if (_monitor is null)
         {
-            return [];
+            // Only reachable if the HUD renders before startup finishes wiring the monitor. The
+            // honest phrase for it is the same one the first second of every run shows.
+            return new HudContent([], "No reading yet");
         }
 
-        return Readout.Lines(_monitor.Current, _settings, _clock.Now);
+        return Readout.Content(_monitor.Current, _settings, _clock.Now);
     }
 
     /// <summary>

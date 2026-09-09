@@ -85,6 +85,15 @@ public partial class DetailPanelWindow : Window
 
         _shown = content;
 
+        // The advice is the half AC-11 turns on, and this is the only surface with room for it.
+        StatusArea.Visibility = content.Status is null ? Visibility.Collapsed : Visibility.Visible;
+
+        if (content.Status is { } status)
+        {
+            StatusHeadline.Text = status.Headline;
+            StatusAdvice.Text = status.Advice;
+        }
+
         Fill(Windows, content.Windows);
         Fill(PerModelCaps, content.PerModelCaps);
 
@@ -134,6 +143,7 @@ public partial class DetailPanelWindow : Window
         && a.LastPoll == b.LastPoll
         && a.NextPoll == b.NextPoll
         && a.Version == b.Version
+        && a.Status == b.Status
         && a.RefreshNotice == b.RefreshNotice;
 
     private void Fill(Grid grid, IReadOnlyList<PanelRow> rows)
