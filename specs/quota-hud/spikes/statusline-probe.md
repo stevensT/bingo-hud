@@ -1,6 +1,6 @@
 # Spike: status line probe
 
-**Status:** open — started 2026-08-30, restarted 2026-09-01
+**Status:** closed 2026-09-22 — started 2026-08-30, restarted 2026-09-01 and 2026-09-03
 **Script:** `scripts/quota-statusline.ps1`
 
 ## Question
@@ -177,4 +177,25 @@ one question the restarted status line week can still answer.
 
 ## Result
 
-_Open. Nothing to record yet._
+**Closed 2026-09-22.**
+
+**The value question: answered, but not by this instrument.** The first row of the decision table
+holds, on the taskbar widget evidence recorded under 2026-09-03 rather than on anything the status
+line showed. Gate G.1 read it that way and Phase 6 was built as specified.
+
+**AC-2b, the direction label: inconclusive.** The owner reports not having used the probe, or the
+HUD, at all during the window that restarted on 2026-09-03. A bare `41%` that was never read
+cannot have been misread, so the week produced no evidence either way. It is recorded as no
+observation, not as "never misread", because those support opposite conclusions about whether
+the label is load-bearing.
+
+Consequence: AC-2b stands on its original reasoning — a percentage whose direction is a setting
+the reader cannot see can be read exactly backwards — rather than on observation. The HUD already
+carries the label (6.6), so nothing changes in the code. Anyone who wants to drop the label later
+needs new evidence; this spike does not supply it.
+
+**What was left behind.** The script was deleted and the previous `statusLine` entry restored on
+the machine the spike closed on. The cache directory at `%LOCALAPPDATA%\bingo-probe\` holds no
+secrets and is safe to delete by hand. The other development machine had the probe wired up too
+(see 2026-09-01); its `statusLine` entry needs restoring there before this deletion is pulled,
+or its status line goes silently blank, the failure this spike already recorded once.

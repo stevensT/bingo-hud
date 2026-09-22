@@ -252,8 +252,11 @@ already known-correct.
       barred from contributing to the headline (AC-7 against AC-13), and whether a failed settings
       save deserves a notice slot on the panel. Both are recorded in the review entry in
       `progress.md` for Trevor to schedule or dismiss.
-- [ ] 7.2 Close the spike: record the result in the spike document, delete
-      `scripts/quota-statusline.ps1`, and remove the `statusLine` entry from settings.
+- [x] 7.2 Close the spike: record the result in the spike document, delete
+      `scripts/quota-statusline.ps1`, and remove the `statusLine` entry from settings. Done
+      2026-09-22. AC-2b came back inconclusive — the probe was not looked at during the window —
+      so the label stands on its original reasoning. The previous `statusLine` was restored on
+      this machine; the other still needs it before pulling the deletion.
 - [ ] 7.3 Set `<Version>` to `0.1.0` in `BingoHud.App.csproj`, move the `[Unreleased]` entries
       into a dated `0.1.0` section in `CHANGELOG.md`, and confirm the version the app displays
       matches. The git tag is Trevor's to apply.

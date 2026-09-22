@@ -1,9 +1,11 @@
 # Quota HUD — Progress
 
-updated: 2026-09-08
-status: Phase 7 in progress — 7.1 code-complete, its review findings resolved
+updated: 2026-09-22
+status: Phase 7 in progress — 7.2 done, the status line probe closed
 blockers: none
-next_session: 7.2, closing the status line probe. 7.1 wrote the copy for every reading state and
+next_session: 7.3, the 0.1.0 version bump. 7.2 closed the probe with AC-2b inconclusive; see its
+entry below, including a step owed on the other machine before it pulls. 7.1 wrote the copy for
+every reading state and
 reversed the rule that the HUD blanks a stale or frozen reading: both now stay on screen carrying
 a mark, and constitution principle 6 plus AC-9 and AC-10 were amended to say so. Green at 773
 tests on a clean build with no warnings.
@@ -28,8 +30,8 @@ launching the built exe, reading its rectangle back through Win32 from PowerShel
 it to a PNG. 6.1 answered: cursor timer, no hook; see
 `specs/quota-hud/spikes/click-through-probe.md`. 6.2 put app state under `%LOCALAPPDATA%\Bingo`
 (`AppData.Directory`). Confirm reality first with `dotnet build` and `dotnet test`. The status line
-probe stays up for the AC-2b label question and closes at 7.2. See the 7.1 entry and the 6.6
-review record below for what was fixed and what was declined.
+probe closed at 7.2. See the 7.1 entry and the 6.6 review record below for what was fixed and
+what was declined.
 
 ## Notes carried into execution
 
@@ -799,6 +801,31 @@ against `>` widened to `>=`.
 Not done here, and not in scope: nothing in the UI toggles `Collapse`. The setting is read and
 persisted, so the behaviour is reachable only by editing the settings file. The tray menu at 6.9
 is where the toggle belongs.
+
+### Task 7.2: closing the status line probe — 2026-09-22
+tests: 773 pass / 0 fail / 0 skip, confirmed at session start before any change
+build: pass (0 warnings, 0 errors)
+
+The spike's one open question was AC-2b: whether the bare, unlabelled percentage was ever misread.
+It came back inconclusive. Neither the probe nor the HUD was looked at during the window that
+restarted on 2026-09-03, so there was nothing to misread. Recorded as no observation rather than
+as "never misread", because the second would read as evidence the label is optional. AC-2b keeps
+the label on its original reasoning and the code is unchanged. The result is in the spike
+document.
+
+Worth saying plainly, since it bears on the premise the spike was built to test: the owner has not
+been using the HUD either. G.1 rests on the taskbar widget evidence, which is still sound, but no
+one has yet lived with the thing that was built. BV.4 launches the published exe once; that is a
+smoke test, not use.
+
+Done on this machine: the previous `statusLine` entry was restored, run by hand to confirm it
+renders, and the script deleted. Not done: the `%LOCALAPPDATA%\bingo-probe` cache folder is still
+there, because the delete was blocked and left for the owner. It holds parsed percentages and a
+timestamp only.
+
+Owed on the other machine: it had the probe wired up as well. Restore its `statusLine` entry before
+pulling this deletion, or its status line goes blank with no error, which is the failure recorded
+in the spike on 2026-09-01.
 
 ### Task 7.1: the error copy — 2026-09-08
 tests: 737 pass / 0 fail / 0 skip (703 before, 34 added)
