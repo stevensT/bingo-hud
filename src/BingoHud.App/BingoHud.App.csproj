@@ -16,6 +16,7 @@
          Weigh the added assemblies against the publish shape when BV.3 settles packaging. -->
     <UseWindowsForms>true</UseWindowsForms>
     <ApplicationIcon>Assets\bingo.ico</ApplicationIcon>
+    <Version>0.1.0</Version>
   </PropertyGroup>
 
   <ItemGroup>

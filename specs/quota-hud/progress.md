@@ -1,11 +1,12 @@
 # Quota HUD — Progress
 
 updated: 2026-09-22
-status: Phase 7 in progress — 7.2 done, the status line probe closed
+status: Phase 7 in progress — 7.3 done, the app reports 0.1.0
 blockers: none
-next_session: 7.3, the 0.1.0 version bump. 7.2 closed the probe with AC-2b inconclusive; see its
-entry below, including a step owed on the other machine before it pulls. 7.1 wrote the copy for
-every reading state and
+next_session: 7.4, the Phase 7 checkpoint, which needs a deliberate way to force the error states
+on screen. The HUD is also on a live trial from 2026-09-22; ask how it went. 7.2 closed the probe
+with AC-2b inconclusive; see its entry below, including a step owed on the other machine before
+it pulls. 7.1 wrote the copy for every reading state and
 reversed the rule that the HUD blanks a stale or frozen reading: both now stay on screen carrying
 a mark, and constitution principle 6 plus AC-9 and AC-10 were amended to say so. Green at 773
 tests on a clean build with no warnings.
@@ -801,6 +802,28 @@ against `>` widened to `>=`.
 Not done here, and not in scope: nothing in the UI toggles `Collapse`. The setting is read and
 persisted, so the behaviour is reachable only by editing the settings file. The tray menu at 6.9
 is where the toggle belongs.
+
+### Task 7.3: version 0.1.0 — 2026-09-22
+tests: 773 pass / 0 fail / 0 skip
+build: pass (0 warnings, 0 errors)
+
+`<Version>0.1.0</Version>` in the App project. The built assembly's informational version reads
+`0.1.0+d70b2b9…`, and `VersionLabel`, whose shortening is already under test, renders that as
+`0.1.0 (d70b2b9)`. Checked by reading the file version of the built DLL rather than on screen:
+the HUD is running a trial from a publish made before the bump, and republishing would mean
+stopping it.
+
+The changelog needed more than a move. `[Unreleased]` held the project-setup entries from before
+Phase 1 and nothing after, although the README asks for user-visible changes to be recorded as
+they land. Moved as written, 0.1.0 would have shipped with a changelog that never mentions the
+HUD. The section now opens with `Added` entries for what the app does, each checked against the
+task and checkpoint records here, and the earlier `Added` entries were folded into the same list.
+The `Changed` entries were moved unedited, though they describe changes relative to nothing
+released and could reasonably be cut.
+
+The tag `v0.1.0` is Trevor's. Whether it goes on before or after the 7.4 checkpoint and the HUD
+trial is his call; the README's release rule only asks that the version, the changelog and the tag
+agree.
 
 ### Task 7.2: closing the status line probe — 2026-09-22
 tests: 773 pass / 0 fail / 0 skip, confirmed at session start before any change

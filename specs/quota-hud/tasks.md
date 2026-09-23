@@ -257,9 +257,12 @@ already known-correct.
       2026-09-22. AC-2b came back inconclusive — the probe was not looked at during the window —
       so the label stands on its original reasoning. The previous `statusLine` was restored on
       this machine; the other still needs it before pulling the deletion.
-- [ ] 7.3 Set `<Version>` to `0.1.0` in `BingoHud.App.csproj`, move the `[Unreleased]` entries
+- [x] 7.3 Set `<Version>` to `0.1.0` in `BingoHud.App.csproj`, move the `[Unreleased]` entries
       into a dated `0.1.0` section in `CHANGELOG.md`, and confirm the version the app displays
-      matches. The git tag is Trevor's to apply.
+      matches. The git tag is Trevor's to apply. Done 2026-09-22. The built assembly reports
+      `0.1.0+d70b2b9…`, which `VersionLabel` renders as `0.1.0 (d70b2b9)`. `[Unreleased]` held
+      only project-setup entries — nothing from Phases 1 to 7 had been recorded — so the 0.1.0
+      section also gained `Added` entries for what the app does.
 - [C] 7.4 Checkpoint: full suite green, build green, every acceptance criterion assessed against
       the spec, recorded in `progress.md`.
 
