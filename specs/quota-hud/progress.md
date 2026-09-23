@@ -1,11 +1,10 @@
 # Quota HUD — Progress
 
 updated: 2026-09-22
-status: Phase 7 complete — 7.4 checkpoint passed on its second run
+status: build verification — BV.1 to BV.4 done, BV.5 checkpoint remaining
 blockers: none
-next_session: build verification, BV.1 to BV.5. BV.3 is a decision about the publish shape before
-it is a command. The HUD is on a live trial from 2026-09-22, running a fresh publish with severity
-drawn; ask how it went before tagging 0.1.0. 7.2 closed the probe
+next_session: BV.5, the final checkpoint. The HUD is on a live trial from 2026-09-22, running a
+fresh publish with severity drawn; ask how it went before tagging 0.1.0. 7.2 closed the probe
 with AC-2b inconclusive; see its entry below, including a step owed on the other machine before
 it pulls. 7.1 wrote the copy for every reading state and
 reversed the rule that the HUD blanks a stale or frozen reading: both now stay on screen carrying
@@ -803,6 +802,40 @@ against `>` widened to `>=`.
 Not done here, and not in scope: nothing in the UI toggles `Collapse`. The setting is read and
 persisted, so the behaviour is reachable only by editing the settings file. The tray menu at 6.9
 is where the toggle belongs.
+
+### Build verification BV.1 to BV.4 — 2026-09-22
+tests: 816 pass / 0 fail / 0 skip
+build: pass (`dotnet clean` then `dotnet build`, 0 warnings, 0 errors)
+
+**BV.3, the publish shape: both, by Trevor's decision.** A self-contained build for people who
+download from the GitHub releases page and should not have to install a runtime, and a
+framework-dependent one for winget and Chocolatey, whose manifests can install the .NET 9 Desktop
+Runtime first. Both are single files. Writing those manifests is the queued packaging feature, not
+this one.
+
+Measured rather than assumed, each copied outside the repository and launched twice:
+
+| Shape | Executable | First launch | Later launches |
+|---|---|---|---|
+| Framework-dependent | 0.36 MB | 0.75 s | 0.56 s |
+| Self-contained, compressed | 70.9 MB | 3.3 s | 0.73 s |
+| Self-contained, uncompressed | 162 MB | 4.9 s | 0.58 s |
+
+Compression was a clear choice once measured: half the download, and a faster first launch,
+because a single-file build unpacks its native libraries on first run and a compressed one has less
+to unpack. The uncompressed size had grown from the 120 MB recorded at Phase 1, which the 6.9 entry
+predicted: the tray icon's control comes from Windows Forms.
+
+The two shapes publish to separate folders under `artifacts/`, because the default publish folder
+is shared and one would overwrite the other. Nothing in the app resolves paths from the assembly's
+location, which single-file publishing would break; checked before publishing.
+
+**Not verified:** the framework-dependent build on a machine without the .NET 9 Desktop Runtime.
+This machine has the SDK, so the runtime is always present here. What such a machine shows —
+Windows' own prompt to install the runtime — belongs to the packaging feature's testing.
+
+Worth knowing when testing this way: the six launches were six real polls within about a minute.
+Each instance holds its own two-minute floor; separate instances do not share one.
 
 ### CP: Phase 7 Polish, second run — 2026-09-22 — PASSED
 tests: 816 pass / 0 fail / 0 skip

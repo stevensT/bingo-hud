@@ -80,16 +80,45 @@ Requires the .NET 9 SDK. Verified 2026-08-30 against SDK 9.0.317 on Windows 11.
 ```
 dotnet build
 dotnet test
-dotnet publish src/BingoHud.App/BingoHud.App.csproj -c Release -r win-x64 --self-contained
 ```
 
-`publish` writes to `src/BingoHud.App/bin/Release/net9.0-windows/win-x64/publish/`.
+`dotnet build` produces a Debug build. Debug builds read two environment variables that point
+Bingo at another credential file and another endpoint, for testing; Release builds ignore them.
 
-How Bingo ships is not settled yet. The plain self-contained output measures 240 files and
-about 134 MB. Adding `-p:PublishSingleFile=true` brings that to eight files with a 120 MB
-executable, and `-p:IncludeNativeLibrariesForSelfExtract=true` folds WPF's native libraries in
-as well. Trimming is not available — WPF does not support it. The figures above are measured,
-not estimated.
+### Publishing
+
+Bingo ships in two shapes, each a single `.exe`. Publish to separate folders under `artifacts/`,
+which is git-ignored; the default publish folder is shared, so one would overwrite the other.
+
+**Self-contained**, for downloading from the GitHub releases page. Needs nothing else installed, on
+any 64-bit Windows version .NET 9 supports. Tested on Windows 11 only:
+
+```
+dotnet publish src/BingoHud.App/BingoHud.App.csproj -c Release -r win-x64 --self-contained -p:PublishSingleFile=true -p:IncludeNativeLibrariesForSelfExtract=true -p:EnableCompressionInSingleFile=true -o artifacts/self-contained
+```
+
+**Framework-dependent**, for winget and Chocolatey. Needs the .NET 9 Desktop Runtime, which the
+package manifest declares as a dependency so the package manager installs it first:
+
+```
+dotnet publish src/BingoHud.App/BingoHud.App.csproj -c Release -r win-x64 --self-contained false -p:PublishSingleFile=true -o artifacts/framework-dependent
+```
+
+Ship `BingoHud.App.exe` from each folder. The `.pdb` files beside it are debug symbols.
+
+Measured 2026-09-22 on SDK 9.0.317, launched from a folder outside the repository:
+
+| Shape | Executable | First launch | Later launches |
+|---|---|---|---|
+| Framework-dependent | 0.36 MB | 0.75 s | 0.56 s |
+| Self-contained, compressed | 70.9 MB | 3.3 s | 0.73 s |
+| Self-contained, uncompressed | 162 MB | 4.9 s | 0.58 s |
+
+Compression is used for the self-contained build because it halves the download and its first
+launch is faster, not slower: a single-file build unpacks its native libraries to disk on first
+run, and a compressed one has less to unpack. Later launches cost about 0.15 s more. The
+uncompressed size grew from about 120 MB when the tray icon arrived, because the notification-area
+control comes from Windows Forms. Trimming is not available — WPF does not support it.
 
 ## Versioning
 

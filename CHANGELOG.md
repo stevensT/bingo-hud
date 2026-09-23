@@ -20,6 +20,9 @@ First release: a Windows HUD that shows Claude Code's session and weekly usage l
   direction ("used" or "left"), and when it resets.
 - Click-through by default; resting the cursor on the HUD briefly makes it clickable, so it can
   be dragged. It snaps to screen edges and remembers where it was left.
+- Severity on the HUD: a window's figure turns amber at 25% remaining and red at 10%, magenta
+  with the word "limited" when the server is refusing work, and a bar on the left edge shows the
+  worst of them. A reading that can no longer update is drawn without colour.
 - Optional collapse to the single worst window, unless both need attention.
 - Detail panel, opened by clicking the HUD: exact reset times, per-model weekly caps where the
   account has any, the reading's age, the app version, and a manual refresh that says why and
@@ -34,6 +37,8 @@ First release: a Windows HUD that shows Claude Code's session and weekly usage l
   say what happened and what to do.
 - Reads the token Claude Code already keeps in `~/.claude/.credentials.json`. Bingo never
   refreshes or writes it.
+- Two builds, each a single executable: a self-contained one that needs nothing installed, and
+  a framework-dependent one for package managers, which needs the .NET 9 Desktop Runtime.
 - Capture script for the usage endpoint, writing dated, scrubbed fixtures. First recorded
   fixtures: a successful read and an authentication failure.
 - MIT license.
