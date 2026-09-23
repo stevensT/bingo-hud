@@ -298,5 +298,8 @@ already known-correct.
 - [x] BV.4 Launch the published exe on a clean path and confirm it reads quota and renders.
       2026-09-22: all three variants measured, copied outside the repository, launched twice
       each, and read the live account on the HUD.
-- [C] BV.5 Final checkpoint: all builds green, all tests pass, acceptance criteria verified
-      against `spec.md`, result recorded in `progress.md`.
+- [x] BV.5 Final checkpoint passed 2026-09-22: `dotnet clean` then build green (0 warnings) and
+      816 tests passing with none skipped; both publish shapes built and launched at BV.3 and
+      BV.4 from the same source; every acceptance criterion met, as assessed at 7.4 with no
+      source changed since. Recorded in `progress.md`. The feature is complete; the `v0.1.0` tag
+      is Trevor's.

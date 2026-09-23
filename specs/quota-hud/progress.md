@@ -1,10 +1,13 @@
 # Quota HUD — Progress
 
 updated: 2026-09-22
-status: build verification — BV.1 to BV.4 done, BV.5 checkpoint remaining
+status: complete — BV.5 final checkpoint passed 2026-09-22
 blockers: none
-next_session: BV.5, the final checkpoint. The HUD is on a live trial from 2026-09-22, running a
-fresh publish with severity drawn; ask how it went before tagging 0.1.0. 7.2 closed the probe
+next_session: nothing left in this feature's task list. Before `v0.1.0` is tagged, ask how the HUD
+trial went (running since 2026-09-22). Trevor has already noted redesign ideas from it: a shorter
+reset and a progress bar. See "Ideas from the first evening of use" below. After the tag, the packaging feature (winget and
+Chocolatey) can start, since its manifests need a released artifact to hash. The open items
+carried forward are listed in the BV.5 entry. 7.2 closed the probe
 with AC-2b inconclusive; see its entry below, including a step owed on the other machine before
 it pulls. 7.1 wrote the copy for every reading state and
 reversed the rule that the HUD blanks a stale or frozen reading: both now stay on screen carrying
@@ -33,6 +36,31 @@ it to a PNG. 6.1 answered: cursor timer, no hook; see
 (`AppData.Directory`). Confirm reality first with `dotnet build` and `dotnet test`. The status line
 probe closed at 7.2. See the 7.1 entry and the 6.6 review record below for what was fixed and
 what was declined.
+
+## Ideas from the first evening of use — 2026-09-22
+
+Trevor's, from looking at the HUD on his own screen during the session that finished this
+feature. Brainstorming, not decisions: the first real observations from the trial, and the
+starting point for a redesign or a follow-up feature. Nothing here is scheduled.
+
+- **A shorter reset.** "resets Wed 1:19 AM" takes more room than it needs to. Instead: time left,
+  in hours for the 5-hour window ("3h left") and in days and hours for the week ("2d 5h left").
+- **A coloured progress bar**, along the line or as its background, showing how full each window
+  is, so the figure has a visual beside it.
+
+Where they meet the current spec, for whoever picks them up:
+- The shorter reset changes **AC-3**, which asks for absolute times when distant and relative
+  ones as the reset nears. Always relative is a change to that criterion, not a tweak inside it,
+  and the panel's exact reset times (AC-23) would become the only place the clock time is shown.
+  "Left" also collides with the direction word: "88% left" beside "3h left" puts two different
+  "lefts" on one line, which AC-2b exists to keep unambiguous.
+- The progress bar has to square with **AC-4**, "three discrete states, not a continuous
+  gradient". A bar whose length is continuous but whose colour stays in the three severity steps
+  would honour it; a bar whose colour shades gradually would not. It would also need a rule for
+  frozen readings (AC-13), which draw without colour today, and for the direction setting, since
+  a bar filling as usage rises reads opposite to a "left" figure.
+- Both would replace or join the severity drawing from 7.3a, so they are best designed together
+  with it rather than added on top.
 
 ## Notes carried into execution
 
@@ -802,6 +830,27 @@ against `>` widened to `>=`.
 Not done here, and not in scope: nothing in the UI toggles `Collapse`. The setting is read and
 persisted, so the behaviour is reachable only by editing the settings file. The tray menu at 6.9
 is where the toggle belongs.
+
+### CP: BV.5 final checkpoint — 2026-09-22 — PASSED
+tests: 816 pass / 0 fail / 0 skip
+build: pass (`dotnet clean` then `dotnet build`, 0 warnings, 0 errors)
+done: every task in `tasks.md`. Marks audited.
+
+criteria_assessed: every acceptance criterion in `spec.md` is met. Assessed in full at the 7.4
+second run; `git diff fc05757 -- src tests` is empty, so nothing that criterion depends on has
+changed since. Both publish shapes were built from this source and launched outside the
+repository at BV.4, reading the live account.
+
+The feature is done. What remains is not in this task list:
+- The `v0.1.0` tag, which is Trevor's. It is best applied after a few days of the HUD trial,
+  the one test of the premise the project rests on that no checkpoint can run.
+- The packaging feature, queued behind the tag.
+- Carried forward, none blocking: collapse ranking a frozen reading by raw severity (7.1, still
+  undecided); the Release branch of the overrides not pinned by a test; the HUD widening about
+  5 DIP when the bar appears; notifications naming their sender "BingoHud.App"; Windows 11 hiding
+  new tray icons, which wants a README setup note; a drag able to leave the HUD partly off screen
+  until restart; battery with no cadence producer; a failed settings save reaching nobody; the
+  framework-dependent build unverified on a machine without the runtime.
 
 ### Build verification BV.1 to BV.4 — 2026-09-22
 tests: 816 pass / 0 fail / 0 skip
