@@ -1,6 +1,7 @@
 using System.Net.Http;
 using System.Reflection;
 using System.Windows;
+using BingoHud.Core;
 using BingoHud.Core.Alerts;
 using BingoHud.Core.Credentials;
 using BingoHud.Core.Display;
@@ -39,14 +40,29 @@ public partial class App : Application
 
         _settings = _settingsStore.Load();
 
+        (string? CredentialPath, Uri? Endpoint) overrides;
+
+        try
+        {
+            overrides = Overrides();
+        }
+        catch (InvalidOperationException refused)
+        {
+            // Debug builds only. A windowed app that throws here dies with nothing on screen, so
+            // Core's reason is shown before exiting rather than left to vanish.
+            MessageBox.Show(refused.Message, "Bingo");
+            Shutdown(1);
+            return;
+        }
+
         // The data path from the plan: credential file, usage endpoint, monitor, and the loop
         // that drives it. The monitor is the only stateful orchestrator; the alert store
         // remembers what has fired but decides nothing. The shell is not told when a reading
         // changes; it re-reads the monitor once a second, which also keeps the reset countdown
         // moving without a second mechanism.
         _monitor = new QuotaMonitor(
-            new FileCredentialProvider(CredentialPathOverride ?? FileCredentialProvider.DefaultPath),
-            new UsageClient(_http, _clock, EndpointOverride is { } url ? new Uri(url) : null),
+            new FileCredentialProvider(overrides.CredentialPath ?? FileCredentialProvider.DefaultPath),
+            new UsageClient(_http, _clock, overrides.Endpoint),
             _clock);
 
         _transcripts = new TranscriptActivity(TranscriptActivity.DefaultPath, _clock);
@@ -106,13 +122,14 @@ public partial class App : Application
     // Debug builds only: point the app at another credential file and another endpoint, so the
     // error states can be forced and seen on screen without touching the real token. Absent from
     // Release, where they would let anything that can set a user's environment redirect the
-    // request that carries the token. A fence test holds every environment read to this branch.
+    // request that carries the token. A fence test holds every environment read to this branch,
+    // and DebugOverrides decides what the values are allowed to do.
 #if DEBUG
-    private static string? CredentialPathOverride => Environment.GetEnvironmentVariable("BINGO_CREDENTIALS_PATH");
-    private static string? EndpointOverride => Environment.GetEnvironmentVariable("BINGO_USAGE_ENDPOINT");
+    private static (string? CredentialPath, Uri? Endpoint) Overrides() => DebugOverrides.Resolve(
+        Environment.GetEnvironmentVariable(DebugOverrides.CredentialsVariable),
+        Environment.GetEnvironmentVariable(DebugOverrides.EndpointVariable));
 #else
-    private static string? CredentialPathOverride => null;
-    private static string? EndpointOverride => null;
+    private static (string? CredentialPath, Uri? Endpoint) Overrides() => (null, null);
 #endif
 
     /// <summary>

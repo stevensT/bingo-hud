@@ -6,8 +6,9 @@ using BingoHud.Core.Usage;
 namespace BingoHud.Core.Display;
 
 /// <summary>
-/// Decides every word on the HUD (AC-1 through AC-3), which windows get a line (AC-7), and how a
-/// reading that is no longer current is marked (AC-8, AC-13). The WPF layer places the strings;
+/// Decides every word on the HUD (AC-1 through AC-3), which windows get a line (AC-7), each
+/// line's severity (AC-4 through AC-6), and how a reading that is no longer current is marked
+/// (AC-8, AC-13). The WPF layer places the strings and colours by severity;
 /// it does not compose them.
 ///
 /// <para>
@@ -57,10 +58,17 @@ public static class Readout
 
         foreach (var window in shown)
         {
+            // A frozen reading takes no colour (AC-13). The overall severity is the worst line,
+            // so excluding it here excludes it from the accent bar too.
+            var severity = state.Freshness == Freshness.Frozen
+                ? Severity.Normal
+                : SeverityPolicy.Evaluate(window, settings.Thresholds);
+
             lines.Add(new ReadoutLine(
                 WindowName.Short(window.Kind),
                 Percentage.Describe(window.UsedPercent, settings.Direction),
-                ResetFormatter.Describe(window.ResetsAt, now, culture)));
+                Reset(window, severity, now, culture),
+                severity));
         }
 
         return lines;
@@ -101,6 +109,31 @@ public static class Readout
 
         return new HudContent.Reading(lines, StatusMessage.MarkFor(state));
     }
+
+    /// <summary>
+    /// The reset phrase, led by "limited" when the server is refusing work against the window.
+    ///
+    /// <para>
+    /// AC-6 asks for a server refusal to be surfaced distinctly from a local threshold. Colour
+    /// alone does not do it: critical and rate-limited are both bold with a bar, and red against
+    /// magenta is the pair the most common colour-blindness confuses. The word does. It goes
+    /// beside the reset rather than in place of "used", because the direction word is what AC-2b
+    /// needs on every figure.
+    /// </para>
+    /// </summary>
+    private static string? Reset(QuotaWindow window, Severity severity, DateTimeOffset now, CultureInfo? culture)
+    {
+        var reset = ResetFormatter.Describe(window.ResetsAt, now, culture);
+
+        if (severity != Severity.RateLimited)
+        {
+            return reset;
+        }
+
+        return reset is null ? RateLimitedWord : $"{RateLimitedWord}, {reset}";
+    }
+
+    private const string RateLimitedWord = "limited";
 
     /// <summary>
     /// The windows the HUD draws a line for, session first. Named here because
@@ -186,7 +219,7 @@ public static class Readout
     /// silently depend on the order members happen to be declared in.
     /// </para>
     /// </summary>
-    private static int Rank(Severity severity) => severity switch
+    internal static int Rank(Severity severity) => severity switch
     {
         Severity.Normal => 0,
         Severity.Warning => 1,

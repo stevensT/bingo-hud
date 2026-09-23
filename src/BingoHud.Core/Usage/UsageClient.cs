@@ -43,7 +43,8 @@ public sealed class UsageClient : IUsageClient
     }
 
     /// <summary>
-    /// The only endpoint Bingo reads. It is undocumented and reverse-engineered from shipping
+    /// The only endpoint a shipped build reads; a Debug build can be pointed elsewhere through the
+    /// constructor (see <see cref="DebugOverrides"/>). It is undocumented and reverse-engineered from shipping
     /// clients, which is why the payload it returns is pinned by a contract test.
     /// </summary>
     public const string Endpoint = "https://api.anthropic.com/api/oauth/usage";

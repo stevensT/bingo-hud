@@ -1,6 +1,6 @@
 # Spike: the error states, on screen
 
-**Status:** open — started 2026-09-22
+**Status:** closed 2026-09-22
 **Script:** `scripts/stub-usage-server.js`
 
 ## Question
@@ -13,8 +13,8 @@ state changes.
 ## Why this spike exists
 
 Every one of these states needs a failure to see, and there was no safe way to cause one.
-Renaming the real credential file would also sign out the Claude Code session doing the
-verifying, and nothing in the app can be pointed anywhere else: the credential path comes from
+Renaming the real credential file would also sign out every Claude Code session on the
+machine, and nothing in the app can be pointed anywhere else: the credential path comes from
 `GetFolderPath(UserProfile)`, which ignores environment variables, and the endpoint is a
 constant.
 
@@ -82,8 +82,25 @@ Record the result below, delete `scripts/stub-usage-server.js`, and keep the ove
 
 ## Result
 
-**Partial, 2026-09-22. Stays open** until severity is drawn and can be photographed with the same
-stub.
+**Closed 2026-09-22.** Every state in the table was reached and seen. The severity rows were
+seen after task 7.3a drew them; the rest are below.
+
+Severity, after 7.3a: normal draws white with no bar; warning draws the figure amber with an
+amber bar; critical draws it red and bold with a red bar; rate-limited draws it magenta and bold
+with a magenta bar. A critical reading frozen by a 401 at the next poll kept its 95% in plain
+white with no bar, beneath "5 min old, sign-in expired" (AC-13). The HUD grows about five
+device-independent pixels wider while a bar is shown, which the existing keep-on-screen rule
+absorbs.
+
+Review of this work then found that the endpoint override alone would have sent the real token to
+whatever URL it named. It is now honoured only beside a credential override, and only for an http
+or https server on this machine; see `DebugOverrides`. The severity rows above were judged by the
+first row of the decision table.
+
+The stub script is committed with this result and deleted in the commit after, so the experiment
+stays reproducible from history.
+
+What follows is the first pass, from the 7.4 checkpoint.
 
 Every error state was reached and seen: signed out, permission denied, invalidated token,
 unreadable, unavailable, unsupported, and the scoped-only case, each on the HUD and in the panel;

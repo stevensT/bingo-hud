@@ -11,10 +11,17 @@ namespace BingoHud.Core.Tests;
 /// shell's source like <see cref="InteropSeamTests"/>, because a preprocessor branch leaves nothing
 /// in the Debug assembly this project could reflect over to tell the two builds apart.
 /// </para>
+/// <para>
+/// A line scanner, not a preprocessor. Only a bare <c>#if DEBUG</c> opens a Debug branch, and any
+/// <c>#elif</c>, <c>#else</c> or <c>#endif</c> closes it, so a nested block inside one fails the
+/// fence rather than slipping past it — the safe direction for a heuristic to be wrong in.
+/// </para>
 /// </summary>
 public class DebugOverrideTests
 {
-    private const string EnvironmentRead = "Environment.GetEnvironmentVariable";
+    // Without the "Environment." prefix, so a `using static System.Environment` cannot hide a
+    // read. Also matches GetEnvironmentVariables, which is wanted.
+    private const string EnvironmentRead = "GetEnvironmentVariable";
 
     /// <summary>
     /// Every line of shell source that reads the environment, and whether it sits inside an
@@ -32,11 +39,12 @@ public class DebugOverrideTests
                 number++;
                 var trimmed = line.Trim();
 
-                if (trimmed.StartsWith("#if DEBUG", StringComparison.Ordinal))
+                if (trimmed == "#if DEBUG")
                 {
                     inDebug = true;
                 }
-                else if (trimmed.StartsWith("#else", StringComparison.Ordinal)
+                else if (trimmed.StartsWith("#elif", StringComparison.Ordinal)
+                    || trimmed.StartsWith("#else", StringComparison.Ordinal)
                     || trimmed.StartsWith("#endif", StringComparison.Ordinal))
                 {
                     inDebug = false;
@@ -56,8 +64,8 @@ public class DebugOverrideTests
     }
 
     [Theory]
-    [InlineData("BINGO_CREDENTIALS_PATH")]
-    [InlineData("BINGO_USAGE_ENDPOINT")]
+    [InlineData("DebugOverrides.CredentialsVariable")]
+    [InlineData("DebugOverrides.EndpointVariable")]
     public void EachOverrideIsReadInsideADebugBranch(string variable)
     {
         // Without this, the fence above passes by finding nothing, and would go on passing if

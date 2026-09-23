@@ -130,6 +130,8 @@ public class StatusMessageTests
     [InlineData("not json")]
     [InlineData("[]")]
     [InlineData("{\"tangelo\": null}")]
+    [InlineData("{\"five_hour\": {\"utilization\": \"x\"}}")]
+    [InlineData("{\"limits\": [{\"kind\": \"session\", \"percent\": \"x\"}]}")]
     public void TheUnreadableAdviceReadsAsSentencesWithTheReasonsTheParserActuallyGives(string body)
     {
         // Found on screen at 7.4, not by the test above: the parser's reasons are whole
@@ -140,6 +142,9 @@ public class StatusMessageTests
 
         var advice = Describe(outcome).Advice;
 
+        // The advice relies on every reason being a finished sentence; a reason without its full
+        // stop would run straight into the next one.
+        Assert.Matches(@"[.!?]$", outcome.Reason);
         Assert.Contains(outcome.Reason, advice);
         Assert.DoesNotContain("..", advice);
         Assert.DoesNotContain(": The", advice);

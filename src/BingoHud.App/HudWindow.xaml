@@ -23,12 +23,18 @@
         <!-- One row per readout line: window, percent with its direction, reset. The columns
              are shared so the figures line up whatever the window names are. Rows are built in
              code from what Core decided; nothing here composes a string. -->
-        <Grid x:Name="Lines">
-            <Grid.ColumnDefinitions>
-                <ColumnDefinition Width="Auto" />
-                <ColumnDefinition Width="Auto" />
-                <ColumnDefinition Width="Auto" />
-            </Grid.ColumnDefinitions>
-        </Grid>
+        <DockPanel>
+            <!-- The overall severity (AC-5), seen without reading which line. Absent while
+                 everything is normal, so a bar appearing is itself the signal. -->
+            <Border x:Name="Accent" DockPanel.Dock="Left" Width="3" CornerRadius="1.5"
+                    Margin="-6,0,8,0" Visibility="Collapsed" />
+            <Grid x:Name="Lines">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto" />
+                    <ColumnDefinition Width="Auto" />
+                    <ColumnDefinition Width="Auto" />
+                </Grid.ColumnDefinitions>
+            </Grid>
+        </DockPanel>
     </Border>
 </Window>

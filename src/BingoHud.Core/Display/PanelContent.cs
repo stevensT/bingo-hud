@@ -39,7 +39,9 @@ public sealed record PanelRow(string Label, string Percent, string Reset);
 /// </param>
 /// <param name="Age">How old the displayed reading is, or null before the first one.</param>
 /// <param name="LastPoll">When the last successful poll happened, written out in full (AC-24).</param>
-/// <param name="NextPoll">Why the next poll is scheduled when it is.</param>
+/// <param name="NextPoll">
+/// Why the next poll is scheduled when it is, or, once polling has stopped, that none is coming.
+/// </param>
 /// <param name="Version">The running build (AC-24).</param>
 /// <param name="Status">
 /// The state the app is in and what to do about it, or null when a current reading has nothing
@@ -61,4 +63,29 @@ public sealed record PanelContent(
     string NextPoll,
     string Version,
     StatusMessage? Status,
-    string? RefreshNotice);
+    string? RefreshNotice)
+{
+    /// <summary>
+    /// Whether this would draw the same panel as <paramref name="other"/>, so a redraw can be
+    /// skipped.
+    ///
+    /// <para>
+    /// Written out field by field rather than left to the record's own equality, which compares
+    /// the two row lists by reference and would call every composition different. It lives here,
+    /// beside the fields it must list, so a field added to the record is added in the same place
+    /// and a test can hold it; the WPF layer has no tests. A field left out here would stop the
+    /// panel noticing when that field changes.
+    /// </para>
+    /// </summary>
+    public bool SameAs(PanelContent other) =>
+        Windows.SequenceEqual(other.Windows)
+        && WindowsEmptyState == other.WindowsEmptyState
+        && PerModelCaps.SequenceEqual(other.PerModelCaps)
+        && PerModelCapsEmptyState == other.PerModelCapsEmptyState
+        && Age == other.Age
+        && LastPoll == other.LastPoll
+        && NextPoll == other.NextPoll
+        && Version == other.Version
+        && Status == other.Status
+        && RefreshNotice == other.RefreshNotice;
+}

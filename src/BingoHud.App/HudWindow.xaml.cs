@@ -6,6 +6,7 @@ using System.Windows.Threading;
 using BingoHud.Core.Display;
 using BingoHud.Core.Settings;
 using BingoHud.Core.Time;
+using BingoHud.Core.Usage;
 
 namespace BingoHud.App;
 
@@ -22,6 +23,24 @@ public partial class HudWindow : Window
 
     private static readonly Brush SolidEdge = new SolidColorBrush(Color.FromArgb(0xB0, 0xFF, 0xFF, 0xFF));
     private static readonly Brush Dim = new SolidColorBrush(Color.FromArgb(0x99, 0xFF, 0xFF, 0xFF));
+
+    // Severity colours (AC-4, AC-6). Core decides the severity; this is only how it looks.
+    // Critical and rate-limited are also bold, so the step past warning is not colour alone.
+    private static readonly Brush WarningBrush = new SolidColorBrush(Color.FromRgb(0xFF, 0xB0, 0x20));
+    private static readonly Brush CriticalBrush = new SolidColorBrush(Color.FromRgb(0xFF, 0x5A, 0x4F));
+    private static readonly Brush RateLimitedBrush = new SolidColorBrush(Color.FromRgb(0xE0, 0x5A, 0xE8));
+
+    private static Brush? SeverityBrush(Severity severity) => severity switch
+    {
+        Severity.Normal => null,
+        Severity.Warning => WarningBrush,
+        Severity.Critical => CriticalBrush,
+        Severity.RateLimited => RateLimitedBrush,
+        _ => throw new ArgumentOutOfRangeException(nameof(severity), severity, null),
+    };
+
+    private static FontWeight SeverityWeight(Severity severity) =>
+        severity is Severity.Critical or Severity.RateLimited ? FontWeights.SemiBold : FontWeights.Normal;
 
     private readonly HudPosition? _remembered;
     private readonly Action<HudPosition> _moved;
@@ -102,7 +121,6 @@ public partial class HudWindow : Window
             return;
         }
 
-        _shown = content;
         Lines.Children.Clear();
         Lines.RowDefinitions.Clear();
 
@@ -113,18 +131,39 @@ public partial class HudWindow : Window
             // the first poll (AC-9, AC-10). Never blank.
             Lines.RowDefinitions.Add(new RowDefinition());
             Lines.Children.Add(new TextBlock { Text = empty.Phrase, Foreground = Dim });
+            Accent.Visibility = Visibility.Collapsed;
+            _shown = content;
             return;
         }
 
         var reading = (HudContent.Reading)content;
 
+        Accent.Background = SeverityBrush(reading.Overall);
+        Accent.Visibility = reading.Overall == Severity.Normal ? Visibility.Collapsed : Visibility.Visible;
+
         for (var row = 0; row < reading.Lines.Count; row++)
         {
+            var line = reading.Lines[row];
             Lines.RowDefinitions.Add(new RowDefinition());
-            Place(new TextBlock { Text = reading.Lines[row].Window, Foreground = Dim }, row, column: 0);
-            Place(new TextBlock { Text = reading.Lines[row].Percent, Margin = new Thickness(10, 0, 0, 0) }, row, column: 1);
+            Place(new TextBlock { Text = line.Window, Foreground = Dim }, row, column: 0);
 
-            if (reading.Lines[row].Reset is { } reset)
+            var percent = new TextBlock
+            {
+                Text = line.Percent,
+                FontWeight = SeverityWeight(line.Severity),
+                Margin = new Thickness(10, 0, 0, 0),
+            };
+
+            // Left to the style's white when normal, rather than set to white here, so there is
+            // one place that decides what an unremarkable figure looks like.
+            if (SeverityBrush(line.Severity) is { } brush)
+            {
+                percent.Foreground = brush;
+            }
+
+            Place(percent, row, column: 1);
+
+            if (line.Reset is { } reset)
             {
                 Place(new TextBlock { Text = reset, Foreground = Dim, Margin = new Thickness(10, 0, 0, 0) }, row, column: 2);
             }
@@ -142,6 +181,10 @@ public partial class HudWindow : Window
             Grid.SetColumnSpan(text, 3);
             Lines.Children.Add(text);
         }
+
+        // Recorded only once drawn. Recorded first, a draw that failed partway would leave the
+        // next tick believing it was already on screen, and it would never be drawn again.
+        _shown = content;
     }
 
     private void Place(TextBlock text, int row, int column)

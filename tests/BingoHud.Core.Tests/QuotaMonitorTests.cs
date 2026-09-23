@@ -339,6 +339,26 @@ public class QuotaMonitorTests
     }
 
     [Fact]
+    public async Task AfterAnUnsupportedAnswerNothingIsFetchedAgain()
+    {
+        // Found in review of 7.4. The loop stops on this answer, but a manual refresh used to
+        // fetch anyway, and a success cleared the failure — so the panel went back to promising
+        // a next poll that the stopped loop would never make. "Stopped until restarted" is now a
+        // fact the monitor holds, not only the loop.
+        var clock = new TestClock(Start);
+        var client = StubUsageClient.Sequence(new FetchOutcome.Unsupported(404), Success(Start));
+        var monitor = Monitor(client, clock);
+
+        await monitor.RefreshAsync(Idle);
+        clock.Advance(PollPolicy.Ceiling + TimeSpan.FromMinutes(1));
+        var second = await monitor.RefreshAsync(Idle);
+
+        Assert.IsType<RefreshResult.Stopped>(second);
+        Assert.Equal(1, client.Fetches);
+        Assert.IsType<FetchOutcome.Unsupported>(monitor.Current.LastFailure);
+    }
+
+    [Fact]
     public async Task ATransientFailureDoesNotFreezeTheReading()
     {
         // It is expected to pass. Freezing on it would mark a number dead that will refresh in

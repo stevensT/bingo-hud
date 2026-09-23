@@ -30,6 +30,11 @@ public static class RefreshNotice
     /// <param name="now">The current instant, which the countdown is measured from.</param>
     public static string? Describe(RefreshResult? result, DateTimeOffset now)
     {
+        if (result is RefreshResult.Stopped)
+        {
+            return "Polling has stopped. Restart Bingo to try again.";
+        }
+
         if (result is not RefreshResult.Refused refused)
         {
             return null;

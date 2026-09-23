@@ -48,6 +48,16 @@ public class RefreshNoticeTests
     }
 
     [Fact]
+    public void ARefreshAfterPollingStoppedSaysARestartIsNeeded()
+    {
+        // Otherwise the button does nothing and says nothing, beside advice that says polling
+        // has stopped: the user has no way to tell the two apart from a broken button.
+        Assert.Equal(
+            "Polling has stopped. Restart Bingo to try again.",
+            RefreshNotice.Describe(new RefreshResult.Stopped(), Now));
+    }
+
+    [Fact]
     public void ARefusalSaysBothWhenAndWhy()
     {
         var notice = RefreshNotice.Describe(

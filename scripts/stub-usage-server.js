@@ -1,5 +1,8 @@
 // Throwaway stand-in for the usage endpoint, for forcing the error states on screen.
-// See specs/quota-hud/spikes/error-states-onscreen.md. Deleted when that spike closes.
+// See specs/quota-hud/spikes/error-states-onscreen.md. Deleted in the commit after the one that
+// records that spike's result.
+// Needs BINGO_CREDENTIALS_PATH set as well as the endpoint; a Debug build refuses the endpoint
+// override on its own.
 //
 // Usage: node scripts/stub-usage-server.js <mode-file>
 // Point a Debug build at it with BINGO_USAGE_ENDPOINT=http://localhost:8765/usage.

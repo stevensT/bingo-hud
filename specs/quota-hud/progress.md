@@ -1,11 +1,12 @@
 # Quota HUD — Progress
 
 updated: 2026-09-22
-status: Phase 7 in progress — 7.4 checkpoint not passed; 7.3a added
-blockers: 7.3a — severity is never drawn, so AC-4, AC-5 and AC-6 are absent from the product
-next_session: 7.3a, starting with the visual treatment decision, then back to 7.4. The error-state
-spike stays open for 7.3a's verification; its stub is `scripts/stub-usage-server.js`. The HUD is
-on a live trial from 2026-09-22, restarted from a fresh publish; ask how it went. 7.2 closed the probe
+status: Phase 7 in progress — 7.3a done and reviewed; 7.4 to be re-run
+blockers: none
+next_session: re-run the 7.4 checkpoint. The error-state spike is closed; delete
+`scripts/stub-usage-server.js` in the commit after the one that records its result. The HUD is on
+a live trial from 2026-09-22, restarted from a fresh publish with severity drawn; ask how it went.
+7.2 closed the probe
 with AC-2b inconclusive; see its entry below, including a step owed on the other machine before
 it pulls. 7.1 wrote the copy for every reading state and
 reversed the rule that the HUD blanks a stale or frozen reading: both now stay on screen carrying
@@ -803,6 +804,60 @@ against `>` widened to `>=`.
 Not done here, and not in scope: nothing in the UI toggles `Collapse`. The setting is read and
 persisted, so the behaviour is reachable only by editing the settings file. The tray menu at 6.9
 is where the toggle belongs.
+
+### Task 7.3a: severity on the HUD, and its review — 2026-09-22
+tests: 816 pass / 0 fail / 0 skip (785 at the start)
+build: pass (0 warnings, 0 errors)
+
+**The treatment, Trevor's choice.** The offending window's figure turns amber at warning, red at
+critical, magenta when the server is refusing work; critical and rate-limited are also bold. A
+thin bar on the HUD's left edge takes the worst colour, so severity is visible without reading
+which line (AC-5). The HUD's border was not usable for this: it already signals that the dwell
+has made the HUD clickable. A frozen reading draws plain, with no bar (AC-13).
+
+Core decides all of it: `ReadoutLine.Severity` per line, and `HudContent.Reading.Overall`
+computed from the lines rather than stored beside them, so the bar and the figures cannot
+disagree. The shell only maps a severity to a brush.
+
+Verified on screen with the stub from `spikes/error-states-onscreen.md`: normal, warning,
+critical, rate-limited, and a critical reading frozen by a 401 at the next poll.
+
+**Review: five reviewers over `git diff e9fc6f6`**, which covers the 7.4 commit and this task.
+
+Fixed:
+- *The endpoint override alone would have sent the real token to any URL.* Found by the general
+  reviewer. "Debug only" was weaker than it sounded, because the plain build command produces a
+  Debug build. `DebugOverrides.Resolve` in Core now honours the endpoint only beside a credential
+  override, and only for an http or https server on this machine. Blank counts as unset, and a
+  refused value stops startup with a message box naming the variable. Seen on screen.
+- *A stopped loop could come back.* After a 404 the loop stops, but a manual refresh still
+  fetched, and a success cleared the failure, so the panel promised polls that never came.
+  The monitor now refuses every refresh once the endpoint has said no, with a new
+  `RefreshResult.Stopped`, and the panel says a restart is needed. The loop treats it as
+  terminal too, which also covers a manual refresh getting the 404 first.
+- *Rate-limited differed from critical by colour alone*, and red against magenta is the pair the
+  most common colour-blindness confuses. Trevor chose to add the word: the line now reads
+  "limited, resets …". AC-2b's "used" stays on the figure.
+- `Overall` computed from the lines, removing a null-forgiving operator and a second copy of the
+  frozen rule. The panel's field-by-field comparison moved from the shell into Core as
+  `PanelContent.SameAs`, with tests. Both windows now record what is on screen only after drawing
+  it, so a failed draw cannot leave them believing it is already shown.
+- Tests: the user's thresholds reaching severity end to end, collapse with severity, every parser
+  reason ending as a sentence, and a tighter `#if DEBUG` match in the fence. Each new behaviour
+  test was watched failing first; the thresholds test and the repaint comparison were also
+  proved by mutation.
+- Comments made false by the change, in `SeverityPolicy`, `Readout`, `HudContent`,
+  `ReadoutLine`, `PanelContent` and `UsageClient`, and a spike-doc line that described who did
+  the verifying rather than what was verified.
+
+Deferred, with reasons:
+- The Release branch of the overrides returns `(null, null)`, and no test pins that. The fence
+  proves no environment is read outside Debug; a constant slipped into the Release branch would
+  pass it. Low likelihood, and pinning it means parsing the `#else` block.
+- The HUD grows about 5 DIP wider when the bar appears. The keep-on-screen rule absorbs it.
+  Reserving the space permanently would give every normal HUD an empty strip on its left.
+- 7.1's open question stays open: collapse ranks windows by raw severity, so a frozen reading
+  can still expand a collapsed HUD to two lines, now two plain lines with nothing saying why.
 
 ### CP: Phase 7 Polish — 2026-09-22 — NOT PASSED
 tests: 785 pass / 0 fail / 0 skip (773 at the start; 12 added)

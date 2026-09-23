@@ -20,4 +20,10 @@ public abstract record RefreshResult
     /// </para>
     /// </summary>
     public sealed record Refused(string Reason, DateTimeOffset NextAttemptAt) : RefreshResult;
+
+    /// <summary>
+    /// The refresh was declined because the endpoint has said it will not serve this account.
+    /// Nothing is fetched again until a restart, which is what the status advice promises.
+    /// </summary>
+    public sealed record Stopped : RefreshResult;
 }

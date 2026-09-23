@@ -115,6 +115,15 @@ public sealed class QuotaMonitor
                 return running;
             }
 
+            // Stopped for good once the endpoint says this account cannot use it. Checked before
+            // the backoff because no amount of waiting changes the answer, and a success from a
+            // later manual refresh would otherwise clear the failure and leave the panel
+            // promising polls the stopped loop will never make.
+            if (PollLoop.Stops(_lastFailure))
+            {
+                return Task.FromResult<RefreshResult>(new RefreshResult.Stopped());
+            }
+
             if (_nextAttemptAt is { } next && _clock.Now < next)
             {
                 return Task.FromResult<RefreshResult>(

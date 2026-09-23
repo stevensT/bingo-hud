@@ -315,6 +315,27 @@ public class PanelReadoutTests
     }
 
     [Fact]
+    public void TwoSeparateCompositionsOfTheSameStateCompareTheSame()
+    {
+        // The panel re-reads once a second and redraws only when SameAs says something changed.
+        // Record equality would compare the row lists by reference and redraw every second.
+        var state = Reading(Snapshot(Window(WindowKind.Session, 12)));
+
+        Assert.True(Compose(state).SameAs(Compose(state)));
+    }
+
+    [Fact]
+    public void AChangeInAnEmptyStateAloneRedrawsThePanel()
+    {
+        // The field added at 7.4. A hand-kept comparison in the shell had to be remembered for it;
+        // here, beside the record, a test can hold it.
+        var content = Compose(Reading(null));
+
+        Assert.False(content.SameAs(content with { WindowsEmptyState = "None reported for this account." }));
+        Assert.False(content.SameAs(content with { PerModelCapsEmptyState = null }));
+    }
+
+    [Fact]
     public void AfterAnUnsupportedAnswerTheNextPollSaysPollingHasStopped()
     {
         // Found on screen at 7.4: the status said polling had stopped while this row still gave

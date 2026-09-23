@@ -125,7 +125,8 @@ public sealed class PollLoop(
     /// </para>
     /// </summary>
     private static bool IsTerminal(RefreshResult result) =>
-        result is RefreshResult.Performed { State.LastFailure: var failure } && Stops(failure);
+        result is RefreshResult.Stopped
+        || (result is RefreshResult.Performed { State.LastFailure: var failure } && Stops(failure));
 
     /// <summary>
     /// Whether this failure ends polling. Public so the panel can say polling has stopped from

@@ -179,6 +179,25 @@ public class PollLoopTests
     }
 
     [Fact]
+    public async Task TheLoopStopsWhenAManualRefreshAlreadyGotTheUnsupportedAnswer()
+    {
+        // The loop never sees the result of a refresh it did not ask for. It learns on its next
+        // pass, when the monitor refuses it as stopped, and it must stop then too.
+        var clock = new TestClock(Start);
+        var client = new StubUsageClient(new FetchOutcome.Unsupported(StatusCode: 404));
+        var monitor = Monitor(client, clock);
+        await monitor.RefreshAsync(new PollSignals());
+        clock.Advance(PollPolicy.Ceiling + TimeSpan.FromMinutes(1));
+        using var cancellation = new CancellationTokenSource();
+        var loop = new PollLoop(monitor, clock, StopAfter(5, cancellation));
+
+        await loop.RunAsync(cancellation.Token);
+
+        Assert.Equal(1, client.Fetches);
+        Assert.False(cancellation.IsCancellationRequested);
+    }
+
+    [Fact]
     public async Task SignalsAreGatheredFreshlyBeforeEachAttempt()
     {
         var clock = new TestClock(Start);

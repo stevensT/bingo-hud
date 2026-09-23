@@ -77,7 +77,7 @@ public class ReadoutTests
         var frozen = Frozen(Snapshot(Window(WindowKind.Session, 12, Now.AddMinutes(53))));
 
         Assert.Equal(
-            [new ReadoutLine("5h", "12% used", "resets in 53 min")],
+            [new ReadoutLine("5h", "12% used", "resets in 53 min", Severity.Normal)],
             Lines(frozen));
     }
 
@@ -274,8 +274,8 @@ public class ReadoutTests
 
         Assert.Equal(
             [
-                new ReadoutLine("5h", "12% used", "resets in 53 min"),
-                new ReadoutLine("Week", "37% used", "resets Thu 11:34 AM"),
+                new ReadoutLine("5h", "12% used", "resets in 53 min", Severity.Normal),
+                new ReadoutLine("Week", "37% used", "resets Thu 11:34 AM", Severity.Normal),
             ],
             Lines(snapshot));
     }
@@ -491,5 +491,164 @@ public class ReadoutTests
         var line = Assert.Single(Lines(snapshot, collapse: true));
 
         Assert.Equal("5h", line.Window);
+    }
+
+    // ---- Severity on screen (AC-4, AC-5, AC-6) ----
+    //
+    // Decided in Core since 4.2 and drawn nowhere until 7.3a, which the 7.4 checkpoint found by
+    // forcing each state through a stub and seeing all of them look like normal.
+
+    private static HudContent.Reading ReadingOf(ReadingState state) =>
+        Assert.IsType<HudContent.Reading>(Content(state));
+
+    [Fact]
+    public void EachLineCarriesItsOwnWindowsSeverity()
+    {
+        // AC-4: which window is in trouble is what the per-line colour answers.
+        var lines = ReadingOf(Fresh(Snapshot(
+            Window(WindowKind.Session, 80),
+            Window(WindowKind.WeeklyAll, 37)))).Lines;
+
+        Assert.Equal([Severity.Warning, Severity.Normal], lines.Select(l => l.Severity));
+    }
+
+    [Fact]
+    public void ACriticalWindowIsCriticalOnItsLine()
+    {
+        var line = Assert.Single(ReadingOf(Fresh(Snapshot(Window(WindowKind.Session, 95)))).Lines);
+
+        Assert.Equal(Severity.Critical, line.Severity);
+    }
+
+    [Fact]
+    public void AWindowTheServerRefusesIsRateLimitedRatherThanCritical()
+    {
+        // AC-6: the server's refusal is a fact, a local threshold is an opinion, and the two
+        // are drawn apart.
+        var line = Assert.Single(ReadingOf(Fresh(Snapshot(
+            new QuotaWindow(WindowKind.Session, 100, null, ServerSeverity.Rejected)))).Lines);
+
+        Assert.Equal(Severity.RateLimited, line.Severity);
+    }
+
+    [Fact]
+    public void ARateLimitedLineSaysSoInWordsNotOnlyInColour()
+    {
+        // AC-6. Critical and rate-limited are both bold with a bar, and red against magenta is
+        // the pair the most common colour-blindness confuses. The word is what makes them
+        // distinct for everyone. Found in review of 7.3a.
+        var line = Assert.Single(Lines(Fresh(Snapshot(
+            new QuotaWindow(WindowKind.Session, 100, Now.AddMinutes(53), ServerSeverity.Rejected)))));
+
+        Assert.Equal("limited, resets in 53 min", line.Reset);
+    }
+
+    [Fact]
+    public void ARateLimitedLineWithNoResetTimeStillSaysLimited()
+    {
+        var line = Assert.Single(Lines(Fresh(Snapshot(
+            new QuotaWindow(WindowKind.Session, 100, null, ServerSeverity.Rejected)))));
+
+        Assert.Equal("limited", line.Reset);
+    }
+
+    [Fact]
+    public void ACriticalLineCarriesNoSuchWord()
+    {
+        var line = Assert.Single(Lines(Fresh(Snapshot(Window(WindowKind.Session, 95, Now.AddMinutes(53))))));
+
+        Assert.Equal("resets in 53 min", line.Reset);
+    }
+
+    [Fact]
+    public void TheOverallSeverityIsTheWorstWindows()
+    {
+        // AC-5, which the accent bar draws: one glance, without reading which line.
+        var reading = ReadingOf(Fresh(Snapshot(
+            Window(WindowKind.Session, 80),
+            Window(WindowKind.WeeklyAll, 95))));
+
+        Assert.Equal(Severity.Critical, reading.Overall);
+    }
+
+    [Fact]
+    public void AHealthyReadingIsNormalOverall()
+    {
+        var reading = ReadingOf(Fresh(Snapshot(
+            Window(WindowKind.Session, 12),
+            Window(WindowKind.WeeklyAll, 37))));
+
+        Assert.Equal(Severity.Normal, reading.Overall);
+    }
+
+    [Fact]
+    public void AFrozenReadingIsDrawnWithoutSeverity()
+    {
+        // AC-13. A number that can no longer move is not evidence of how close the limit is
+        // now, so neither its line nor the bar takes a colour. The mark says why it is frozen.
+        var reading = ReadingOf(Frozen(Snapshot(Window(WindowKind.Session, 95))));
+
+        Assert.Equal(Severity.Normal, Assert.Single(reading.Lines).Severity);
+        Assert.Equal(Severity.Normal, reading.Overall);
+    }
+
+    [Fact]
+    public void AStaleReadingKeepsItsSeverity()
+    {
+        // Only frozen is excluded. A stale reading may still refresh, and a window that was
+        // critical forty minutes ago has not become safer by being looked at less.
+        var stale = new ReadingState(
+            Snapshot(Window(WindowKind.Session, 95)),
+            Freshness.Stale,
+            new FetchOutcome.Transient(null),
+            TimeSpan.FromMinutes(48),
+            "test");
+
+        Assert.Equal(Severity.Critical, ReadingOf(stale).Overall);
+    }
+
+    [Fact]
+    public void APerModelCapDoesNotColourTheHud()
+    {
+        // The HUD draws no line for it, so colouring the bar for it would be a warning with
+        // nothing on screen to explain it. The same rule 6.8 set for overall severity.
+        var reading = ReadingOf(Fresh(Snapshot(
+            Window(WindowKind.Session, 12),
+            new QuotaWindow(WindowKind.WeeklyScoped, 99, null, ServerSeverity.Normal, Scope: "claude-opus"))));
+
+        Assert.Equal(Severity.Normal, reading.Overall);
+    }
+
+    [Fact]
+    public void AChangeInSeverityAloneRepaintsTheHud()
+    {
+        // The shell repaints only when SameAs says the content differs. A threshold setting
+        // changed moves severity without moving a single word, and the colour must still follow.
+        // Composed end to end, so it also proves the user's thresholds reach the severity rather
+        // than the defaults.
+        var state = Fresh(Snapshot(Window(WindowKind.Session, 60)));
+        var cautious = UserSettings.Default with { Thresholds = new Thresholds(50, 10) };
+
+        var before = Assert.IsType<HudContent.Reading>(Readout.Content(state, Settings(), Now, TwelveHour));
+        var after = Assert.IsType<HudContent.Reading>(Readout.Content(state, cautious, Now, TwelveHour));
+
+        Assert.Equal(Severity.Normal, before.Overall);
+        Assert.Equal(Severity.Warning, after.Overall);
+        Assert.Equal(before.Lines[0].Percent, after.Lines[0].Percent);
+        Assert.False(before.SameAs(after));
+    }
+
+    [Fact]
+    public void CollapsedToOneLineTheBarIsThatLinesSeverity()
+    {
+        // With collapse on, only the worst window has a line, and the bar must match it.
+        var reading = Assert.IsType<HudContent.Reading>(Readout.Content(
+            Fresh(Snapshot(Window(WindowKind.Session, 80), Window(WindowKind.WeeklyAll, 37))),
+            Settings(collapse: true),
+            Now,
+            TwelveHour));
+
+        Assert.Equal(Severity.Warning, Assert.Single(reading.Lines).Severity);
+        Assert.Equal(Severity.Warning, reading.Overall);
     }
 }

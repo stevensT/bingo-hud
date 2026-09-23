@@ -78,12 +78,12 @@ public partial class DetailPanelWindow : Window
     {
         var content = _content();
 
-        if (_shown is not null && Same(_shown, content))
+        // Most of the panel changes by the minute while it re-reads by the second, so a redraw is
+        // skipped when nothing differs.
+        if (_shown is not null && _shown.SameAs(content))
         {
             return;
         }
-
-        _shown = content;
 
         // The advice is the half AC-11 turns on, and this is the only surface with room for it.
         StatusArea.Visibility = content.Status is null ? Visibility.Collapsed : Visibility.Visible;
@@ -122,34 +122,11 @@ public partial class DetailPanelWindow : Window
         Fact("Last poll", content.LastPoll);
         Fact("Next poll", content.NextPoll);
         Fact("Version", content.Version);
-    }
 
-    /// <summary>
-    /// Whether two compositions would draw the same panel, and the redraw can be skipped.
-    ///
-    /// <para>
-    /// Written out field by field rather than left to the record's own equality, which compares
-    /// the two row lists by reference and would therefore call every composition different. The
-    /// guard exists because most of what the panel shows changes by the minute while the panel
-    /// re-reads by the second.
-    /// </para>
-    /// <para>
-    /// A field added to <see cref="PanelContent"/> and not added here would stop the panel from
-    /// noticing when it changes. That is the cost of comparing by hand, and it is why the list
-    /// below is the whole record.
-    /// </para>
-    /// </summary>
-    private static bool Same(PanelContent a, PanelContent b) =>
-        a.Windows.SequenceEqual(b.Windows)
-        && a.WindowsEmptyState == b.WindowsEmptyState
-        && a.PerModelCaps.SequenceEqual(b.PerModelCaps)
-        && a.PerModelCapsEmptyState == b.PerModelCapsEmptyState
-        && a.Age == b.Age
-        && a.LastPoll == b.LastPoll
-        && a.NextPoll == b.NextPoll
-        && a.Version == b.Version
-        && a.Status == b.Status
-        && a.RefreshNotice == b.RefreshNotice;
+        // Recorded only once drawn. Recorded first, a draw that failed partway would leave the
+        // next tick believing it was already on screen, and it would never be drawn again.
+        _shown = content;
+    }
 
     private void Fill(Grid grid, IReadOnlyList<PanelRow> rows)
     {

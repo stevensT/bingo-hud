@@ -1,7 +1,7 @@
 namespace BingoHud.Core.Display;
 
 /// <summary>
-/// Everything on the HUD at one instant (AC-1 through AC-3, AC-7 through AC-10).
+/// Everything on the HUD at one instant (AC-1 through AC-10).
 ///
 /// <para>
 /// Two cases rather than one shape with nullable halves, because the HUD really has two states
@@ -27,7 +27,17 @@ public abstract record HudContent
     /// the display with the least room to spare is exactly what
     /// <see cref="Readout.Content"/> refuses to do with the headline.
     /// </param>
-    public sealed record Reading(IReadOnlyList<ReadoutLine> Lines, string? Mark) : HudContent;
+    public sealed record Reading(IReadOnlyList<ReadoutLine> Lines, string? Mark) : HudContent
+    {
+        /// <summary>
+        /// The worst of the lines (AC-5), which the shell draws as the accent bar: seen without
+        /// reading which line. Computed from the lines rather than held beside them, so the bar
+        /// and the figures cannot disagree. Collapse always keeps the worst window, so the worst
+        /// line is the worst window.
+        /// </summary>
+        public Usage.Severity Overall =>
+            Lines.Count == 0 ? Usage.Severity.Normal : Lines.Select(l => l.Severity).MaxBy(Readout.Rank);
+    }
 
     /// <summary>
     /// No numbers, and the words that stand in for them.
@@ -52,6 +62,7 @@ public abstract record HudContent
     /// </summary>
     public bool SameAs(HudContent other) => (this, other) switch
     {
+        // The lines carry each severity, so comparing them covers the accent bar too.
         (Reading a, Reading b) => a.Mark == b.Mark && a.Lines.SequenceEqual(b.Lines),
         (Empty a, Empty b) => a.Phrase == b.Phrase,
         _ => false,

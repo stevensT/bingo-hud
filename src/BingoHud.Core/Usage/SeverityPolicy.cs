@@ -1,7 +1,7 @@
 namespace BingoHud.Core.Usage;
 
 /// <summary>
-/// Turns a snapshot into the one severity the HUD reports.
+/// Turns a snapshot, or one window, into the severity the HUD draws.
 ///
 /// <para>
 /// A pure function over the reading, the user's thresholds, and how much the reading can still
@@ -64,7 +64,8 @@ public static class SeverityPolicy
     /// </para>
     /// <para>
     /// Freshness is not a parameter here, because it is a property of the reading rather than of
-    /// a window. A frozen reading is excluded once, by the caller above.
+    /// a window. Callers exclude a frozen reading themselves: the whole-reading overload above,
+    /// and <c>Readout.Lines</c> for each line it draws. Both must agree (AC-13).
     /// </para>
     /// </summary>
     public static Severity Evaluate(QuotaWindow window, Thresholds thresholds) =>
