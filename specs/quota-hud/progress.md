@@ -1,12 +1,11 @@
 # Quota HUD — Progress
 
 updated: 2026-09-22
-status: Phase 7 in progress — 7.3a done and reviewed; 7.4 to be re-run
+status: Phase 7 complete — 7.4 checkpoint passed on its second run
 blockers: none
-next_session: re-run the 7.4 checkpoint. The error-state spike is closed; delete
-`scripts/stub-usage-server.js` in the commit after the one that records its result. The HUD is on
-a live trial from 2026-09-22, restarted from a fresh publish with severity drawn; ask how it went.
-7.2 closed the probe
+next_session: build verification, BV.1 to BV.5. BV.3 is a decision about the publish shape before
+it is a command. The HUD is on a live trial from 2026-09-22, running a fresh publish with severity
+drawn; ask how it went before tagging 0.1.0. 7.2 closed the probe
 with AC-2b inconclusive; see its entry below, including a step owed on the other machine before
 it pulls. 7.1 wrote the copy for every reading state and
 reversed the rule that the HUD blanks a stale or frozen reading: both now stay on screen carrying
@@ -804,6 +803,28 @@ against `>` widened to `>=`.
 Not done here, and not in scope: nothing in the UI toggles `Collapse`. The setting is read and
 persisted, so the behaviour is reachable only by editing the settings file. The tray menu at 6.9
 is where the toggle belongs.
+
+### CP: Phase 7 Polish, second run — 2026-09-22 — PASSED
+tests: 816 pass / 0 fail / 0 skip
+build: pass (`dotnet clean` then `dotnet build`, 0 warnings, 0 errors)
+done: 7.1, 7.2, 7.3, 7.3a. Task marks audited: everything before build verification is `[x]`.
+
+criteria_assessed: every criterion in `spec.md` is met. What changed since the first run:
+- AC-4, AC-5, AC-6: now met, seen on screen at 7.3a. Warning, critical and rate-limited each draw
+  distinctly, the bar shows the worst window, and a rate-limited line says "limited" as well as
+  taking its own colour.
+- AC-13: the exclusion from severity, which the first run could not see, is now seen: a critical
+  reading frozen by a 401 draws plain with no bar.
+- AC-28: strengthened. After an unsupported answer a manual refresh is refused as stopped and says
+  a restart is needed, rather than fetching behind a loop that has ended.
+- Every other criterion stands as assessed at the first run, below.
+
+The error-state spike is closed and its stub script deleted, in the commit after the one that
+recorded its result.
+
+Carried forward, none blocking: the three 7.3a deferrals; notifications naming their sender
+"BingoHud.App"; Windows 11 hiding new tray icons; a drag able to leave the HUD partly off screen
+until restart; battery with no cadence producer; a failed settings save reaching nobody.
 
 ### Task 7.3a: severity on the HUD, and its review — 2026-09-22
 tests: 816 pass / 0 fail / 0 skip (785 at the start)

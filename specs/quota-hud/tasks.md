@@ -274,8 +274,10 @@ already known-correct.
       with reasons in `progress.md`: the Release branch of the overrides is not pinned by a test,
       the HUD grows about 5 DIP when the bar appears, and 7.1's open question about a frozen
       reading expanding a collapsed HUD.
-- [~] 7.4 Checkpoint: full suite green, build green, every acceptance criterion assessed against
-      the spec, recorded in `progress.md`.
+- [x] 7.4 Checkpoint passed 2026-09-22 on the second run: `dotnet clean` then build and full
+      suite green (816 tests, 0 warnings), every acceptance criterion assessed against the spec
+      and met, recorded in `progress.md`. The first run failed on AC-4 to AC-6, which led to
+      7.3a.
 
 ## Build Verification
 
