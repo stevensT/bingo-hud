@@ -166,7 +166,9 @@ public sealed record StatusMessage(string Headline, string Advice)
         // shape. It goes on screen verbatim so that a bug report can carry it.
         FetchOutcome.Unreadable unreadable => (
             "Response unreadable",
-            $"The endpoint answered, but Bingo found no usage window in it: {unreadable.Reason}. "
+            // The parser's reasons are whole sentences, so the reason stands as one here rather
+            // than being spliced into this one.
+            $"The endpoint answered, but Bingo could not read the answer. {unreadable.Reason} "
             + "This endpoint is undocumented, so a change upstream is the likely cause."),
 
         // Not the user's problem to solve, so the advice is explicitly to do nothing. Advice

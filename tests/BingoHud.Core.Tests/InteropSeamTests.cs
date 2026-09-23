@@ -27,7 +27,7 @@ public class InteropSeamTests
     private static string SourceDirectory =>
         System.IO.Path.Combine(AppContext.BaseDirectory, "app-sources");
 
-    private static IReadOnlyList<string> ShellSources() =>
+    internal static IReadOnlyList<string> ShellSources() =>
         Directory.GetFiles(SourceDirectory, "*.cs", SearchOption.AllDirectories);
 
     private static IEnumerable<string> FilesContaining(string text) =>

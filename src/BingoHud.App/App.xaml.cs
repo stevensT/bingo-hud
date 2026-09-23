@@ -45,8 +45,8 @@ public partial class App : Application
         // changes; it re-reads the monitor once a second, which also keeps the reset countdown
         // moving without a second mechanism.
         _monitor = new QuotaMonitor(
-            new FileCredentialProvider(FileCredentialProvider.DefaultPath),
-            new UsageClient(_http, _clock),
+            new FileCredentialProvider(CredentialPathOverride ?? FileCredentialProvider.DefaultPath),
+            new UsageClient(_http, _clock, EndpointOverride is { } url ? new Uri(url) : null),
             _clock);
 
         _transcripts = new TranscriptActivity(TranscriptActivity.DefaultPath, _clock);
@@ -102,6 +102,18 @@ public partial class App : Application
         _http.Dispose();
         base.OnExit(e);
     }
+
+    // Debug builds only: point the app at another credential file and another endpoint, so the
+    // error states can be forced and seen on screen without touching the real token. Absent from
+    // Release, where they would let anything that can set a user's environment redirect the
+    // request that carries the token. A fence test holds every environment read to this branch.
+#if DEBUG
+    private static string? CredentialPathOverride => Environment.GetEnvironmentVariable("BINGO_CREDENTIALS_PATH");
+    private static string? EndpointOverride => Environment.GetEnvironmentVariable("BINGO_USAGE_ENDPOINT");
+#else
+    private static string? CredentialPathOverride => null;
+    private static string? EndpointOverride => null;
+#endif
 
     /// <summary>
     /// What the machine and the user are doing, read immediately before each poll.

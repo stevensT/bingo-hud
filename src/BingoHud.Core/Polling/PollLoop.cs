@@ -125,5 +125,11 @@ public sealed class PollLoop(
     /// </para>
     /// </summary>
     private static bool IsTerminal(RefreshResult result) =>
-        result is RefreshResult.Performed { State.LastFailure: FetchOutcome.Unsupported };
+        result is RefreshResult.Performed { State.LastFailure: var failure } && Stops(failure);
+
+    /// <summary>
+    /// Whether this failure ends polling. Public so the panel can say polling has stopped from
+    /// the same rule that stops it, rather than from a second copy that could drift.
+    /// </summary>
+    public static bool Stops(FetchOutcome? failure) => failure is FetchOutcome.Unsupported;
 }

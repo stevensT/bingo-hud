@@ -1,5 +1,6 @@
 using System.Globalization;
 using BingoHud.Core.Monitoring;
+using BingoHud.Core.Polling;
 using BingoHud.Core.Settings;
 using BingoHud.Core.Usage;
 
@@ -60,30 +61,47 @@ public static class PanelReadout
 
         return new PanelContent(
             Windows: windows,
+            WindowsEmptyState: EmptyState(snapshot, windows),
             PerModelCaps: perModel,
-            PerModelCapsEmptyState: perModel.Count == 0 ? NoPerModelCaps : null,
+            PerModelCapsEmptyState: EmptyState(snapshot, perModel),
             // Always shown, rather than only once a reading goes stale. A number on this
             // screen without its age is what principle 6 forbids, and a user who only ever sees
             // the age appear when something is wrong has no idea what it looks like when things
             // are right.
             Age: snapshot is null ? null : AgeText.Old(state.Age),
             LastPoll: snapshot is null ? "never" : ResetFormatter.Exact(snapshot.ObservedAt, now, culture),
-            NextPoll: state.PollReason,
+            NextPoll: PollLoop.Stops(state.LastFailure) ? PollingStopped : state.PollReason,
             Version: version,
             Status: StatusMessage.Describe(state),
             RefreshNotice: RefreshNotice.Describe(lastRefresh, now));
     }
 
     /// <summary>
-    /// Said in place of the per-model rows when the account has none.
+    /// Said in place of a section's rows when a reading carried none.
     ///
     /// <para>
-    /// The common case, not the exceptional one: every capture so far reports these keys as
-    /// null. An empty area under a heading reads as a section that failed to load, so the panel
-    /// says outright that the server reported none.
+    /// For per-model caps this is the common case, not the exceptional one: every capture so far
+    /// reports them as null. An empty area under a heading reads as a section that failed to
+    /// load, so the panel says outright that the server reported none.
     /// </para>
     /// </summary>
-    private const string NoPerModelCaps = "None reported for this account.";
+    private const string NoneReported = "None reported for this account.";
+
+    /// <summary>
+    /// Said in place of a section's rows when there is no reading at all. Saying the account has
+    /// none would be a claim about the account that nothing has been read to support.
+    /// </summary>
+    private const string NothingRead = "Nothing read yet.";
+
+    /// <summary>
+    /// The next-poll row once polling has ended, matching the status advice that says so.
+    /// </summary>
+    private const string PollingStopped = "none, polling has stopped";
+
+    private static string? EmptyState(QuotaSnapshot? snapshot, IReadOnlyList<PanelRow> rows) =>
+        snapshot is null ? NothingRead
+        : rows.Count == 0 ? NoneReported
+        : null;
 
     /// <summary>
     /// A per-model cap whose scope came back empty. The normalizer will not produce one — a cap

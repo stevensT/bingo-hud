@@ -87,6 +87,7 @@
                 <ColumnDefinition Width="*" />
             </Grid.ColumnDefinitions>
         </Grid>
+        <TextBlock x:Name="WindowsEmptyState" Foreground="#99FFFFFF" TextWrapping="Wrap" />
 
         <TextBlock Text="PER-MODEL WEEKLY CAPS" Style="{StaticResource Heading}" Margin="0,18,0,6" />
         <Grid x:Name="PerModelCaps">

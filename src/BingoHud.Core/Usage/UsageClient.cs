@@ -29,11 +29,17 @@ public sealed class UsageClient : IUsageClient
 {
     private readonly HttpClient _http;
     private readonly IClock _clock;
+    private readonly Uri _endpoint;
 
-    public UsageClient(HttpClient http, IClock clock)
+    /// <param name="endpoint">
+    /// Where to fetch from; the real <see cref="Endpoint"/> when null. Only a Debug build of the
+    /// app ever passes one, so a local stub can stand in for the error states on screen.
+    /// </param>
+    public UsageClient(HttpClient http, IClock clock, Uri? endpoint = null)
     {
         _http = http;
         _clock = clock;
+        _endpoint = endpoint ?? new Uri(Endpoint);
     }
 
     /// <summary>
@@ -96,9 +102,9 @@ public sealed class UsageClient : IUsageClient
         }
     }
 
-    private static HttpRequestMessage BuildRequest(Credential credential)
+    private HttpRequestMessage BuildRequest(Credential credential)
     {
-        var request = new HttpRequestMessage(HttpMethod.Get, Endpoint);
+        var request = new HttpRequestMessage(HttpMethod.Get, _endpoint);
 
         // The token goes in a header and never in the URL: a query string ends up in proxy logs
         // and crash reports, and a header does not.

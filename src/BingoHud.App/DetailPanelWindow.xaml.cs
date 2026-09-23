@@ -97,6 +97,10 @@ public partial class DetailPanelWindow : Window
         Fill(Windows, content.Windows);
         Fill(PerModelCaps, content.PerModelCaps);
 
+        WindowsEmptyState.Text = content.WindowsEmptyState ?? string.Empty;
+        WindowsEmptyState.Visibility =
+            content.WindowsEmptyState is null ? Visibility.Collapsed : Visibility.Visible;
+
         PerModelCapsEmptyState.Text = content.PerModelCapsEmptyState ?? string.Empty;
         PerModelCapsEmptyState.Visibility =
             content.PerModelCapsEmptyState is null ? Visibility.Collapsed : Visibility.Visible;
@@ -137,6 +141,7 @@ public partial class DetailPanelWindow : Window
     /// </summary>
     private static bool Same(PanelContent a, PanelContent b) =>
         a.Windows.SequenceEqual(b.Windows)
+        && a.WindowsEmptyState == b.WindowsEmptyState
         && a.PerModelCaps.SequenceEqual(b.PerModelCaps)
         && a.PerModelCapsEmptyState == b.PerModelCapsEmptyState
         && a.Age == b.Age

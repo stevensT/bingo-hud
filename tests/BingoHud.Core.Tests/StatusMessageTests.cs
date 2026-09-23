@@ -126,6 +126,25 @@ public class StatusMessageTests
 
     // ---- The response itself (AC-9) ----
 
+    [Theory]
+    [InlineData("not json")]
+    [InlineData("[]")]
+    [InlineData("{\"tangelo\": null}")]
+    public void TheUnreadableAdviceReadsAsSentencesWithTheReasonsTheParserActuallyGives(string body)
+    {
+        // Found on screen at 7.4, not by the test above: the parser's reasons are whole
+        // sentences, and splicing one in after a colon printed "recognizes.. This endpoint". A
+        // made-up fragment of a reason could never have shown it, so these are the parser's own.
+        var outcome = Assert.IsType<FetchOutcome.Unreadable>(
+            UsageNormalizer.Normalize(body, DateTimeOffset.UnixEpoch));
+
+        var advice = Describe(outcome).Advice;
+
+        Assert.Contains(outcome.Reason, advice);
+        Assert.DoesNotContain("..", advice);
+        Assert.DoesNotContain(": The", advice);
+    }
+
     [Fact]
     public void AnUnreadableResponseRepeatsTheReasonItGave()
     {

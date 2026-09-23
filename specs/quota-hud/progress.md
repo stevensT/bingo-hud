@@ -1,10 +1,11 @@
 # Quota HUD — Progress
 
 updated: 2026-09-22
-status: Phase 7 in progress — 7.3 done, the app reports 0.1.0
-blockers: none
-next_session: 7.4, the Phase 7 checkpoint, which needs a deliberate way to force the error states
-on screen. The HUD is also on a live trial from 2026-09-22; ask how it went. 7.2 closed the probe
+status: Phase 7 in progress — 7.4 checkpoint not passed; 7.3a added
+blockers: 7.3a — severity is never drawn, so AC-4, AC-5 and AC-6 are absent from the product
+next_session: 7.3a, starting with the visual treatment decision, then back to 7.4. The error-state
+spike stays open for 7.3a's verification; its stub is `scripts/stub-usage-server.js`. The HUD is
+on a live trial from 2026-09-22, restarted from a fresh publish; ask how it went. 7.2 closed the probe
 with AC-2b inconclusive; see its entry below, including a step owed on the other machine before
 it pulls. 7.1 wrote the copy for every reading state and
 reversed the rule that the HUD blanks a stale or frozen reading: both now stay on screen carrying
@@ -802,6 +803,48 @@ against `>` widened to `>=`.
 Not done here, and not in scope: nothing in the UI toggles `Collapse`. The setting is read and
 persisted, so the behaviour is reachable only by editing the settings file. The tray menu at 6.9
 is where the toggle belongs.
+
+### CP: Phase 7 Polish — 2026-09-22 — NOT PASSED
+tests: 785 pass / 0 fail / 0 skip (773 at the start; 12 added)
+build: pass (`dotnet clean` then `dotnet build`, 0 warnings, 0 errors)
+done: 7.1, 7.2, 7.3. Task marks audited. 7.3a added.
+
+The checkpoint's open question from 7.1 was how to see the error states on screen without
+touching the real credential file. Answered with two Debug-only overrides,
+`BINGO_CREDENTIALS_PATH` and `BINGO_USAGE_ENDPOINT`, read in `App.xaml.cs` under `#if DEBUG` and
+nowhere else — a fence test holds that, proved by mutation — plus an optional endpoint on
+`UsageClient`, tested. A throwaway local stub serves the recorded fixtures. Method and result in
+`spikes/error-states-onscreen.md`. Release was launched with both variables set and read the real
+account.
+
+**Why it did not pass.** Warning, critical and rate-limited draw exactly like normal on the HUD.
+`SeverityPolicy` has decided severity since 4.2 and collapse and alerts use it, but no Phase 6
+task drew it: 6.6's readout lists AC-1 to AC-3, and every earlier checkpoint assessed AC-4 to AC-6
+as "met in Core". This checkpoint is the first time they were looked for on screen. Task 7.3a
+owns it.
+
+criteria_assessed:
+- AC-1, AC-2, AC-2a, AC-2b, AC-3, AC-7: met, seen on screen (6.12, and again today).
+- AC-4, AC-5, AC-6: **not met.** Decided in Core, drawn nowhere. 7.3a.
+- AC-8: met. A reading after 48 minutes of failed polls kept its numbers and carried "48 min
+  old". Read through UI Automation, the display having slept.
+- AC-9: met, after a fix. The advice doubled a full stop; see the spike result.
+- AC-10: met. "Signed out" and "Sign-in expired" both seen, each with advice.
+- AC-11: met. "Credential unreadable" is distinct from "Signed out" in headline and advice.
+- AC-12: met. No state on screen showed a number that had not come from the server.
+- AC-13: met for the mark: numbers kept, "5 min old, sign-in expired". Its exclusion from
+  severity cannot be seen until severity is drawn.
+- AC-14: met. Crossing the lines raised notifications during the severity runs.
+- AC-15 to AC-18: met; tests plus the 6.10 run. Not repeated today.
+- AC-19 to AC-24: met at 6.12. AC-24 now reads `0.1.0 (e9fc6f6)`.
+- AC-25 to AC-28: met; AC-28 on screen at 6.12.
+
+Also fixed today, found on screen: the panel claimed the account had no per-model caps when
+nothing had been read, and said a next poll was coming after polling had stopped. Both were
+Trevor's call on wording, and both are tested.
+
+Not done: `%LOCALAPPDATA%\Bingo\settings.json` was restored from a backup taken before the runs;
+the `alerts.json` the severity runs created was moved to the session scratchpad, not deleted.
 
 ### Task 7.3: version 0.1.0 — 2026-09-22
 tests: 773 pass / 0 fail / 0 skip

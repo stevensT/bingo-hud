@@ -279,6 +279,22 @@ public class UsageClientTests
     }
 
     [Fact]
+    public async Task AGivenEndpointIsUsedInsteadOfTheRealOne()
+    {
+        // The seam the on-screen verification of the error states needs: a local stub can then
+        // answer with any status or body, and nothing reaches the real endpoint.
+        var handler = StubHttpMessageHandler.Returning(HttpStatusCode.OK, "{}");
+        using var http = new HttpClient(handler);
+        var client = new UsageClient(http, new TestClock(Now), new Uri("http://localhost:8765/usage"));
+
+        await client.FetchAsync(Token);
+
+        Assert.Equal(
+            "http://localhost:8765/usage",
+            Assert.Single(handler.Requests).RequestUri?.ToString());
+    }
+
+    [Fact]
     public async Task TheRequestIsAGet()
     {
         var handler = StubHttpMessageHandler.Returning(HttpStatusCode.OK, "{}");

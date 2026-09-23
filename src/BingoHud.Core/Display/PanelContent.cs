@@ -29,6 +29,9 @@ public sealed record PanelRow(string Label, string Percent, string Reset);
 /// </para>
 /// </summary>
 /// <param name="Windows">The two windows the HUD shows, session first. Empty before the first reading.</param>
+/// <param name="WindowsEmptyState">
+/// What to show in place of the window rows when there are none, or null when there are some.
+/// </param>
 /// <param name="PerModelCaps">Weekly caps restricted to one model. Empty on every payload observed so far.</param>
 /// <param name="PerModelCapsEmptyState">
 /// What to show in place of the per-model rows when there are none, or null when there are some.
@@ -50,6 +53,7 @@ public sealed record PanelRow(string Label, string Percent, string Reset);
 /// </param>
 public sealed record PanelContent(
     IReadOnlyList<PanelRow> Windows,
+    string? WindowsEmptyState,
     IReadOnlyList<PanelRow> PerModelCaps,
     string? PerModelCapsEmptyState,
     string? Age,

@@ -289,6 +289,50 @@ public class PanelReadoutTests
         Assert.Empty(content.PerModelCaps);
     }
 
+    [Fact]
+    public void WithNoReadingNeitherSectionClaimsAnythingAboutTheAccount()
+    {
+        // Found on screen at 7.4: signed out, the panel said the account had no per-model caps,
+        // which nothing had been read to support, and left the windows heading bare.
+        var content = Compose(Reading(null, failure: new FetchOutcome.AuthFailed(AuthFailureKind.SignedOut)));
+
+        Assert.Equal("Nothing read yet.", content.WindowsEmptyState);
+        Assert.Equal("Nothing read yet.", content.PerModelCapsEmptyState);
+    }
+
+    [Fact]
+    public void AReadingWithNoHudWindowsSaysSoUnderTheWindowsHeading()
+    {
+        var snapshot = Snapshot(Window(WindowKind.WeeklyScoped, 40, scope: "claude-opus-4"));
+
+        Assert.Equal("None reported for this account.", Compose(Reading(snapshot)).WindowsEmptyState);
+    }
+
+    [Fact]
+    public void ThereIsNoWindowsEmptyStateWhenWindowsWereReported()
+    {
+        Assert.Null(Compose(Reading(Snapshot(Window(WindowKind.Session, 12)))).WindowsEmptyState);
+    }
+
+    [Fact]
+    public void AfterAnUnsupportedAnswerTheNextPollSaysPollingHasStopped()
+    {
+        // Found on screen at 7.4: the status said polling had stopped while this row still gave
+        // a reason for the next poll, as though one were coming.
+        var state = Reading(null, pollReason: "the last attempt failed", failure: new FetchOutcome.Unsupported(404));
+
+        Assert.Equal("none, polling has stopped", Compose(state).NextPoll);
+    }
+
+    [Fact]
+    public void AnyOtherFailureKeepsTheReasonForTheNextPoll()
+    {
+        // A signed-out account is still polled, so a later sign-in is noticed (5a.2).
+        var state = Reading(null, pollReason: "the last attempt failed", failure: new FetchOutcome.AuthFailed(AuthFailureKind.SignedOut));
+
+        Assert.Equal("the last attempt failed", Compose(state).NextPoll);
+    }
+
     // ---- Manual refresh (AC-28) ----
 
     [Fact]

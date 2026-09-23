@@ -263,7 +263,13 @@ already known-correct.
       `0.1.0+d70b2b9…`, which `VersionLabel` renders as `0.1.0 (d70b2b9)`. `[Unreleased]` held
       only project-setup entries — nothing from Phases 1 to 7 had been recorded — so the 0.1.0
       section also gained `Added` entries for what the app does.
-- [C] 7.4 Checkpoint: full suite green, build green, every acceptance criterion assessed against
+- [ ] 7.3a Draw severity on the HUD. Core has decided severity since 4.2, and collapse and alerts
+      both use it, but nothing on screen shows it: warning, critical and rate-limited draw exactly
+      like normal. Decide the visual treatment before writing code — the plan never says — then
+      compose it in Core and draw it in the shell. Verify on screen with the stub from
+      `spikes/error-states-onscreen.md`, then close that spike. Added at 7.4 on finding the gap,
+      the same shape as 6.11a. (AC-4, AC-5, AC-6)
+- [~] 7.4 Checkpoint: full suite green, build green, every acceptance criterion assessed against
       the spec, recorded in `progress.md`.
 
 ## Build Verification
