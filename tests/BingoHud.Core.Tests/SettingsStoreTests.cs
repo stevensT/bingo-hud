@@ -6,7 +6,7 @@ using BingoHud.Core.Usage;
 namespace BingoHud.Core.Tests;
 
 /// <summary>
-/// The things the user can change that have to survive a restart (AC-22): where the HUD sits,
+/// The things the user can change that have to survive a restart (quota-hud AC-22): where the HUD sits,
 /// whether it collapses, which direction the percentage reads, where the alert lines are, and
 /// the two display options added in 0.2.0, reset format and the bar.
 ///
@@ -36,8 +36,9 @@ public class SettingsStoreTests
     [Fact]
     public void NoFileYetLoadsTheDefaults()
     {
-        // Pins the spec's defaults: not yet placed, both windows shown (AC-7), consumed (AC-2a),
-        // 25 and 10 remaining.
+        // Pins the specs' defaults: not yet placed, both windows shown (quota-hud AC-7), consumed
+        // (quota-hud AC-2a), 25 and 10 remaining, clock-time resets and no bar (display options
+        // AC-1, AC-6).
         using var directory = new TempDirectory();
 
         var loaded = new SettingsStore(directory.PathTo("settings.json")).Load();
@@ -94,7 +95,7 @@ public class SettingsStoreTests
     public void AFileWithoutTheDisplayOptionKeysDrawsTheOriginalHud()
     {
         // Every file written before 0.2.0 lacks both keys, and must come back as clock time with
-        // no bar: an upgrade changes nothing on screen until the user asks (AC-16).
+        // no bar: an upgrade changes nothing on screen until the user asks (display options AC-16).
         using var directory = new TempDirectory();
         var path = directory.WriteFile("settings.json", """{ "collapse": true }""");
 
@@ -109,7 +110,7 @@ public class SettingsStoreTests
     {
         // Byte for byte what 0.1.0's Save wrote, every key it knew present. The upgrade must keep
         // the user's position, collapse, direction and thresholds, and add the new two at their
-        // defaults (AC-14, AC-16).
+        // defaults (display options AC-14, AC-16).
         using var directory = new TempDirectory();
         var path = directory.WriteFile("settings.json", """
             {
@@ -132,6 +133,33 @@ public class SettingsStoreTests
     }
 
     [Fact]
+    public void AFileWrittenByVersionOhPointTwoLoadsWithEverythingItHeld()
+    {
+        // Pins the new keys' names. The round trip above passes whatever they are called, so a
+        // renamed property would pass every other test and silently turn every user's choice
+        // off on upgrade (display options AC-14).
+        using var directory = new TempDirectory();
+        var path = directory.WriteFile("settings.json", """
+            {
+              "position": {
+                "left": -120.5,
+                "top": 42
+              },
+              "collapse": true,
+              "direction": "Remaining",
+              "thresholds": {
+                "warningAtRemaining": 40,
+                "criticalAtRemaining": 15
+              },
+              "resetFormat": "Countdown",
+              "showBar": true
+            }
+            """);
+
+        Assert.Equal(Changed, new SettingsStore(path).Load());
+    }
+
+    [Fact]
     public void TheDirectionIsWrittenByNameSoItCannotBeRenumbered()
     {
         using var directory = new TempDirectory();
@@ -151,6 +179,8 @@ public class SettingsStoreTests
     [InlineData("[1, 2, 3]")]
     [InlineData("""{ "direction": "Sideways" }""")]
     [InlineData("""{ "collapse": true, "resetFormat": "Sundial" }""")]
+    [InlineData("""{ "collapse": true, "direction": 7 }""")]
+    [InlineData("""{ "collapse": true, "resetFormat": 1 }""")]
     public void AFileThatCannotBeUnderstoodLoadsTheDefaults(string content)
     {
         using var directory = new TempDirectory();

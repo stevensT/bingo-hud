@@ -1,7 +1,8 @@
 namespace BingoHud.Core.Display;
 
 /// <summary>
-/// One line of the HUD: which window, how much, when it resets, and how close it is to its limit.
+/// One line of the HUD: which window, how much, when it resets, how close it is to its limit, and,
+/// when the bar is on, its segment fills.
 /// </summary>
 /// <param name="Window">The window's short name, as shown: "5h" or "Week".</param>
 /// <param name="Percent">
@@ -25,8 +26,9 @@ namespace BingoHud.Core.Display;
 /// </param>
 /// <param name="Bar">
 /// The ten segment fills from <see cref="Display.Bar.Segments"/>, or null when the user has the bar
-/// off. Drawn in the line's <paramref name="Severity"/> colour, so the bar and its figure cannot
-/// differ.
+/// off. Drawn from the line's <paramref name="Severity"/>, the same one its figure is drawn from, so
+/// the two never disagree about severity. A normal bar takes the labels' dimmed white, since a
+/// normal figure has no colour of its own.
 /// </param>
 public sealed record ReadoutLine(
     string Window,

@@ -19,8 +19,8 @@ public static class Bar
     /// </summary>
     /// <param name="usedPercent">
     /// The window's utilization as the server sent it. Clamped to 0..100 for drawing only: above
-    /// 100 fills the bar and stops (AC-13), and a negative or NaN figure, which the server is not
-    /// expected to send, draws nothing rather than a width the shell cannot lay out.
+    /// 100 fills the bar and stops (display options AC-13), and a negative or NaN figure, which the
+    /// server is not expected to send, draws nothing rather than a width the shell cannot lay out.
     /// </param>
     public static IReadOnlyList<double> Segments(double usedPercent)
     {

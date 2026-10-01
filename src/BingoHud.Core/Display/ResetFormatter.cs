@@ -3,7 +3,9 @@ using System.Globalization;
 namespace BingoHud.Core.Display;
 
 /// <summary>
-/// Renders a window's reset time as the phrase shown beside its percentage.
+/// Renders a window's reset time as the phrase shown beside its percentage, in one of two forms
+/// chosen by the user's reset format: <see cref="Describe"/>, the clock-time phrase, or
+/// <see cref="Countdown"/>, a short countdown at every distance.
 ///
 /// <para>
 /// Presentation logic, and it lives in Core on purpose. "Are these the right words at this
@@ -11,7 +13,8 @@ namespace BingoHud.Core.Display;
 /// The WPF layer places the string; it does not decide it.
 /// </para>
 /// <para>
-/// Absolute when the reset is distant, relative as it nears. Both halves earn their place:
+/// The clock-time phrase is absolute when the reset is distant, relative as it nears. Both halves
+/// earn their place:
 /// "resets in 53 min" says nothing useful about something five days away, and "resets 1:00 AM"
 /// says nothing about whether there is time to finish the current task.
 /// </para>
@@ -27,10 +30,11 @@ public static class ResetFormatter
     /// An instant written out in full, for the detail panel.
     ///
     /// <para>
-    /// The HUD abbreviates because it has one line and switches to a countdown as a reset nears.
-    /// The panel does neither. It is the screen a user opens to check a number against their own
-    /// clock, and a countdown cannot be checked against anything; nor can a bare time of day be
-    /// told apart from the same time five days out.
+    /// The HUD abbreviates because it has one line, and shows a countdown either near the reset or
+    /// throughout, depending on the user's reset format. The panel does neither. It is the screen
+    /// a user opens to check a number against their own clock, and a countdown cannot be checked
+    /// against anything; nor can a bare time of day be told apart from the same time five days
+    /// out.
     /// </para>
     /// </summary>
     /// <param name="instant">The moment to write out.</param>
@@ -63,9 +67,9 @@ public static class ResetFormatter
     /// number. Everything rounds down, because a countdown that rounds up claims time there is not.
     /// </para>
     /// <para>
-    /// Flooring a double here is exact. Every tenth-of-an-hour and tenth-of-a-day boundary up to
-    /// seven days was checked against integer arithmetic on ticks and none disagree, so the
-    /// plainer form stands.
+    /// Flooring a double here is exact for every reset the HUD can show: a test compares it with
+    /// integer arithmetic on ticks at every tenth-of-an-hour and tenth-of-a-day boundary up to
+    /// seven days, so the plainer form stands.
     /// </para>
     /// </summary>
     /// <param name="resetsAt">When the window resets, or null; null gives null, never a guess.</param>

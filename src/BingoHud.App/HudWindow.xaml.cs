@@ -219,7 +219,8 @@ public partial class HudWindow : Window
             {
                 Width = SegmentWidth,
                 Height = SegmentHeight,
-                Margin = new Thickness(0, 0, SegmentGap, 0),
+                // No gap after the last segment, so the space either side of the bar matches.
+                Margin = new Thickness(0, 0, bar.Children.Count < segments.Count - 1 ? SegmentGap : 0, 0),
                 CornerRadius = new CornerRadius(2),
                 Background = Track,
                 ClipToBounds = true,

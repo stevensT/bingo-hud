@@ -20,7 +20,10 @@ public sealed class SettingsStore
     {
         PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
         WriteIndented = true,
-        Converters = { new JsonStringEnumConverter() },
+        // Names only. By default the converter also takes a number, including one no member has,
+        // and an undefined direction throws on every repaint; refused here, it is a file not
+        // understood like any other.
+        Converters = { new JsonStringEnumConverter(namingPolicy: null, allowIntegerValues: false) },
     };
 
     private readonly string _path;

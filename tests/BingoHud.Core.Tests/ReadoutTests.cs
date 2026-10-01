@@ -534,7 +534,7 @@ public class ReadoutTests
     [Fact]
     public void ARateLimitedLineSaysSoInWordsNotOnlyInColour()
     {
-        // AC-6. Critical and rate-limited are both bold with a bar, and red against magenta is
+        // AC-6. Critical and rate-limited are both bold with the accent bar, and red against magenta is
         // the pair the most common colour-blindness confuses. The word is what makes them
         // distinct for everyone. Found in review of 7.3a.
         var line = Assert.Single(Lines(Fresh(Snapshot(
@@ -585,7 +585,7 @@ public class ReadoutTests
     public void AFrozenReadingIsDrawnWithoutSeverity()
     {
         // AC-13. A number that can no longer move is not evidence of how close the limit is
-        // now, so neither its line nor the bar takes a colour. The mark says why it is frozen.
+        // now, so neither its line nor the accent bar takes a colour. The mark says why it is frozen.
         var reading = ReadingOf(Frozen(Snapshot(Window(WindowKind.Session, 95))));
 
         Assert.Equal(Severity.Normal, Assert.Single(reading.Lines).Severity);
@@ -610,7 +610,7 @@ public class ReadoutTests
     [Fact]
     public void APerModelCapDoesNotColourTheHud()
     {
-        // The HUD draws no line for it, so colouring the bar for it would be a warning with
+        // The HUD draws no line for it, so colouring the accent bar for it would be a warning with
         // nothing on screen to explain it. The same rule 6.8 set for overall severity.
         var reading = ReadingOf(Fresh(Snapshot(
             Window(WindowKind.Session, 12),
@@ -639,9 +639,9 @@ public class ReadoutTests
     }
 
     [Fact]
-    public void CollapsedToOneLineTheBarIsThatLinesSeverity()
+    public void CollapsedToOneLineTheAccentBarIsThatLinesSeverity()
     {
-        // With collapse on, only the worst window has a line, and the bar must match it.
+        // With collapse on, only the worst window has a line, and the accent bar must match it.
         var reading = Assert.IsType<HudContent.Reading>(Readout.Content(
             Fresh(Snapshot(Window(WindowKind.Session, 80), Window(WindowKind.WeeklyAll, 37))),
             Settings(collapse: true),
@@ -744,7 +744,7 @@ public class ReadoutTests
     public void AFrozenBarIsDrawnWithoutSeverityLikeItsFigure()
     {
         // Display options AC-11: the bar takes its colour from the line, and a frozen line is
-        // normal (AC-13), so the bar cannot be coloured while its figure is not.
+        // normal (quota-hud AC-13), so the bar cannot be coloured while its figure is not.
         var critical = Snapshot(Window(WindowKind.Session, 95, Now.AddHours(2)));
 
         var line = Assert.Single(LinesWith(Frozen(critical), Options(ResetFormat.ClockTime, bar: true)));

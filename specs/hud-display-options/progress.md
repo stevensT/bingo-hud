@@ -1,10 +1,9 @@
 # HUD Display Options — Progress
 
 updated: 2026-10-01
-status: Phase 3 checkpoint passed
+status: Phase 4 checkpoint passed
 blockers: none
-next_session: start Phase 4 at 4.1 (restore the stub server as a spike). Suite is 865 green on a
-clean build.
+next_session: start Phase 5 at 5.1 (changelog). Suite is 1452 green on a clean build.
 
 ## Checkpoints
 
@@ -58,3 +57,29 @@ issues:
   edge. Checked again across states in Phase 4.
 - Verification ran with the trial HUD stopped and `%LOCALAPPDATA%\Bingo` backed up; the backup was
   restored and the trial exe relaunched afterwards.
+
+### CP: Phase 4 On-screen verification and review — 2026-10-01
+tests: 1452 pass / 0 fail / 0 skip (865 at Phase 3; 586 of the new cases are one boundary sweep)
+build: pass (`dotnet clean` then `dotnet build`, 0 warnings, 0 errors)
+done: 4.1, 4.2, 4.3, 4.4
+rework: none
+criteria_met: all sixteen.
+- AC-1, AC-2: countdown setting toggles, saves and reads back; "2.9h", "2.9d" on screen; boundaries
+  and rounding swept in tests.
+- AC-3: frozen reading kept its countdown beside "5 min old, sign-in expired" on screen.
+- AC-4: null reset gives no countdown (tests).
+- AC-5: the panel's exact times are untouched by this feature; `ResetFormatter.Exact` and the
+  panel composer are unchanged.
+- AC-6 to AC-10: bar setting, column placement, exact partial fill, fill always used, severity
+  colours shared with the figure, all on screen in every severity.
+- AC-11: frozen bar uncoloured with its figure, on screen.
+- AC-12: no reading draws words, not a bar (tests; the shell draws bars only from lines).
+- AC-13: 120% fills and stops, figure says 120%, on screen.
+- AC-14: tray toggles, persistence, 0.1.0 and 0.2.0 files (tests and on screen).
+- AC-15: collapse picks the same window in all four combinations (tests; not seen on screen, as
+  the spike stated).
+- AC-16: defaults captured identical to 0.1.0.
+issues:
+- Stale was assessed against tests, not on screen, as the spike stated before it ran.
+- The last-segment gap change is a 2 px shell edit made after the captures; it will be seen at the
+  BV.3 launch.

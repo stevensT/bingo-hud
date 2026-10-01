@@ -8,11 +8,11 @@ namespace BingoHud.Core.Display;
 /// <summary>
 /// Decides every word on the HUD (AC-1 through AC-3), which windows get a line (AC-7), each
 /// line's severity (AC-4 through AC-6), and how a reading that is no longer current is marked
-/// (AC-8, AC-13). The WPF layer places the strings and colours by severity;
-/// it does not compose them.
+/// (AC-8, AC-13), plus the reset format and each line's bar fills from the display options. The
+/// WPF layer places the strings and colours by severity; it does not compose them.
 ///
 /// <para>
-/// A pure function over the current reading state, the display direction, the moment of
+/// A pure function over the current reading state, the user's display settings, the moment of
 /// rendering, and a culture. The shell passes no culture and gets the user's Windows setting,
 /// which is the intent; tests pass one so the phrase is fixed. Being pure is what makes the one
 /// error nobody could spot by looking at the screen — a percentage reading the wrong way round
@@ -119,7 +119,7 @@ public static class Readout
     ///
     /// <para>
     /// AC-6 asks for a server refusal to be surfaced distinctly from a local threshold. Colour
-    /// alone does not do it: critical and rate-limited are both bold with a bar, and red against
+    /// alone does not do it: critical and rate-limited are both bold with the accent bar, and red against
     /// magenta is the pair the most common colour-blindness confuses. The word does. It goes
     /// beside the reset rather than in place of "used", because the direction word is what AC-2b
     /// needs on every figure.

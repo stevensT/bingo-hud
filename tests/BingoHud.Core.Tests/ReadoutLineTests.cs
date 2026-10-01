@@ -40,6 +40,24 @@ public class ReadoutLineTests
         Assert.NotEqual(Line(Bar.Segments(0)), Line(null));
     }
 
+    [Theory]
+    [InlineData("Week", "75% used", "2.3h")]
+    [InlineData("5h", "74% used", "2.3h")]
+    [InlineData("5h", "75% used", "2.2h")]
+    [InlineData("5h", "75% used", null)]
+    public void LinesThatDifferInAnyOneFieldAreNotEqual(string window, string percent, string? reset)
+    {
+        // The equality is written by hand, so a field it forgets is a field whose change never
+        // repaints. A countdown ticking from 2.3h to 2.2h under an unchanged figure is exactly the
+        // change that would freeze on screen.
+        var line = Line(Bar.Segments(75));
+        var other = line with { Window = window, Percent = percent, Reset = reset };
+
+        Assert.NotEqual(line, other);
+        Assert.False(new HudContent.Reading([line], Mark: null)
+            .SameAs(new HudContent.Reading([other], Mark: null)));
+    }
+
     [Fact]
     public void TheShellSeesTheSameHudWhenOnlyTheListObjectsAreNew()
     {

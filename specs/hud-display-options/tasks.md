@@ -104,13 +104,27 @@ in Core instead; if a task here starts computing, stop and move the computation.
       warning, critical, rate-limited, over 100, stale, and frozen. Check each against the spike
       document: bar and figure the same colour, partial segment visible, marks present, nothing
       off screen at the right edge, width change on toggle handled. (AC-3, AC-7 to AC-13, AC-15)
-- [~] 4.3 Close the spike: record the result in its document and delete the stub script. Result
+- [x] 4.3 Close the spike: record the result in its document and delete the stub script. Result
       recorded 2026-10-01; every capture met the first decision row. The stub is deleted in the
-      commit after the one that records the result.
-- [ ] 4.4 Run the review on the feature's changes and resolve or defer each finding, recording
-      deferrals here.
-- [ ] 4.5 Checkpoint: clean, build, full suite; every acceptance criterion assessed against the
-      spec; record in `progress.md`.
+      commit after the one that records the result. Deleted 2026-10-01.
+- [x] 4.4 Run the review on the feature's changes and resolve or defer each finding, recording
+      deferrals here. Done 2026-10-01: four reviewers over `v0.1.0..HEAD` (code, tests, comments,
+      types). Every finding resolved; none deferred.
+      - Tests: hand-written `ReadoutLine` equality is now pinned field by field, so a countdown
+        ticking under an unchanged figure cannot skip its repaint; the 0.2.0 settings keys are
+        pinned by a literal file; and every tenth boundary up to seven days is swept against tick
+        arithmetic, which also turned an unbacked comment into a test. The sweep was shown to fail
+        under the reciprocal formula a reviewer named (36 boundaries red).
+      - Settings: the enum converter now refuses numbers. A hand-edited `"direction": 7` used to
+        load and throw on every repaint; it now loads as defaults like any file not understood.
+        Pre-existing, found by the type review, fixed test-first.
+      - Comments: twelve corrected. Mostly "bar" made ambiguous by the new one (now "accent bar"
+        where the severity stripe is meant), AC numbers qualified by spec, and class docs that
+        described only the clock-time phrase.
+      - Shell: no gap after the last segment, so the bar is spaced evenly between label and
+        figure.
+- [x] 4.5 Checkpoint passed 2026-10-01: clean, build (0 warnings), 1452 tests green; every
+      acceptance criterion assessed and met; recorded in `progress.md`.
 
 ## Phase 5: Release prep
 

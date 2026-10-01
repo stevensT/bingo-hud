@@ -83,6 +83,43 @@ public class ResetCountdownTests
         Assert.Equal("<1m", Countdown(TimeSpan.FromSeconds(seconds)));
     }
 
+    public static TheoryData<long, string> EveryTenthBoundary()
+    {
+        var data = new TheoryData<long, string>();
+
+        foreach (var (unit, suffix, first, last) in new[]
+        {
+            (TimeSpan.TicksPerHour, "h", 10, 239),
+            (TimeSpan.TicksPerDay, "d", 10, 70),
+        })
+        {
+            for (var tenths = first; tenths <= last; tenths++)
+            {
+                var exact = tenths * unit / 10;
+                data.Add(exact, $"{tenths / 10}.{tenths % 10}{suffix}");
+
+                // One tick short of the boundary still reads the tenth below it, except where
+                // that crosses from days back into hours, which the boundary tests above cover.
+                if (tenths > first)
+                {
+                    data.Add(exact - 1, $"{(tenths - 1) / 10}.{(tenths - 1) % 10}{suffix}");
+                }
+            }
+        }
+
+        return data;
+    }
+
+    [Theory]
+    [MemberData(nameof(EveryTenthBoundary))]
+    public void EveryTenthBoundaryFloorsToItsOwnTenth(long ticks, string expected)
+    {
+        // Integer arithmetic on ticks is the reference. Flooring a double can drop a tenth on an
+        // exact boundary under a different formula for the same quantity; this pins that the one
+        // in use does not, at every boundary the HUD can show.
+        Assert.Equal(expected, Countdown(TimeSpan.FromTicks(ticks)));
+    }
+
     [Fact]
     public void TheDecimalMarkFollowsTheUsersLocale()
     {
