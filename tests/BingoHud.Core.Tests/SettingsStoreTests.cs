@@ -6,9 +6,9 @@ using BingoHud.Core.Usage;
 namespace BingoHud.Core.Tests;
 
 /// <summary>
-/// The four things the user can change that have to survive a restart (AC-22): where the HUD
-/// sits, whether it collapses, which direction the percentage reads, and where the alert lines
-/// are.
+/// The things the user can change that have to survive a restart (AC-22): where the HUD sits,
+/// whether it collapses, which direction the percentage reads, where the alert lines are, and
+/// the two display options added in 0.2.0, reset format and the bar.
 ///
 /// <para>
 /// Same posture as <see cref="AlertStateStore"/>: plain JSON a person can read and hand-edit,
@@ -29,7 +29,9 @@ public class SettingsStoreTests
         Position: new HudPosition(Left: -120.5, Top: 42),
         Collapse: true,
         Direction: DisplayDirection.Remaining,
-        Thresholds: new Thresholds(WarningAtRemaining: 40, CriticalAtRemaining: 15));
+        Thresholds: new Thresholds(WarningAtRemaining: 40, CriticalAtRemaining: 15),
+        ResetFormat: ResetFormat.Countdown,
+        ShowBar: true);
 
     [Fact]
     public void NoFileYetLoadsTheDefaults()
@@ -45,6 +47,8 @@ public class SettingsStoreTests
         Assert.False(loaded.Collapse);
         Assert.Equal(DisplayDirection.Consumed, loaded.Direction);
         Assert.Equal(Thresholds.Default, loaded.Thresholds);
+        Assert.Equal(ResetFormat.ClockTime, loaded.ResetFormat);
+        Assert.False(loaded.ShowBar);
     }
 
     [Fact]
@@ -87,6 +91,47 @@ public class SettingsStoreTests
     }
 
     [Fact]
+    public void AFileWithoutTheDisplayOptionKeysDrawsTheOriginalHud()
+    {
+        // Every file written before 0.2.0 lacks both keys, and must come back as clock time with
+        // no bar: an upgrade changes nothing on screen until the user asks (AC-16).
+        using var directory = new TempDirectory();
+        var path = directory.WriteFile("settings.json", """{ "collapse": true }""");
+
+        var loaded = new SettingsStore(path).Load();
+
+        Assert.Equal(ResetFormat.ClockTime, loaded.ResetFormat);
+        Assert.False(loaded.ShowBar);
+    }
+
+    [Fact]
+    public void AFileWrittenByVersionOhPointOneLoadsWithEverythingItHeld()
+    {
+        // Byte for byte what 0.1.0's Save wrote, every key it knew present. The upgrade must keep
+        // the user's position, collapse, direction and thresholds, and add the new two at their
+        // defaults (AC-14, AC-16).
+        using var directory = new TempDirectory();
+        var path = directory.WriteFile("settings.json", """
+            {
+              "position": {
+                "left": -120.5,
+                "top": 42
+              },
+              "collapse": true,
+              "direction": "Remaining",
+              "thresholds": {
+                "warningAtRemaining": 40,
+                "criticalAtRemaining": 15
+              }
+            }
+            """);
+
+        var loaded = new SettingsStore(path).Load();
+
+        Assert.Equal(Changed with { ResetFormat = ResetFormat.ClockTime, ShowBar = false }, loaded);
+    }
+
+    [Fact]
     public void TheDirectionIsWrittenByNameSoItCannotBeRenumbered()
     {
         using var directory = new TempDirectory();
@@ -96,6 +141,7 @@ public class SettingsStoreTests
 
         var written = File.ReadAllText(path);
         Assert.Contains("Remaining", written);
+        Assert.Contains("Countdown", written);
         using var document = JsonDocument.Parse(written);
         Assert.Equal(JsonValueKind.Object, document.RootElement.ValueKind);
     }
@@ -104,6 +150,7 @@ public class SettingsStoreTests
     [InlineData("{ this is not json")]
     [InlineData("[1, 2, 3]")]
     [InlineData("""{ "direction": "Sideways" }""")]
+    [InlineData("""{ "collapse": true, "resetFormat": "Sundial" }""")]
     public void AFileThatCannotBeUnderstoodLoadsTheDefaults(string content)
     {
         using var directory = new TempDirectory();

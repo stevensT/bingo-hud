@@ -19,22 +19,30 @@ See the Building section of `README.md`. Every checkpoint runs `dotnet clean` fi
 
 ## Prerequisite
 
-- [ ] 0.1 `v0.1.0` is tagged on `d08d170`. Trevor's step; this task only confirms it with
+- [x] 0.1 `v0.1.0` is tagged on `d08d170`. Trevor's step; this task only confirms it with
       `git tag` before any code changes, so 0.2.0 work cannot leak into the 0.1.0 release.
+      Confirmed 2026-10-01: annotated tag on `d08d170`, local and on origin.
 
 ---
 
 ## Phase 1: Settings
 
-- [ ] 1.1 Test + implement the two new settings: `ResetFormat` (`ClockTime`, `Countdown`) and
+- [x] 1.1 Test + implement the two new settings: `ResetFormat` (`ClockTime`, `Countdown`) and
       `ShowBar` on `UserSettings`, defaulting to `ClockTime` and `false`. Tests: defaults are
       0.1.0's behaviour; both fields round-trip through `SettingsStore` save and load; an unknown
-      `resetFormat` value loads as the default rather than resetting the whole file. (AC-1, AC-6,
-      AC-14)
-- [ ] 1.2 Test: a literal 0.1.0 `settings.json` (position, collapse, direction, thresholds, and
+      `resetFormat` value is treated like an unknown `direction` already is — the file is not
+      understood and every setting loads as its default. (AC-1, AC-6, AC-14)
+      Amended at the start of the task: it first said an unknown value should reset only itself,
+      but the store already treats an unknown enum name as an unreadable file
+      (`AFileThatCannotBeUnderstoodLoadsTheDefaults`), and one rule for both enums is simpler
+      than a custom converter for one. Done 2026-10-01: 818 tests green (816 + 2), 0 warnings.
+- [x] 1.2 Test: a literal 0.1.0 `settings.json` (position, collapse, direction, thresholds, and
       neither new key) loads with every old field kept and both new ones defaulted. Implement only
-      if 1.1 has not already made it pass. (AC-14, AC-16)
-- [ ] 1.3 Checkpoint: clean, build, full suite; audit marks; record in `progress.md`.
+      if 1.1 has not already made it pass. (AC-14, AC-16) Done 2026-10-01: passed on first run, as
+      1.1 had made it pass; no implementation. Proven able to fail by breaking the collapse load
+      and watching it go red. The literal matches a real 0.1.0 file from this machine.
+- [x] 1.3 Checkpoint passed 2026-10-01: clean, build (0 warnings), 819 tests green; recorded in
+      `progress.md`.
 
 ## Phase 2: Core display logic
 

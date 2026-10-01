@@ -61,7 +61,9 @@ public sealed class SettingsStore
             Position: file.Position,
             Collapse: file.Collapse ?? UserSettings.Default.Collapse,
             Direction: file.Direction ?? UserSettings.Default.Direction,
-            Thresholds: thresholds);
+            Thresholds: thresholds,
+            ResetFormat: file.ResetFormat ?? UserSettings.Default.ResetFormat,
+            ShowBar: file.ShowBar ?? UserSettings.Default.ShowBar);
     }
 
     /// <summary>
@@ -110,7 +112,9 @@ public sealed class SettingsStore
         HudPosition? Position,
         bool? Collapse,
         DisplayDirection? Direction,
-        ThresholdsShape? Thresholds);
+        ThresholdsShape? Thresholds,
+        ResetFormat? ResetFormat,
+        bool? ShowBar);
 
     private sealed record ThresholdsShape(double? WarningAtRemaining, double? CriticalAtRemaining);
 }
