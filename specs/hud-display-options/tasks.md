@@ -96,15 +96,17 @@ in Core instead; if a task here starts computing, stop and move the computation.
 
 ## Phase 4: On-screen verification
 
-- [ ] 4.1 Restore `scripts/stub-usage-server.js` from git history and write
+- [x] 4.1 Restore `scripts/stub-usage-server.js` from git history and write
       `specs/hud-display-options/spikes/display-options-onscreen.md`: what each capture is meant
       to show, written before the captures are taken. Test-first is suspended for this spike
       because its output is evidence, not a component.
-- [ ] 4.2 Capture the HUD from the built exe in all four setting combinations, at normal,
+- [x] 4.2 Capture the HUD from the built exe in all four setting combinations, at normal,
       warning, critical, rate-limited, over 100, stale, and frozen. Check each against the spike
       document: bar and figure the same colour, partial segment visible, marks present, nothing
       off screen at the right edge, width change on toggle handled. (AC-3, AC-7 to AC-13, AC-15)
-- [ ] 4.3 Close the spike: record the result in its document and delete the stub script.
+- [~] 4.3 Close the spike: record the result in its document and delete the stub script. Result
+      recorded 2026-10-01; every capture met the first decision row. The stub is deleted in the
+      commit after the one that records the result.
 - [ ] 4.4 Run the review on the feature's changes and resolve or defer each finding, recording
       deferrals here.
 - [ ] 4.5 Checkpoint: clean, build, full suite; every acceptance criterion assessed against the
