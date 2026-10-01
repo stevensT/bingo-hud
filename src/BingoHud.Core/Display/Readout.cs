@@ -39,7 +39,7 @@ public static class Readout
     /// </para>
     /// </summary>
     /// <param name="state">The monitor's current state.</param>
-    /// <param name="settings">The user's display preferences: direction, collapse, thresholds.</param>
+    /// <param name="settings">The user's display preferences: direction, collapse, thresholds, reset format, bar.</param>
     /// <param name="now">The moment of rendering, carrying the offset reset times are shown in.</param>
     /// <param name="culture">Whose clock conventions the reset phrase uses.</param>
     public static IReadOnlyList<ReadoutLine> Lines(
@@ -67,8 +67,12 @@ public static class Readout
             lines.Add(new ReadoutLine(
                 WindowName.Short(window.Kind),
                 Percentage.Describe(window.UsedPercent, settings.Direction),
-                Reset(window, severity, now, culture),
-                severity));
+                Reset(window, severity, settings.ResetFormat, now, culture),
+                severity,
+                // Always the used figure, whatever the direction setting: the bar fills as usage
+                // rises, and the words beside it are what follow the direction (display options
+                // AC-9).
+                settings.ShowBar ? Bar.Segments(window.UsedPercent) : null));
         }
 
         return lines;
@@ -86,7 +90,7 @@ public static class Readout
     /// </para>
     /// </summary>
     /// <param name="state">The monitor's current state.</param>
-    /// <param name="settings">The user's display preferences: direction, collapse, thresholds.</param>
+    /// <param name="settings">The user's display preferences: direction, collapse, thresholds, reset format, bar.</param>
     /// <param name="now">The moment of rendering, carrying the offset reset times are shown in.</param>
     /// <param name="culture">Whose clock conventions the reset phrase uses.</param>
     public static HudContent Content(
@@ -121,9 +125,16 @@ public static class Readout
     /// needs on every figure.
     /// </para>
     /// </summary>
-    private static string? Reset(QuotaWindow window, Severity severity, DateTimeOffset now, CultureInfo? culture)
+    private static string? Reset(
+        QuotaWindow window,
+        Severity severity,
+        ResetFormat format,
+        DateTimeOffset now,
+        CultureInfo? culture)
     {
-        var reset = ResetFormatter.Describe(window.ResetsAt, now, culture);
+        var reset = format == ResetFormat.Countdown
+            ? ResetFormatter.Countdown(window.ResetsAt, now, culture)
+            : ResetFormatter.Describe(window.ResetsAt, now, culture);
 
         if (severity != Severity.RateLimited)
         {

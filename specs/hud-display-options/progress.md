@@ -1,9 +1,9 @@
 # HUD Display Options — Progress
 
 updated: 2026-10-01
-status: Phase 1 checkpoint passed
+status: Phase 2 checkpoint passed
 blockers: none
-next_session: start Phase 2 at 2.1. Suite is 819 green on a clean build.
+next_session: start Phase 3 at 3.1 (tray toggles). Suite is 865 green on a clean build.
 
 ## Checkpoints
 
@@ -18,3 +18,24 @@ behaviour yet; that is Phase 2.
 issues:
 - 1.1 amended at start: an unknown `resetFormat` name resets the whole file, as an unknown
   `direction` already does, rather than resetting only itself. One rule for both enums.
+
+### CP: Phase 2 Core display logic — 2026-10-01
+tests: 865 pass / 0 fail / 0 skip (819 at Phase 1)
+build: pass (`dotnet clean` then `dotnet build`, 0 warnings, 0 errors)
+done: 2.1, 2.2, 2.3, 2.4
+rework: none
+criteria_met (Core level; the shell draws none of it yet): AC-1, AC-2, AC-3, AC-4, AC-7, AC-8,
+AC-9, AC-11 (bar colour follows the line's severity, normal when frozen), AC-12, AC-13, AC-15,
+AC-16. AC-5 and AC-14 unchanged from 0.1.0 and Phase 1; AC-6 and AC-10 wait on the shell.
+issues:
+- 2.1 and 2.2 ran inline and in sequence, not as subagents: two small pure functions in separate
+  files, cheaper to write than to brief.
+- 2.1 was not watched red before its implementation existed. Compensated by a mutation check:
+  switching floor to round turned five of its tests red.
+- The plan worried that flooring a double would misround on exact tenths. Checked against integer
+  arithmetic at every tenth boundary up to seven days, and at every whole minute: no disagreement,
+  so the plain `Math.Floor` form stands and the reason is recorded on the method.
+- 2.3 confirmed the record-equality trap on screen: with the default equality, the two tests about
+  separately built bars went red; with equality written out, green.
+- One 2.4 test expectation was wrong, not the code: 75% used is 25% left, exactly the warning
+  line, so 0.1.0 draws it as a warning. Expectation corrected.

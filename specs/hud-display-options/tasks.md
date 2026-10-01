@@ -49,20 +49,20 @@ See the Building section of `README.md`. Every checkpoint runs `dotnet clean` fi
 2.1 and 2.2 share no files and can run side by side. They are small pure functions, so they may
 be done inline in sequence instead; say which at 2.5.
 
-- [P] 2.1 Test + implement `ResetFormatter.Countdown(resetsAt, now, culture)`. Tests, each at
+- [x] 2.1 Test + implement `ResetFormatter.Countdown(resetsAt, now, culture)`. Tests, each at
       both sides of its boundary: null reset gives null (AC-4); ≥ 24h gives days ("1.0d" at
       exactly 24h, "4.5d"); ≥ 1h gives hours ("23.9h" at 23h 59m, "1.0h" at exactly 1h); below
       that, whole minutes rounded down ("59m", "1m"); under a minute and at or past the reset
       give "<1m"; tenths always shown, including ".0"; rounded down, never up ("4.9d" at 4d 23h);
       a comma-decimal culture gives "4,5d". (AC-2, AC-4)
-- [P] 2.2 Test + implement `Bar.Segments(usedPercent)`: ten values, each 0.0 to 1.0. Tests: 0
+- [x] 2.2 Test + implement `Bar.Segments(usedPercent)`: ten values, each 0.0 to 1.0. Tests: 0
       gives all zero; 100 gives all one; 75 gives seven ones, a half, and two zeros; 3 gives 0.3
       then zeros; above 100 matches 100; below 0 matches 0; NaN matches 0. (AC-8, AC-13)
-- [ ] 2.3 Test + implement `ReadoutLine.Bar` (null, or the ten values from 2.2) with equality
+- [x] 2.3 Test + implement `ReadoutLine.Bar` (null, or the ten values from 2.2) with equality
       written out so two lines with equal bars built separately compare equal, and lines whose
       bars differ in one segment do not. Test through `HudContent.SameAs` as well, since that is
       the comparison the shell trusts to skip repaints. (AC-8; plan risk 1)
-- [ ] 2.4 Test + implement `Readout` reading the two settings. Tests:
+- [x] 2.4 Test + implement `Readout` reading the two settings. Tests:
       - countdown mode gives the countdown phrase, clock-time mode is byte-identical to 0.1.0
         for the same state (AC-1, AC-16);
       - rate-limited keeps its "limited" prefix in countdown mode (quota-hud AC-6);
@@ -75,9 +75,8 @@ be done inline in sequence instead; say which at 2.5.
       - no reading, and an error with no earlier reading, give `HudContent.Empty` with or
         without the bar (AC-12);
       - collapse picks the same window in all four combinations (AC-15).
-- [ ] 2.5 Checkpoint: clean, build, full suite; audit marks; check AC-1 to AC-4, AC-7 to AC-9,
-      AC-11 to AC-13, AC-15 and AC-16 at the Core level; record in `progress.md`, including how
-      2.1 and 2.2 were run.
+- [x] 2.5 Checkpoint passed 2026-10-01: clean, build (0 warnings), 865 tests green; recorded in
+      `progress.md`, including how 2.1 and 2.2 were run.
 
 ## Phase 3: Shell
 

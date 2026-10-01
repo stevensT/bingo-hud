@@ -23,4 +23,32 @@ namespace BingoHud.Core.Display;
 /// How close this window is to its limit (AC-4, AC-6), which the shell draws as the figure's
 /// colour. <see cref="Usage.Severity.Normal"/> for a frozen reading, which AC-13 excludes.
 /// </param>
-public sealed record ReadoutLine(string Window, string Percent, string? Reset, Usage.Severity Severity);
+/// <param name="Bar">
+/// The ten segment fills from <see cref="Display.Bar.Segments"/>, or null when the user has the bar
+/// off. Drawn in the line's <paramref name="Severity"/> colour, so the bar and its figure cannot
+/// differ.
+/// </param>
+public sealed record ReadoutLine(
+    string Window,
+    string Percent,
+    string? Reset,
+    Usage.Severity Severity,
+    IReadOnlyList<double>? Bar)
+{
+    /// <summary>
+    /// Written out because a record compares a list member by reference. Left to the default, two
+    /// lines holding the same bar would differ, <see cref="HudContent.SameAs"/> would report every
+    /// reading as changed, and the HUD would rebuild itself every second.
+    /// </summary>
+    public bool Equals(ReadoutLine? other) =>
+        other is not null
+        && Window == other.Window
+        && Percent == other.Percent
+        && Reset == other.Reset
+        && Severity == other.Severity
+        && (Bar is null ? other.Bar is null : other.Bar is not null && Bar.SequenceEqual(other.Bar));
+
+    // The bar is left out of the hash. Equal lines still hash equal, which is the only rule a
+    // hash has to keep, and the other four fields already tell lines apart.
+    public override int GetHashCode() => HashCode.Combine(Window, Percent, Reset, Severity);
+}

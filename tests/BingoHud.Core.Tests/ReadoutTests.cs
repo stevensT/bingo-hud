@@ -77,7 +77,7 @@ public class ReadoutTests
         var frozen = Frozen(Snapshot(Window(WindowKind.Session, 12, Now.AddMinutes(53))));
 
         Assert.Equal(
-            [new ReadoutLine("5h", "12% used", "resets in 53 min", Severity.Normal)],
+            [new ReadoutLine("5h", "12% used", "resets in 53 min", Severity.Normal, Bar: null)],
             Lines(frozen));
     }
 
@@ -274,8 +274,8 @@ public class ReadoutTests
 
         Assert.Equal(
             [
-                new ReadoutLine("5h", "12% used", "resets in 53 min", Severity.Normal),
-                new ReadoutLine("Week", "37% used", "resets Thu 11:34 AM", Severity.Normal),
+                new ReadoutLine("5h", "12% used", "resets in 53 min", Severity.Normal, Bar: null),
+                new ReadoutLine("Week", "37% used", "resets Thu 11:34 AM", Severity.Normal, Bar: null),
             ],
             Lines(snapshot));
     }
@@ -650,5 +650,128 @@ public class ReadoutTests
 
         Assert.Equal(Severity.Warning, Assert.Single(reading.Lines).Severity);
         Assert.Equal(Severity.Warning, reading.Overall);
+    }
+
+    // ---- Display options: reset format and bar (0.2.0) ----
+
+    private static UserSettings Options(ResetFormat format, bool bar) =>
+        UserSettings.Default with { ResetFormat = format, ShowBar = bar };
+
+    private static IReadOnlyList<ReadoutLine> LinesWith(ReadingState state, UserSettings settings) =>
+        Readout.Lines(state, settings, Now, TwelveHour);
+
+    private static readonly QuotaSnapshot Both = Snapshot(
+        Window(WindowKind.Session, 75, Now.AddHours(2).AddMinutes(18)),
+        Window(WindowKind.WeeklyAll, 37, Now.AddDays(4).AddHours(12)));
+
+    [Fact]
+    public void CountdownModeShowsTheCountdown()
+    {
+        var lines = LinesWith(Fresh(Both), Options(ResetFormat.Countdown, bar: false));
+
+        Assert.Equal(["2.3h", "4.5d"], lines.Select(l => l.Reset));
+    }
+
+    [Fact]
+    public void TheDefaultsDrawExactlyWhatTheOriginalHudDrew()
+    {
+        // Display options AC-16: clock time and no bar is 0.1.0, line for line.
+        Assert.Equal(
+            [
+                new ReadoutLine("5h", "75% used", "resets 11:52 AM", Severity.Warning, Bar: null), // 25% left is the warning line
+                new ReadoutLine("Week", "37% used", "resets Fri 9:34 PM", Severity.Normal, Bar: null),
+            ],
+            LinesWith(Fresh(Both), UserSettings.Default));
+    }
+
+    [Fact]
+    public void ARateLimitedCountdownStillSaysLimited()
+    {
+        var line = Assert.Single(LinesWith(
+            Fresh(Snapshot(new QuotaWindow(WindowKind.Session, 100, Now.AddMinutes(53), ServerSeverity.Rejected))),
+            Options(ResetFormat.Countdown, bar: false)));
+
+        Assert.Equal("limited, 53m", line.Reset);
+    }
+
+    [Fact]
+    public void AReadingThatIsNotCurrentKeepsItsCountdownAndItsMark()
+    {
+        // Display options AC-3. The reset time is a fact the server sent, so the countdown to it
+        // stays true; the mark is what says the percentage has stopped moving.
+        var settings = Options(ResetFormat.Countdown, bar: false);
+        var stale = new ReadingState(Both, Freshness.Stale, null, TimeSpan.FromMinutes(48), "test");
+
+        var staleReading = Assert.IsType<HudContent.Reading>(Readout.Content(stale, settings, Now, TwelveHour));
+        var frozenReading = Assert.IsType<HudContent.Reading>(Readout.Content(Frozen(Both), settings, Now, TwelveHour));
+
+        Assert.Equal("2.3h", staleReading.Lines[0].Reset);
+        Assert.Equal("48 min old", staleReading.Mark);
+        Assert.Equal("2.3h", frozenReading.Lines[0].Reset);
+        var clockTimeMark = Assert.IsType<HudContent.Reading>(Content(Frozen(Both))).Mark;
+        Assert.NotNull(clockTimeMark);
+        Assert.Equal(clockTimeMark, frozenReading.Mark);
+    }
+
+    [Fact]
+    public void WithTheBarOffThereIsNoBar()
+    {
+        Assert.All(LinesWith(Fresh(Both), Options(ResetFormat.ClockTime, bar: false)), l => Assert.Null(l.Bar));
+    }
+
+    [Fact]
+    public void WithTheBarOnEachLineCarriesItsWindowsSegments()
+    {
+        var lines = LinesWith(Fresh(Both), Options(ResetFormat.ClockTime, bar: true));
+
+        Assert.Equal(Bar.Segments(75), lines[0].Bar);
+        Assert.Equal(Bar.Segments(37), lines[1].Bar);
+    }
+
+    [Fact]
+    public void TheBarFillsWithUsageWhicheverWayTheFigureReads()
+    {
+        // Display options AC-9: the bar always shows used; the figure's words follow the setting.
+        var settings = Options(ResetFormat.ClockTime, bar: true) with { Direction = DisplayDirection.Remaining };
+
+        var line = LinesWith(Fresh(Both), settings)[0];
+
+        Assert.Equal("25% left", line.Percent);
+        Assert.Equal(Bar.Segments(75), line.Bar);
+    }
+
+    [Fact]
+    public void AFrozenBarIsDrawnWithoutSeverityLikeItsFigure()
+    {
+        // Display options AC-11: the bar takes its colour from the line, and a frozen line is
+        // normal (AC-13), so the bar cannot be coloured while its figure is not.
+        var critical = Snapshot(Window(WindowKind.Session, 95, Now.AddHours(2)));
+
+        var line = Assert.Single(LinesWith(Frozen(critical), Options(ResetFormat.ClockTime, bar: true)));
+
+        Assert.Equal(Severity.Normal, line.Severity);
+        Assert.Equal(Bar.Segments(95), line.Bar);
+    }
+
+    [Fact]
+    public void WithNoReadingTheBarDoesNotStandInForTheWords()
+    {
+        // Display options AC-12: an empty bar means 0%, never "unknown".
+        var nothing = new ReadingState(null, Freshness.Fresh, null, TimeSpan.Zero, "test");
+
+        Assert.IsType<HudContent.Empty>(Readout.Content(nothing, Options(ResetFormat.Countdown, bar: true), Now, TwelveHour));
+    }
+
+    [Theory]
+    [InlineData(ResetFormat.ClockTime, false)]
+    [InlineData(ResetFormat.ClockTime, true)]
+    [InlineData(ResetFormat.Countdown, false)]
+    [InlineData(ResetFormat.Countdown, true)]
+    public void CollapsePicksTheSameWindowInEveryCombination(ResetFormat format, bool bar)
+    {
+        // Display options AC-15: the options change how a line is drawn, never which lines exist.
+        var settings = Options(format, bar) with { Collapse = true };
+
+        Assert.Equal("5h", Assert.Single(LinesWith(Fresh(Both), settings)).Window);
     }
 }

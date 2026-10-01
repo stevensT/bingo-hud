@@ -55,6 +55,48 @@ public static class ResetFormatter
     }
 
     /// <summary>
+    /// The reset as a short countdown, for the user who chose one over the clock-time phrase.
+    ///
+    /// <para>
+    /// One unit, the largest that is at least one whole: "4.5d", "2.3h", "53m". Days and hours
+    /// carry a tenth, always shown so the line does not change width as the figure crosses a whole
+    /// number. Everything rounds down, because a countdown that rounds up claims time there is not.
+    /// </para>
+    /// <para>
+    /// Flooring a double here is exact. Every tenth-of-an-hour and tenth-of-a-day boundary up to
+    /// seven days was checked against integer arithmetic on ticks and none disagree, so the
+    /// plainer form stands.
+    /// </para>
+    /// </summary>
+    /// <param name="resetsAt">When the window resets, or null; null gives null, never a guess.</param>
+    /// <param name="now">The current instant.</param>
+    /// <param name="culture">Whose decimal mark to use.</param>
+    public static string? Countdown(DateTimeOffset? resetsAt, DateTimeOffset now, CultureInfo? culture = null)
+    {
+        if (resetsAt is not { } reset)
+        {
+            return null;
+        }
+
+        culture ??= CultureInfo.CurrentCulture;
+        var remaining = reset - now;
+
+        if (remaining.TotalDays >= 1)
+        {
+            return (Math.Floor(remaining.TotalDays * 10) / 10).ToString("0.0", culture) + "d";
+        }
+
+        if (remaining.TotalHours >= 1)
+        {
+            return (Math.Floor(remaining.TotalHours * 10) / 10).ToString("0.0", culture) + "h";
+        }
+
+        // Under a minute, and at or past the reset, both read "<1m". "0m" would say it has
+        // already reset, which is a claim about a reading Bingo has not taken yet.
+        return remaining.TotalMinutes >= 1 ? $"{(int)remaining.TotalMinutes}m" : "<1m";
+    }
+
+    /// <summary>
     /// The reset phrase, or null when there is nothing to say.
     /// </summary>
     /// <param name="resetsAt">
