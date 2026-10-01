@@ -1,11 +1,12 @@
 # Quota HUD — Progress
 
-updated: 2026-09-22
-status: complete — BV.5 final checkpoint passed 2026-09-22
+updated: 2026-10-01
+status: complete — BV.5 final checkpoint passed 2026-09-22; trial passed 2026-10-01
 blockers: none
-next_session: nothing left in this feature's task list. Before `v0.1.0` is tagged, ask how the HUD
-trial went (running since 2026-09-22). Trevor has already noted redesign ideas from it: a shorter
-reset and a progress bar. See "Ideas from the first evening of use" below. After the tag, the packaging feature (winget and
+next_session: nothing left in this feature's task list. The trial went well (see "Trial result"
+below) and `v0.1.0` is cleared to tag. The redesign ideas — a countdown reset and a progress bar,
+both as options — moved to their own feature for 0.2.0. See "Ideas from the first evening of use"
+below for where they meet this spec. After the tag, the packaging feature (winget and
 Chocolatey) can start, since its manifests need a released artifact to hash. The open items
 carried forward are listed in the BV.5 entry. 7.2 closed the probe
 with AC-2b inconclusive; see its entry below, including a step owed on the other machine before
@@ -61,6 +62,15 @@ Where they meet the current spec, for whoever picks them up:
   a bar filling as usage rises reads opposite to a "left" figure.
 - Both would replace or join the severity drawing from 7.3a, so they are best designed together
   with it rather than added on top.
+
+## Trial result — 2026-10-01
+
+The trial went well; the readings matched the account. One observation, dismissed by Trevor as by
+design: with Bingo started before Claude Code, the HUD does not pick up the new activity until the
+current wait ends, up to the 30-minute ceiling. The wait is chosen once per attempt from the
+signals at that moment (`PollPolicy.NextDelay`), so activity that starts mid-wait is not seen until
+the next attempt. That is the intended restraint against a rate-limited endpoint, and the manual
+refresh on the panel covers the impatient case. Not a defect; do not reopen it as one.
 
 ## Notes carried into execution
 
