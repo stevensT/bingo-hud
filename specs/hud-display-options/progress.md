@@ -1,9 +1,12 @@
 # HUD Display Options — Progress
 
 updated: 2026-10-01
-status: Phase 4 checkpoint passed
+status: complete — BV.4 final checkpoint passed 2026-10-01
 blockers: none
-next_session: start Phase 5 at 5.1 (changelog). Suite is 1452 green on a clean build.
+next_session: nothing left in this feature's task list. `v0.2.0` is Trevor's to tag on the commit
+that carries the version change. The trial exe under `bin\Release` is now 0.2.0 at default
+settings, so it looks like 0.1.0 until the options are turned on. The packaging feature (winget,
+Chocolatey) is next in line.
 
 ## Checkpoints
 
@@ -83,3 +86,16 @@ issues:
 - Stale was assessed against tests, not on screen, as the spike stated before it ran.
 - The last-segment gap change is a 2 px shell edit made after the captures; it will be seen at the
   BV.3 launch.
+
+### CP: Build verification — 2026-10-01
+tests: 1452 pass / 0 fail / 0 skip
+build: pass (`dotnet clean` then `dotnet build`, 0 warnings, 0 errors)
+done: 5.1, 5.2, BV.1, BV.2, BV.3
+rework: none
+criteria_met: all sixteen, as assessed at 4.5; since then only the changelog, the README, the
+version, and nothing in Core.
+issues:
+- The README still said "pre-implementation, no source yet" and showed a one-line layout the HUD
+  never had. Corrected at 5.1 along with a description of the two options.
+- Publishing Release rebuilt `bin\Release`, which is where the trial exe runs from, so the trial is
+  now 0.2.0. Settings were restored to the 0.1.0 file, so both options are off.

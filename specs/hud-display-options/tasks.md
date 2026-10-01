@@ -128,16 +128,23 @@ in Core instead; if a task here starts computing, stop and move the computation.
 
 ## Phase 5: Release prep
 
-- [ ] 5.1 Add `[Unreleased]` entries to `CHANGELOG.md` for both settings. Update the README if it
+- [x] 5.1 Add `[Unreleased]` entries to `CHANGELOG.md` for both settings. Update the README if it
       describes what the HUD shows.
-- [ ] 5.2 Set `<Version>` to `0.2.0`, move the entries into a dated `0.2.0` section, and confirm
-      the version the panel displays. The tag is Trevor's.
+- [x] 5.2 Set `<Version>` to `0.2.0`, move the entries into a dated `0.2.0` section, and confirm
+      the version the panel displays. The tag is Trevor's. Done 2026-10-01: the built assembly
+      reports `0.2.0+ad6c7a6…`, which the panel renders as `0.2.0 (ad6c7a6)`; the hash becomes the
+      release commit's once committed.
 
 ## Build Verification
 
-- [ ] BV.1 `dotnet clean` then `dotnet build`: 0 warnings, 0 errors.
-- [ ] BV.2 `dotnet test`: full suite, no failures, no unexplained skips.
-- [ ] BV.3 Publish both shapes per the README's Publishing section and launch each from a path
+- [x] BV.1 `dotnet clean` then `dotnet build`: 0 warnings, 0 errors. 2026-10-01.
+- [x] BV.2 `dotnet test`: full suite, no failures, no unexplained skips. 2026-10-01: 1452 pass,
+      0 skipped.
+- [x] BV.3 Publish both shapes per the README's Publishing section and launch each from a path
       outside the repository; confirm the HUD reads the live account with both settings on.
-- [ ] BV.4 Final checkpoint: all green, every acceptance criterion met, recorded in
-      `progress.md`.
+      2026-10-01: framework-dependent 0.36 MB and self-contained 70.87 MB, both `0.2.0`, both
+      read the live account and drew `5h [bar] 41% used 1.7h` / `Week [bar] 24% used 1.1d`. The
+      last-segment gap fix from 4.4 is visible as a HUD 2 px narrower than at 3.3.
+- [x] BV.4 Final checkpoint passed 2026-10-01: all green, every acceptance criterion met as
+      assessed at 4.5 with only release files and one shell spacing change since, recorded in
+      `progress.md`. The feature is complete; the `v0.2.0` tag is Trevor's.

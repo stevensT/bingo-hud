@@ -8,15 +8,25 @@ The thing that actually interrupts you is running out of window mid-task, and th
 check is to stop and run `/usage` in a session — which is the interruption you were trying to
 avoid. Bingo keeps the answer in peripheral vision so it arrives before it matters.
 
-**Status:** pre-implementation. The design is settled and specified; no source yet.
+**Status:** 0.1.0 released, in daily use. See `CHANGELOG.md` for what each version adds.
 
 ## What it shows
 
 A frameless, draggable, always-on-top window with the percentage used and the reset time for
-both the 5-hour and weekly windows:
+both the 5-hour and weekly windows, one line each:
 
 ```
-5h ● 68% used · resets in 53 min      wk ● 41% used · resets Sat
+5h     68% used   resets in 53 min
+Week   41% used   resets Sat 1:00 AM
+```
+
+Two settings in the tray menu change how a line reads. A countdown shows the reset as time left
+at every distance, and a bar of ten segments sits beside each figure, filled to it and coloured
+by severity:
+
+```
+5h     ■■■■■■▊□□□   68% used   53m
+Week   ■■■■▏□□□□□   41% used   2.3d
 ```
 
 Percentages read as consumed by default, matching `/usage`. You can switch them to show what

@@ -11,6 +11,23 @@ be treated as liable to break when that endpoint changes.
 
 ## [Unreleased]
 
+## [0.2.0] - 2026-10-01
+
+Display options: a countdown in place of the reset time, and a bar beside each figure.
+
+### Added
+- A reset format setting in the tray menu: "Show reset as countdown" replaces the clock-time
+  phrase with a short countdown at every distance ("4.5d", "2.3h", "53m"), rounded down to a
+  tenth. Off by default; the detail panel keeps the exact times either way.
+- A bar setting in the tray menu: "Show bar" draws ten segments beside each window's figure,
+  filled to the exact percentage and coloured by the same severity as the figure. Off by
+  default; a reading that can no longer update draws its bar without colour, and a figure over
+  100% fills the bar and stops.
+
+### Fixed
+- A hand-edited settings file giving the display direction as a number, rather than by name, no
+  longer crashes the HUD; the file loads as defaults like any other it cannot read.
+
 ## [0.1.0] - 2026-09-22
 
 First release: a Windows HUD that shows Claude Code's session and weekly usage limits.
