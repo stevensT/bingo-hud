@@ -39,6 +39,13 @@ public partial class HudWindow : Window
         _ => throw new ArgumentOutOfRangeException(nameof(severity), severity, null),
     };
 
+    // The bar (display options AC-8, AC-10). Segment size is fixed, so the bar is the same length
+    // whatever the figure; the track shows where the empty part is.
+    private const double SegmentWidth = 8;
+    private const double SegmentHeight = 11;
+    private const double SegmentGap = 2;
+    private static readonly Brush Track = new SolidColorBrush(Color.FromArgb(0x40, 0xFF, 0xFF, 0xFF));
+
     private static FontWeight SeverityWeight(Severity severity) =>
         severity is Severity.Critical or Severity.RateLimited ? FontWeights.SemiBold : FontWeights.Normal;
 
@@ -147,6 +154,11 @@ public partial class HudWindow : Window
             Lines.RowDefinitions.Add(new RowDefinition());
             Place(new TextBlock { Text = line.Window, Foreground = Dim }, row, column: 0);
 
+            if (line.Bar is { } segments)
+            {
+                Place(DrawBar(segments, SeverityBrush(line.Severity) ?? Dim), row, column: 1);
+            }
+
             var percent = new TextBlock
             {
                 Text = line.Percent,
@@ -161,11 +173,11 @@ public partial class HudWindow : Window
                 percent.Foreground = brush;
             }
 
-            Place(percent, row, column: 1);
+            Place(percent, row, column: 2);
 
             if (line.Reset is { } reset)
             {
-                Place(new TextBlock { Text = reset, Foreground = Dim, Margin = new Thickness(10, 0, 0, 0) }, row, column: 2);
+                Place(new TextBlock { Text = reset, Foreground = Dim, Margin = new Thickness(10, 0, 0, 0) }, row, column: 3);
             }
         }
 
@@ -178,7 +190,7 @@ public partial class HudWindow : Window
             var text = new TextBlock { Text = mark, Margin = new Thickness(0, 2, 0, 0) };
             Grid.SetRow(text, reading.Lines.Count);
             Grid.SetColumn(text, 0);
-            Grid.SetColumnSpan(text, 3);
+            Grid.SetColumnSpan(text, 4);
             Lines.Children.Add(text);
         }
 
@@ -187,11 +199,51 @@ public partial class HudWindow : Window
         _shown = content;
     }
 
-    private void Place(TextBlock text, int row, int column)
+    /// <summary>
+    /// Ten segments on a track, each filled from the left to the fraction Core gave it. Core did
+    /// the arithmetic; this only sizes boxes. Normal fills with the same dimmed white as the
+    /// labels, since a normal figure has no colour of its own to match.
+    /// </summary>
+    private static StackPanel DrawBar(IReadOnlyList<double> segments, Brush fill)
     {
-        Grid.SetRow(text, row);
-        Grid.SetColumn(text, column);
-        Lines.Children.Add(text);
+        var bar = new StackPanel
+        {
+            Orientation = Orientation.Horizontal,
+            Margin = new Thickness(10, 0, 0, 0),
+            VerticalAlignment = VerticalAlignment.Center,
+        };
+
+        foreach (var fraction in segments)
+        {
+            bar.Children.Add(new Border
+            {
+                Width = SegmentWidth,
+                Height = SegmentHeight,
+                Margin = new Thickness(0, 0, SegmentGap, 0),
+                CornerRadius = new CornerRadius(2),
+                Background = Track,
+                ClipToBounds = true,
+                // The fill needs the track's corners itself: clipping cuts to the rectangle, not
+                // the rounded outline, so a full segment would otherwise draw square. A partial
+                // fill is rounded on the left only, where it meets the track's edge.
+                Child = new Border
+                {
+                    Width = SegmentWidth * fraction,
+                    HorizontalAlignment = HorizontalAlignment.Left,
+                    Background = fill,
+                    CornerRadius = fraction >= 1 ? new CornerRadius(2) : new CornerRadius(2, 0, 0, 2),
+                },
+            });
+        }
+
+        return bar;
+    }
+
+    private void Place(UIElement element, int row, int column)
+    {
+        Grid.SetRow(element, row);
+        Grid.SetColumn(element, column);
+        Lines.Children.Add(element);
     }
 
     private void Restore()

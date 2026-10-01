@@ -1,9 +1,10 @@
 # HUD Display Options — Progress
 
 updated: 2026-10-01
-status: Phase 2 checkpoint passed
+status: Phase 3 checkpoint passed
 blockers: none
-next_session: start Phase 3 at 3.1 (tray toggles). Suite is 865 green on a clean build.
+next_session: start Phase 4 at 4.1 (restore the stub server as a spike). Suite is 865 green on a
+clean build.
 
 ## Checkpoints
 
@@ -39,3 +40,21 @@ issues:
   separately built bars went red; with equality written out, green.
 - One 2.4 test expectation was wrong, not the code: 75% used is 25% left, exactly the warning
   line, so 0.1.0 draws it as a warning. Expectation corrected.
+
+### CP: Phase 3 Shell — 2026-10-01
+tests: 865 pass / 0 fail / 0 skip (no change; the shell has no tests by design)
+build: pass (`dotnet clean` then `dotnet build`, 0 warnings, 0 errors)
+done: 3.1, 3.2
+rework: none
+criteria_met: AC-1, AC-6, AC-14 on screen (both tray items toggle, save, and load on relaunch);
+AC-16 on screen (defaults captured identical in layout to 0.1.0); AC-7 and AC-8 on screen at
+normal severity (`5h [bar] 23% used 2.1h`, two full segments and a sliver of the third). Severity
+colours, rate-limited, stale and frozen on screen are Phase 4's.
+issues:
+- Found on screen and fixed: full segments drew with square corners inside the rounded track,
+  because clipping cuts to the rectangle rather than the rounded outline. The fill now carries
+  the track's corners itself, rounded left-only when partial.
+- The HUD grew from 310 to 339 px wide with both options on and stayed on screen at the right
+  edge. Checked again across states in Phase 4.
+- Verification ran with the trial HUD stopped and `%LOCALAPPDATA%\Bingo` backed up; the backup was
+  restored and the trial exe relaunched afterwards.

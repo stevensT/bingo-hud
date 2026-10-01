@@ -31,6 +31,8 @@ public sealed class TrayIcon : IDisposable
     private readonly Func<bool> _canMute;
     private readonly Forms.ToolStripMenuItem _collapse;
     private readonly Forms.ToolStripMenuItem _remaining;
+    private readonly Forms.ToolStripMenuItem _countdown;
+    private readonly Forms.ToolStripMenuItem _bar;
 
     /// <param name="settings">The settings as they stand, read whenever the menu opens.</param>
     /// <param name="change">Applies and persists a change the user made from the menu.</param>
@@ -61,6 +63,17 @@ public sealed class TrayIcon : IDisposable
                 : Core.Settings.DisplayDirection.Consumed,
         });
 
+        _countdown = new Forms.ToolStripMenuItem("Show reset as countdown") { CheckOnClick = true };
+        _countdown.Click += (_, _) => change(settings() with
+        {
+            ResetFormat = _countdown.Checked
+                ? Core.Settings.ResetFormat.Countdown
+                : Core.Settings.ResetFormat.ClockTime,
+        });
+
+        _bar = new Forms.ToolStripMenuItem("Show bar") { CheckOnClick = true };
+        _bar.Click += (_, _) => change(settings() with { ShowBar = _bar.Checked });
+
         // Muting cannot be indefinite by design: it records every threshold as already fired for
         // the occurrence on screen, so it lifts at the next reset on its own. A quota tool that
         // could be silenced permanently would be silent on the day it mattered.
@@ -71,6 +84,8 @@ public sealed class TrayIcon : IDisposable
         menu.Items.Add(new Forms.ToolStripSeparator());
         menu.Items.Add(_collapse);
         menu.Items.Add(_remaining);
+        menu.Items.Add(_countdown);
+        menu.Items.Add(_bar);
         menu.Items.Add(new Forms.ToolStripSeparator());
         menu.Items.Add(_mute);
         menu.Items.Add(new Forms.ToolStripSeparator());
@@ -84,6 +99,8 @@ public sealed class TrayIcon : IDisposable
             var current = settings();
             _collapse.Checked = current.Collapse;
             _remaining.Checked = current.Direction == Core.Settings.DisplayDirection.Remaining;
+            _countdown.Checked = current.ResetFormat == Core.Settings.ResetFormat.Countdown;
+            _bar.Checked = current.ShowBar;
 
             // Nothing to silence before the first reading, and an item that appears to work and
             // does nothing is worse than one that is visibly unavailable.

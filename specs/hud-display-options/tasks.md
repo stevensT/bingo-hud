@@ -83,15 +83,16 @@ be done inline in sequence instead; say which at 2.5.
 The WPF layer has no tests. Anything here that could be wrong in a way a test would catch belongs
 in Core instead; if a task here starts computing, stop and move the computation.
 
-- [ ] 3.1 Add two tray menu items next to "Collapse" and "Show percentage remaining": "Show reset
+- [x] 3.1 Add two tray menu items next to "Collapse" and "Show percentage remaining": "Show reset
       as countdown" and "Show bar". Both `CheckOnClick`; checkmarks read from settings when the
       menu opens, like the existing two. (AC-1, AC-6, AC-14)
-- [ ] 3.2 Draw the bar in `HudWindow`: a column between the window label and the figure, present
+- [x] 3.2 Draw the bar in `HudWindow`: a column between the window label and the figure, present
       only when the line's `Bar` is not null. Ten segment boxes on a dark track, each filled to
       its fraction from the left, the fill coloured by the line's severity using the existing
       brushes, dimmed white when normal. (AC-7, AC-8, AC-10, AC-11)
-- [ ] 3.3 Checkpoint: clean, build, full suite; launch the built exe against the live account and
-      toggle both settings from the tray; record in `progress.md`.
+- [x] 3.3 Checkpoint passed 2026-10-01: clean, build (0 warnings), 865 tests green; the Debug
+      exe launched against the live account, both settings toggled from the tray by Trevor, saved
+      to the file, and read back on relaunch; recorded in `progress.md`.
 
 ## Phase 4: On-screen verification
 

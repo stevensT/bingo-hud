@@ -20,9 +20,10 @@
     </Window.Resources>
     <Border x:Name="Panel" Background="#DD1E1E1E" BorderBrush="Transparent" BorderThickness="1"
             CornerRadius="6" Padding="12,6">
-        <!-- One row per readout line: window, percent with its direction, reset. The columns
-             are shared so the figures line up whatever the window names are. Rows are built in
-             code from what Core decided; nothing here composes a string. -->
+        <!-- One row per readout line: window, bar, percent with its direction, reset. The
+             columns are shared so the figures line up whatever the window names are. The bar
+             column is empty, and so takes no width, while the bar is off. Rows are built in code
+             from what Core decided; nothing here composes a string. -->
         <DockPanel>
             <!-- The overall severity (AC-5), seen without reading which line. Absent while
                  everything is normal, so a bar appearing is itself the signal. -->
@@ -30,6 +31,7 @@
                     Margin="-6,0,8,0" Visibility="Collapsed" />
             <Grid x:Name="Lines">
                 <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto" />
                     <ColumnDefinition Width="Auto" />
                     <ColumnDefinition Width="Auto" />
                     <ColumnDefinition Width="Auto" />
