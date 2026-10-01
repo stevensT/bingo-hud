@@ -15,8 +15,8 @@ be treated as liable to break when that endpoint changes.
 
 ### Changed
 - The bar fills in Claude orange while a window is within its normal limits, rather than the
-  labels' dimmed white. Warning, critical, and rate-limited colours are unchanged, and a reading
-  that can no longer update still draws its bar without colour.
+  labels' dimmed white. Warning, critical, and rate-limited colors are unchanged, and a reading
+  that can no longer update still draws its bar without color.
 
 ## [0.2.0] - 2026-10-01
 
@@ -27,8 +27,8 @@ Display options: a countdown in place of the reset time, and a bar beside each f
   phrase with a short countdown at every distance ("4.5d", "2.3h", "53m"), rounded down to a
   tenth. Off by default; the detail panel keeps the exact times either way.
 - A bar setting in the tray menu: "Show bar" draws ten segments beside each window's figure,
-  filled to the exact percentage and coloured by the same severity as the figure. Off by
-  default; a reading that can no longer update draws its bar without colour, and a figure over
+  filled to the exact percentage and colored by the same severity as the figure. Off by
+  default; a reading that can no longer update draws its bar without color, and a figure over
   100% fills the bar and stops.
 
 ### Fixed
@@ -46,7 +46,7 @@ First release: a Windows HUD that shows Claude Code's session and weekly usage l
   be dragged. It snaps to screen edges and remembers where it was left.
 - Severity on the HUD: a window's figure turns amber at 25% remaining and red at 10%, magenta
   with the word "limited" when the server is refusing work, and a bar on the left edge shows the
-  worst of them. A reading that can no longer update is drawn without colour.
+  worst of them. A reading that can no longer update is drawn without color.
 - Optional collapse to the single worst window, unless both need attention.
 - Detail panel, opened by clicking the HUD: exact reset times, per-model weekly caps where the
   account has any, the reading's age, the app version, and a manual refresh that says why and
@@ -55,7 +55,7 @@ First release: a Windows HUD that shows Claude Code's session and weekly usage l
 - Desktop notifications at 25% and 10% remaining, at most once per window, surviving restarts and
   rearming when the window resets. Crossings that land together arrive as one notification.
 - Adaptive polling between 2 and 30 minutes, faster while Claude Code is writing transcripts,
-  backing off on rate limits and honouring `Retry-After`.
+  backing off on rate limits and honoring `Retry-After`.
 - A reading that is no longer current stays on screen marked with its age, and with the reason
   when it cannot update. Sign-in, permission, unreadable, unavailable, and unsupported states each
   say what happened and what to do.

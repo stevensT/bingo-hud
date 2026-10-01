@@ -8,26 +8,27 @@ The thing that actually interrupts you is running out of window mid-task, and th
 check is to stop and run `/usage` in a session — which is the interruption you were trying to
 avoid. Bingo keeps the answer in peripheral vision so it arrives before it matters.
 
-**Status:** 0.1.0 released, in daily use. See `CHANGELOG.md` for what each version adds.
+**Status:** in daily use, and still versioned 0.x while the endpoint it reads stays undocumented.
+Download the latest version from the [Releases page](https://github.com/stevensT/bingo-hud/releases);
+[`CHANGELOG.md`](CHANGELOG.md) lists what each version adds.
 
 ## What it shows
 
 A frameless, draggable, always-on-top window with the percentage used and the reset time for
 both the 5-hour and weekly windows, one line each:
 
-```
-5h     68% used   resets in 53 min
-Week   41% used   resets Sat 1:00 AM
-```
+![The HUD showing 46% used on the 5-hour window and 23% on the weekly, each with its reset time](docs/images/hud.png)
 
 Two settings in the tray menu change how a line reads. A countdown shows the reset as time left
 at every distance, and a bar of ten segments sits beside each figure, filled to it: Claude
-orange within normal limits, otherwise the figure's severity colour:
+orange within normal limits.
 
-```
-5h     ■■■■■■▊□□□   68% used   53m
-Week   ■■■■▏□□□□□   41% used   2.3d
-```
+![The same HUD with the bar and countdown on: orange bars beside each figure, resets shown as 2.3h and 4.5d](docs/images/hud-options.png)
+
+As a window runs low, its figure and bar turn amber at 25% left and red at 10%, and a stripe on
+the left edge shows the worst of them:
+
+![The 5-hour window at 82% used, its figure and bar in amber with an amber stripe on the left](docs/images/hud-warning.png)
 
 Percentages read as consumed by default, matching `/usage`. You can switch them to show what
 is left instead; either way the figure says which it is, so it can never be read backwards.
@@ -45,15 +46,16 @@ come from the server, not from a guess about your plan.
 Two consequences worth stating plainly:
 
 - **That endpoint is undocumented.** Its payload has changed shape more than once. Bingo parses
-  it tolerantly and, when it can't recognise what came back, says so and shows nothing rather
-  than displaying a stale or estimated number. A readout you trust at a glance is worse than
-  useless if it can quietly lie.
+  it tolerantly and, when it can't recognize what came back, says so. It never estimates or fills
+  in a number the server didn't send. The last reading it did receive stays on screen, marked
+  with its age and with why it stopped updating, so it can't be mistaken for a current one. A
+  readout you trust at a glance is worse than useless if it can quietly lie.
 - **Nothing leaves your machine.** The only network call is to the quota endpoint. Your token is
   never logged, copied, or transmitted anywhere else, and there is no telemetry.
 
 ## Requirements
 
-- Windows 10 or 11
+- Windows 10 or 11, 64-bit (tested on Windows 11)
 - An active Claude Max or Pro subscription
 - Claude Code installed and signed in — Bingo reads its credentials and delegates token refresh
   to it
@@ -65,7 +67,7 @@ Two consequences worth stating plainly:
 | `src/` | Application source — `BingoHud.Core` and `BingoHud.App`, described under Architecture |
 | `tests/` | The test project, and the recorded endpoint responses it runs against |
 | `tests/fixtures/usage/` | Dated, scrubbed captures of the quota endpoint, with their own README |
-| `scripts/` | Capture and probe scripts, run by hand rather than by the app |
+| `scripts/` | The endpoint capture script and the icon generator, run by hand rather than by the app |
 | `specs/` | Feature specifications, technical plans, and task lists |
 | `specs/memory/constitution.md` | Architectural principles applied across the project |
 | `docs/research/` | Background research, including a teardown of three prior-art usage monitors |
@@ -75,7 +77,7 @@ Two consequences worth stating plainly:
 Two projects with one rule between them: `BingoHud.Core` decides, `BingoHud.App` draws.
 
 - **`BingoHud.Core`** — polling, response parsing, threshold state, reset countdowns. No UI
-  dependency, so the logic most likely to harbour bugs is the part under test.
+  dependency, so the logic most likely to harbor bugs is the part under test.
 - **`BingoHud.App`** — WPF shell. HUD window, detail panel, tray, notifications. Renders what
   Core says and holds no logic of its own.
 
@@ -114,7 +116,11 @@ package manifest declares as a dependency so the package manager installs it fir
 dotnet publish src/BingoHud.App/BingoHud.App.csproj -c Release -r win-x64 --self-contained false -p:PublishSingleFile=true -o artifacts/framework-dependent
 ```
 
-Ship `BingoHud.App.exe` from each folder. The `.pdb` files beside it are debug symbols.
+Ship `BingoHud.App.exe` from each folder, renamed for the release so the two can sit side by side
+on one GitHub release: `Bingo-X.Y.Z-win-x64.exe` for the self-contained build and
+`Bingo-X.Y.Z-win-x64-framework-dependent.exe` for the other. Publish after the release commit is
+tagged, so the version the app reports carries that commit. The `.pdb` files beside each exe are
+debug symbols and are not shipped.
 
 Measured 2026-09-22 on SDK 9.0.317, launched from a folder outside the repository:
 
@@ -136,8 +142,8 @@ Semantic versioning. Bingo stays on `0.x` until it has proven itself in daily us
 depends on an undocumented endpoint, anything below `1.0.0` should be treated as liable to break
 when that endpoint changes.
 
-- **PATCH** — bug fixes, no behaviour change a user would notice.
-- **MINOR** — new behaviour, new settings, or any change to how the upstream response is parsed.
+- **PATCH** — bug fixes, no behavior change a user would notice.
+- **MINOR** — new behavior, new settings, or any change to how the upstream response is parsed.
   Endpoint-handling changes are always at least MINOR, because that is the axis along which this
   app breaks.
 - **MAJOR** — reserved for 1.0.0 and beyond.
