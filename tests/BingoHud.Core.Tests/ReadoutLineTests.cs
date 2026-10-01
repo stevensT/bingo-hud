@@ -54,15 +54,15 @@ public class ReadoutLineTests
         var other = line with { Window = window, Percent = percent, Reset = reset };
 
         Assert.NotEqual(line, other);
-        Assert.False(new HudContent.Reading([line], Mark: null)
-            .SameAs(new HudContent.Reading([other], Mark: null)));
+        Assert.False(new HudContent.Reading([line], Mark: null, Frozen: false)
+            .SameAs(new HudContent.Reading([other], Mark: null, Frozen: false)));
     }
 
     [Fact]
     public void TheShellSeesTheSameHudWhenOnlyTheListObjectsAreNew()
     {
-        var before = new HudContent.Reading([Line(Bar.Segments(75))], Mark: null);
-        var after = new HudContent.Reading([Line(Bar.Segments(75))], Mark: null);
+        var before = new HudContent.Reading([Line(Bar.Segments(75))], Mark: null, Frozen: false);
+        var after = new HudContent.Reading([Line(Bar.Segments(75))], Mark: null, Frozen: false);
 
         Assert.True(before.SameAs(after));
     }
@@ -70,8 +70,8 @@ public class ReadoutLineTests
     [Fact]
     public void TheShellRepaintsWhenTheBarMoves()
     {
-        var before = new HudContent.Reading([Line(Bar.Segments(75))], Mark: null);
-        var after = new HudContent.Reading([Line(Bar.Segments(76))], Mark: null);
+        var before = new HudContent.Reading([Line(Bar.Segments(75))], Mark: null, Frozen: false);
+        var after = new HudContent.Reading([Line(Bar.Segments(76))], Mark: null, Frozen: false);
 
         Assert.False(before.SameAs(after));
     }

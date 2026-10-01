@@ -111,7 +111,7 @@ public static class Readout
                 StatusMessage.Describe(state)?.Headline ?? StatusMessage.NoWindowToShow);
         }
 
-        return new HudContent.Reading(lines, StatusMessage.MarkFor(state));
+        return new HudContent.Reading(lines, StatusMessage.MarkFor(state), state.Freshness == Freshness.Frozen);
     }
 
     /// <summary>

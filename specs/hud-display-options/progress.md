@@ -1,12 +1,10 @@
 # HUD Display Options — Progress
 
 updated: 2026-10-01
-status: complete — BV.4 final checkpoint passed 2026-10-01
+status: complete — 0.3.0 amendment checkpoint passed 2026-10-01
 blockers: none
-next_session: nothing left in this feature's task list. `v0.2.0` is Trevor's to tag on the commit
-that carries the version change. The trial exe under `bin\Release` is now 0.2.0 at default
-settings, so it looks like 0.1.0 until the options are turned on. The packaging feature (winget,
-Chocolatey) is next in line.
+next_session: nothing left in this feature's task list. `v0.3.0` is Trevor's to tag on the commit
+that carries the version change. The packaging feature (winget, Chocolatey) is next in line.
 
 ## Checkpoints
 
@@ -99,3 +97,18 @@ issues:
   never had. Corrected at 5.1 along with a description of the two options.
 - Publishing Release rebuilt `bin\Release`, which is where the trial exe runs from, so the trial is
   now 0.2.0. Settings were restored to the 0.1.0 file, so both options are off.
+
+### CP: Amendment for 0.3.0, Claude orange at normal — 2026-10-01
+tests: 1455 pass / 0 fail / 0 skip (1452 at 0.2.0)
+build: pass (`dotnet clean` then `dotnet build`, 0 warnings, 0 errors)
+done: A.1 to A.4
+rework: none
+criteria_met: AC-10 and AC-11 as amended; the rest unchanged from 0.2.0.
+issues:
+- A frozen line is Severity.Normal, the same as a live normal one, so making normal orange would
+  have coloured a dead reading as live. `HudContent.Reading` now says whether it is frozen, and
+  the repaint comparison includes it; proven by removing it from the comparison and watching the
+  test go red.
+- Accepted risk, recorded in the spec: orange sits between warning amber and critical red. If a
+  normal bar reads as a warning in use, move the warning and critical colours.
+- Frozen with the orange change was not seen on screen; the stub was not restored for one branch.

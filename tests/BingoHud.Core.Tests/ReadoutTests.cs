@@ -774,4 +774,32 @@ public class ReadoutTests
 
         Assert.Equal("5h", Assert.Single(LinesWith(Fresh(Both), settings)).Window);
     }
+
+    // ---- Live or frozen, for the bar's normal colour (display options AC-11, amended for 0.3.0) ----
+
+    [Fact]
+    public void AFrozenReadingSaysItIsFrozen()
+    {
+        // A frozen line is Severity.Normal, the same as a live normal one, so severity alone
+        // cannot keep a frozen bar out of the live orange. The reading says it outright.
+        Assert.True(Assert.IsType<HudContent.Reading>(Content(Frozen(Both))).Frozen);
+    }
+
+    [Fact]
+    public void AFreshOrStaleReadingIsNotFrozen()
+    {
+        var stale = new ReadingState(Both, Freshness.Stale, null, TimeSpan.FromMinutes(48), "test");
+
+        Assert.False(Assert.IsType<HudContent.Reading>(Content(Fresh(Both))).Frozen);
+        Assert.False(Assert.IsType<HudContent.Reading>(Content(stale)).Frozen);
+    }
+
+    [Fact]
+    public void ReadingsDifferingOnlyInBeingFrozenAreDifferentHuds()
+    {
+        var lines = Lines(Both);
+
+        Assert.False(new HudContent.Reading(lines, Mark: null, Frozen: false)
+            .SameAs(new HudContent.Reading(lines, Mark: null, Frozen: true)));
+    }
 }

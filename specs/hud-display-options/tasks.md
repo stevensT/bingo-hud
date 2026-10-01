@@ -148,3 +148,23 @@ in Core instead; if a task here starts computing, stop and move the computation.
 - [x] BV.4 Final checkpoint passed 2026-10-01: all green, every acceptance criterion met as
       assessed at 4.5 with only release files and one shell spacing change since, recorded in
       `progress.md`. The feature is complete; the `v0.2.0` tag is Trevor's.
+
+## Amendment for 0.3.0: Claude orange at normal
+
+Added 2026-10-01 after `v0.2.0` was tagged. Spec AC-10 and AC-11 amended to match.
+
+- [x] A.1 Test + implement: `HudContent.Reading` says whether the reading is frozen, so the shell can
+      tell a live normal bar from a frozen one; both are `Severity.Normal` today. Tests: frozen
+      reading says so; fresh and stale do not; two readings differing only in it are not the same
+      HUD. (AC-11)
+- [x] A.2 Shell: fill a live normal bar with Claude orange `#D97757`; a frozen bar keeps the
+      dimmed white. Figures and every other colour unchanged. (AC-10, AC-11)
+- [x] A.3 Verify on screen: a live normal bar is orange against the live account. Frozen is held
+      by A.1's tests and the shell's one branch on it; the stub is not restored for it. Done
+      2026-10-01: `5h [orange bar] 44% used 1.5h` / `Week [orange bar] 24% used 1.1d`.
+- [x] A.4 Release prep: changelog `0.3.0`, version `0.3.0`, README bar description. The tag is
+      Trevor's.
+- [x] A.5 Checkpoint passed 2026-10-01: clean, build (0 warnings), 1455 tests green; the built
+      assembly reports `0.3.0`; recorded in `progress.md`. Reviewed: the colour and repaint
+      logic held; one stale comment on `ReadoutLine` and one README sentence corrected. Nothing
+      deferred.

@@ -46,6 +46,10 @@ public partial class HudWindow : Window
     private const double SegmentGap = 2;
     private static readonly Brush Track = new SolidColorBrush(Color.FromArgb(0x40, 0xFF, 0xFF, 0xFF));
 
+    // A live normal bar (display options AC-10). Orange means live, so a frozen bar falls back to
+    // the labels' dimmed white instead (AC-11).
+    private static readonly Brush ClaudeOrange = new SolidColorBrush(Color.FromRgb(0xD9, 0x77, 0x57));
+
     private static FontWeight SeverityWeight(Severity severity) =>
         severity is Severity.Critical or Severity.RateLimited ? FontWeights.SemiBold : FontWeights.Normal;
 
@@ -156,7 +160,8 @@ public partial class HudWindow : Window
 
             if (line.Bar is { } segments)
             {
-                Place(DrawBar(segments, SeverityBrush(line.Severity) ?? Dim), row, column: 1);
+                var normal = reading.Frozen ? Dim : ClaudeOrange;
+                Place(DrawBar(segments, SeverityBrush(line.Severity) ?? normal), row, column: 1);
             }
 
             var percent = new TextBlock
@@ -201,8 +206,7 @@ public partial class HudWindow : Window
 
     /// <summary>
     /// Ten segments on a track, each filled from the left to the fraction Core gave it. Core did
-    /// the arithmetic; this only sizes boxes. Normal fills with the same dimmed white as the
-    /// labels, since a normal figure has no colour of its own to match.
+    /// the arithmetic; this only sizes boxes. The fill colour is chosen by the caller.
     /// </summary>
     private static StackPanel DrawBar(IReadOnlyList<double> segments, Brush fill)
     {

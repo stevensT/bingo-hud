@@ -65,11 +65,19 @@ long and filled to the exact percentage, with the last segment partly lit.
       setting governs the wording of the figure beside it, which still states its direction.
 - [ ] AC-10: The fill takes its window's severity colour in the same three discrete steps as the
       text (quota-hud AC-4): normal, warning, critical. Rate-limited remains distinct (quota-hud
-      AC-6). Colour never shades continuously.
+      AC-6). Colour never shades continuously. A normal fill is Claude orange (`#D97757`) while
+      the reading is live.
+      [Amended 2026-10-01 for 0.3.0, after 0.2.0 shipped with a normal fill in the labels' dimmed
+      white. Trevor's call: a bar that is working normally should look like Claude. Accepted risk:
+      the orange sits between warning amber and critical red, so a normal bar may read as a
+      warning in peripheral vision; if it does in use, the warning and critical colours are what
+      move, not the orange.]
 - [ ] AC-11: A stale or frozen reading keeps its bar, coloured exactly as the figure beside it is
       (so a frozen reading takes no severity colour, quota-hud AC-13), with the same status mark
       it carries without the bar, so it cannot be read as current. The bar and its figure never
-      differ in colour.
+      differ in colour, except at normal, where a live bar is orange beside a white figure and a
+      frozen bar falls back to the labels' dimmed white. Orange means live, so a frozen bar never
+      wears it.
       [Corrected while planning: the first draft took colour away from a stale bar too, but in
       0.1.0 a stale figure keeps its severity colour and only a frozen one loses it. Making the bar
       follow its figure keeps the two from disagreeing.]

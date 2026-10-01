@@ -27,8 +27,9 @@ namespace BingoHud.Core.Display;
 /// <param name="Bar">
 /// The ten segment fills from <see cref="Display.Bar.Segments"/>, or null when the user has the bar
 /// off. Drawn from the line's <paramref name="Severity"/>, the same one its figure is drawn from, so
-/// the two never disagree about severity. A normal bar takes the labels' dimmed white, since a
-/// normal figure has no colour of its own.
+/// the two never disagree about severity. A normal bar is Claude orange while the reading is live
+/// and the labels' dimmed white when frozen; the shell picks that from
+/// <see cref="HudContent.Reading.Frozen"/>.
 /// </param>
 public sealed record ReadoutLine(
     string Window,

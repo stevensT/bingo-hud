@@ -27,7 +27,12 @@ public abstract record HudContent
     /// the display with the least room to spare is exactly what
     /// <see cref="Readout.Content"/> refuses to do with the headline.
     /// </param>
-    public sealed record Reading(IReadOnlyList<ReadoutLine> Lines, string? Mark) : HudContent
+    /// <param name="Frozen">
+    /// Whether the reading can no longer be refreshed. Its lines are already
+    /// <see cref="Usage.Severity.Normal"/>, the same as a live normal reading's, so this is what
+    /// keeps a frozen bar out of the live colour (display options AC-11).
+    /// </param>
+    public sealed record Reading(IReadOnlyList<ReadoutLine> Lines, string? Mark, bool Frozen) : HudContent
     {
         /// <summary>
         /// The worst of the lines (AC-5), which the shell draws as the accent bar: seen without
@@ -63,7 +68,7 @@ public abstract record HudContent
     public bool SameAs(HudContent other) => (this, other) switch
     {
         // The lines carry each severity, so comparing them covers the accent bar too.
-        (Reading a, Reading b) => a.Mark == b.Mark && a.Lines.SequenceEqual(b.Lines),
+        (Reading a, Reading b) => a.Mark == b.Mark && a.Frozen == b.Frozen && a.Lines.SequenceEqual(b.Lines),
         (Empty a, Empty b) => a.Phrase == b.Phrase,
         _ => false,
     };

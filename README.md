@@ -21,8 +21,8 @@ Week   41% used   resets Sat 1:00 AM
 ```
 
 Two settings in the tray menu change how a line reads. A countdown shows the reset as time left
-at every distance, and a bar of ten segments sits beside each figure, filled to it and coloured
-by severity:
+at every distance, and a bar of ten segments sits beside each figure, filled to it: Claude
+orange within normal limits, otherwise the figure's severity colour:
 
 ```
 5h     ■■■■■■▊□□□   68% used   53m

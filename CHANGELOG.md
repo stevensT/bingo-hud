@@ -11,6 +11,13 @@ be treated as liable to break when that endpoint changes.
 
 ## [Unreleased]
 
+## [0.3.0] - 2026-10-01
+
+### Changed
+- The bar fills in Claude orange while a window is within its normal limits, rather than the
+  labels' dimmed white. Warning, critical, and rate-limited colours are unchanged, and a reading
+  that can no longer update still draws its bar without colour.
+
 ## [0.2.0] - 2026-10-01
 
 Display options: a countdown in place of the reset time, and a bar beside each figure.
