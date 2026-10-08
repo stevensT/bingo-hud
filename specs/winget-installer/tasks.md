@@ -70,7 +70,7 @@ as given in `plan.md` under Interfaces.
       sign-in box ticked, move the HUD, leave Bingo running, then run the 0.3.0 setup silently.
       `-Expect Installed -Version 0.3.0 -StartsAtSignIn` passes, the HUD's position and settings
       are unchanged, and only one copy is installed. Delete the throwaway setup. (AC-7)
-- [ ] 2.8 Scan the setup file with Microsoft Defender
+- [x] 2.8 Scan the setup file with Microsoft Defender
       (`MpCmdRun.exe -Scan -ScanType 3 -File …`). A detection stops here and is reported to
       Microsoft as a false positive before anything is uploaded.
 - [ ] 2.9 Checkpoint: clean, build, full suite; every installer criterion (AC-1 to AC-10) assessed;

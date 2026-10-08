@@ -1,9 +1,9 @@
 # Installer and winget — Progress
 
 updated: 2026-10-08
-status: Phase 2 in progress; tasks 2.1 to 2.7 done
+status: Phase 2 in progress; tasks 2.1 to 2.8 done
 blockers: none
-next_session: start at task 2.8, the Defender scan. Bingo 0.3.0 is installed, starting at
+next_session: start at task 2.9, the Phase 2 checkpoint. Bingo 0.3.0 is installed, starting at
 sign-in, and running. Trevor's settings are backed up in `artifacts\settings-backup-2.3`
 (git-ignored) and are restored at the 2.9 checkpoint; the installed Bingo rewrote `settings.json`
 at 11:04 on 2026-10-08, after the backup.
@@ -122,6 +122,16 @@ at 11:04 on 2026-10-08, after the backup.
   each left exactly one new Bingo, and Trevor saw no "Launch Bingo" box on either.
 - The throwaway 0.2.99 setup was built in the session scratchpad, which the session lost before it
   could be deleted; it was never in the project. 4.4 rebuilds one.
+
+## 2026-10-08: the Defender scan (2.8)
+
+- Scanned the setup as rebuilt in 2.7, `Bingo-0.3.0-setup.exe`, 69,114,465 bytes, SHA-256
+  `9B7809BB9DF229311955A48FB7F58152960CA047B20A58E4F3948A8107FD5FD5`, and the installed
+  `BingoHud.App.exe`, with `MpCmdRun.exe -Scan -ScanType 3 -File ... -DisableRemediation`.
+  Both: "found no threats", exit code 0.
+- Defender platform 4.18.26080.4, signatures 1.459.601.0 from 2026-10-07. Trevor approved a
+  signature update before closing: Defender reported no updates needed, so 1.459.601.0 was already
+  current, and a rescan of both files was clean again.
 
 ## Where the 2026-10-01 session stopped
 
