@@ -27,10 +27,10 @@ as given in `plan.md` under Interfaces.
 
 ## Phase 1: Tooling and the check script
 
-- [ ] 1.1 Install Inno Setup 6 with `winget install JRSoftware.InnoSetup` **(Trevor approves:
+- [x] 1.1 Install Inno Setup 6 with `winget install JRSoftware.InnoSetup` **(Trevor approves:
       installs outside the project)**. Record the version, and where `ISCC.exe` landed, in the
       README's Building section.
-- [ ] 1.2 Write `installer/check-install.ps1`. Given `-Expect Installed -Version X.Y.Z
+- [x] 1.2 Write `installer/check-install.ps1`. Given `-Expect Installed -Version X.Y.Z
       [-StartsAtSignIn]` or `-Expect Uninstalled`, it prints one pass/fail line per check and exits
       non-zero on any failure. Checks:
       - the exe exists under `%LOCALAPPDATA%\Programs\Bingo` (or does not);
@@ -41,7 +41,7 @@ as given in `plan.md` under Interfaces.
         after uninstall (AC-5, AC-8);
       - `%LOCALAPPDATA%\Bingo` exists after an uninstall that followed a use (AC-8);
       - no `BingoHud.App.exe` process is running from the install folder after an uninstall (AC-8).
-- [ ] 1.3 Run the check script on this machine with nothing installed: `-Expect Installed` must
+- [x] 1.3 Run the check script on this machine with nothing installed: `-Expect Installed` must
       fail on every install check, and `-Expect Uninstalled` must pass. A check that cannot fail
       proves nothing.
 - [ ] 1.4 Checkpoint: clean, build, full suite; record in `progress.md`.
