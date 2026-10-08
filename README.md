@@ -68,7 +68,8 @@ Two consequences worth stating plainly:
 | `tests/` | The test project, and the recorded endpoint responses it runs against |
 | `tests/fixtures/usage/` | Dated, scrubbed captures of the quota endpoint, with their own README |
 | `scripts/` | The endpoint capture script and the icon generator, run by hand rather than by the app |
-| `installer/` | The check script that verifies an install, upgrade, or uninstall on this machine |
+| `installer/` | The setup script, and the check script that verifies an install, upgrade, or uninstall on this machine |
+| `packaging/winget/` | The winget manifests, one folder per version, copied into `microsoft/winget-pkgs` to submit |
 | `specs/` | Feature specifications, technical plans, and task lists |
 | `specs/memory/constitution.md` | Architectural principles applied across the project |
 | `docs/research/` | Background research, including a teardown of three prior-art usage monitors |

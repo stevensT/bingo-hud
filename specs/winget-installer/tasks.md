@@ -78,14 +78,14 @@ as given in `plan.md` under Interfaces.
 
 ## Phase 3: The release asset
 
-- [ ] 3.1 Upload `Bingo-0.3.0-setup.exe` to the existing 0.3.0 release, without touching the assets
+- [~] 3.1 Upload `Bingo-0.3.0-setup.exe` to the existing 0.3.0 release, without touching the assets
       already there, and add a line about it to the release notes **(Trevor)**. (AC-1, AC-10)
-- [ ] 3.2 Download the uploaded setup from its public URL and hash it; the hash must equal the local
+- [x] 3.2 Download the uploaded setup from its public URL and hash it; the hash must equal the local
       file's. This is the hash the manifest uses.
 
 ## Phase 4: The manifest
 
-- [ ] 4.1 Write `packaging/winget/stevensT.Bingo/0.3.0/` — `stevensT.Bingo.yaml` (version),
+- [x] 4.1 Write `packaging/winget/stevensT.Bingo/0.3.0/` — `stevensT.Bingo.yaml` (version),
       `stevensT.Bingo.locale.en-US.yaml` (defaultLocale), `stevensT.Bingo.installer.yaml`
       (installer: `inno`, `Scope: user`, the public URL, the 3.2 hash, `ProductCode` set to the
       AppId's registry key, `UpgradeBehavior: install`, `ReleaseNotesUrl`). Names, publisher and

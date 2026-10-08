@@ -1,11 +1,12 @@
 # Installer and winget — Progress
 
 updated: 2026-10-08
-status: Phase 2 complete; Phase 3 not started
+status: Phase 4 in progress; 4.1 done; 3.1 still waiting on the release notes
 blockers: none
-next_session: start at task 3.1, Trevor uploading `artifacts\release-0.3.0\Bingo-0.3.0-setup.exe`
-(SHA-256 `9B7809BB...FD5FD5`) to the 0.3.0 release. Bingo 0.3.0 is installed, starts at sign-in,
-and is Trevor's daily copy now, in place of the trial HUD.
+next_session: finish task 3.1, which is Trevor's: the setup is uploaded, but the release notes
+have no line about it yet, still say there is no installer, and end with a stray pasted fragment.
+A replacement Getting started section and Downloads table were proposed on 2026-10-08. Then 4.2,
+`winget validate`. Bingo 0.3.0 is installed, starts at sign-in, and is Trevor's daily copy.
 
 ## 2026-10-08: the check script run red (1.3)
 
@@ -131,6 +132,34 @@ and is Trevor's daily copy now, in place of the trial HUD.
 - Defender platform 4.18.26080.4, signatures 1.459.601.0 from 2026-10-07. Trevor approved a
   signature update before closing: Defender reported no updates needed, so 1.459.601.0 was already
   current, and a rescan of both files was clean again.
+
+## 2026-10-08: the release asset (3.1 in progress, 3.2)
+
+- Trevor uploaded `Bingo-0.3.0-setup.exe` to the 0.3.0 release. GitHub lists it at 69,114,465
+  bytes with digest `9b7809bb...fd5fd5`; the two earlier assets keep their 2026-10-01 dates and
+  hashes.
+- 3.2: downloaded with no sign-in from
+  `https://github.com/stevensT/bingo-hud/releases/download/v0.3.0/Bingo-0.3.0-setup.exe` (HTTP
+  200) into `artifacts\public-download-3.2`. SHA-256
+  `9B7809BB9DF229311955A48FB7F58152960CA047B20A58E4F3948A8107FD5FD5`, equal to the local file.
+  This is the manifest's hash.
+- 3.1 is not closed: the release notes have no line about the setup, still say "There's no
+  installer" and that Bingo does not start with Windows, and end with a stray line, "that can no
+  longer update still draws its bar without color.", after the hash block.
+
+## 2026-10-08: the manifest (4.1)
+
+- Written to `packaging/winget/stevensT.Bingo/0.3.0/`: version, defaultLocale, and installer
+  files, schema 1.12.0 as planned; whether winget 1.29 accepts that schema is 4.2's question.
+- `ReleaseNotesUrl` is in the locale file, not the installer file as `plan.md` has it: the schema
+  defines it as a locale field.
+- Beyond the plan's list: `Author`, `Copyright`, `Description`, five `Tags`, and `ReleaseDate`
+  (2026-10-01, when the 0.3.0 assets were published). The description says Bingo is independent
+  of Anthropic, as the release notes do. No `Moniker`, since a short alias like "bingo" is shared
+  across the whole repository and is easily disputed.
+- Checked against the live install, not by eye: the `ProductCode` key exists under HKCU, and
+  `PackageName`, `Publisher`, and `PackageVersion` equal its `DisplayName`, `Publisher`, and
+  `DisplayVersion`. `InstallerSha256` equals the release file's hash.
 
 ## Where the 2026-10-01 session stopped
 

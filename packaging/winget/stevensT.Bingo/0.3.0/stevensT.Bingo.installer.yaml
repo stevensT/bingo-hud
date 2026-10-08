@@ -1,0 +1,15 @@
+# yaml-language-server: $schema=https://aka.ms/winget-manifest.installer.1.12.0.schema.json
+
+PackageIdentifier: stevensT.Bingo
+PackageVersion: 0.3.0
+InstallerType: inno
+Scope: user
+UpgradeBehavior: install
+ProductCode: '{6B65FCD1-588C-4977-8EEB-6D3A62AD659F}_is1'
+ReleaseDate: 2026-10-01
+Installers:
+- Architecture: x64
+  InstallerUrl: https://github.com/stevensT/bingo-hud/releases/download/v0.3.0/Bingo-0.3.0-setup.exe
+  InstallerSha256: 9B7809BB9DF229311955A48FB7F58152960CA047B20A58E4F3948A8107FD5FD5
+ManifestType: installer
+ManifestVersion: 1.12.0
