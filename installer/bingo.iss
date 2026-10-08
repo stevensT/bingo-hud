@@ -81,9 +81,10 @@ Name: "{userstartup}\{#AppName}"; Filename: "{app}\{#AppExe}"; Tasks: startatsig
 Filename: "{app}\{#AppExe}"; Description: "Launch Bingo"; Flags: nowait postinstall skipifsilent
 
 [Code]
-// The uninstaller's use of Restart Manager is the least certain part of closing Bingo, so this
-// ends a copy still running from the install folder before its files are removed. It matches on
-// the full path, so a copy of BingoHud.App.exe running from anywhere else is left alone.
+// The uninstaller does not use Restart Manager: an uninstall with Bingo running opened no Restart
+// Manager session, and this is what closed it. It ends a copy still running from the install
+// folder before its files are removed. It matches on the full path, so a copy of
+// BingoHud.App.exe running from anywhere else is left alone.
 procedure CurUninstallStepChanged(CurUninstallStep: TUninstallStep);
 var
   ExePath: String;

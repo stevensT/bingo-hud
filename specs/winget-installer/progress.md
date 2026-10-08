@@ -1,11 +1,12 @@
 # Installer and winget — Progress
 
 updated: 2026-10-08
-status: Phase 2 in progress; tasks 2.1 and 2.2 done
+status: Phase 2 in progress; tasks 2.1 to 2.4 done
 blockers: none
-next_session: start at task 2.3, the first interactive install. The setup is built at
-`artifacts\release-0.3.0\Bingo-0.3.0-setup.exe`; rebuild it with the command at the top of
-`installer\bingo.iss`, run from the repository root.
+next_session: start at task 2.5, an install with the sign-in box ticked. Nothing is installed.
+Trevor's settings are backed up in the session scratchpad (`settings-backup-2.3`) and are
+restored at the 2.9 checkpoint; the installed Bingo rewrote `settings.json` at 11:04 on
+2026-10-08, after the backup.
 
 ## 2026-10-08: the check script run red (1.3)
 
@@ -49,6 +50,32 @@ next_session: start at task 2.3, the first interactive install. The setup is bui
 - Built with Inno Setup 6.7.3: no warnings. `Bingo-0.3.0-setup.exe` is 69,114,142 bytes; its
   version info reads Bingo, 0.3.0, stevensT. Local SHA-256 `35D6F097...F844C`, for reference only:
   the manifest uses the hash of the uploaded file (3.2).
+
+## 2026-10-08: the first install (2.3)
+
+- Installed interactively by Trevor, sign-in box unticked. No administrator prompt (AC-2). No
+  SmartScreen warning either, because the setup was built on this machine and carries no
+  downloaded-file mark; a download from the release will still warn, as the spec expects.
+- `check-install.ps1 -Expect Installed -Version 0.3.0`: all eight checks pass (AC-3, AC-4 and the
+  unticked half of AC-5). The Settings > Apps key is `{6B65FCD1-588C-4977-8EEB-6D3A62AD659F}_is1`
+  and its quiet uninstall string is `unins000.exe /SILENT`.
+- Bingo started seven seconds after setup finished, likely from the launch box, so it was stopped
+  and started again by opening the Start menu shortcut itself: it ran from the install folder.
+  Trevor confirmed the HUD on screen (AC-3).
+- The trial HUD was not running. The settings folder was backed up first; the installed Bingo uses
+  the same folder, as it should.
+- AC-9 (runs with no .NET) cannot be shown here, since this machine has the .NET SDK. It holds by
+  construction, the executable being self-contained, and is confirmed on a clean machine at 5.5.
+
+## 2026-10-08: uninstalling with Bingo running (2.4)
+
+- Trevor uninstalled from Settings > Apps with Bingo running from the Start menu shortcut. One
+  confirmation prompt, no error about files in use.
+- `check-install.ps1 -Expect Uninstalled`: all six checks pass. The install folder is gone
+  entirely; `%LOCALAPPDATA%\Bingo` is kept (AC-8).
+- The fallback in `bingo.iss`'s code section closed Bingo, not Restart Manager. The Application
+  log's Restart Manager events show one session, 11:03:28 to 11:03:47, which is the install; the
+  uninstall opened none. The comment in the script was corrected to say so.
 
 ## Where the 2026-10-01 session stopped
 

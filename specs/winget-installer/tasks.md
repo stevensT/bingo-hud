@@ -56,10 +56,10 @@ as given in `plan.md` under Interfaces.
       unticked sign-in task, `CloseApplications=force`, the uninstall fallback, a ticked
       launch-at-finish box skipped when silent, version and source from the command line. Build
       `Bingo-0.3.0-setup.exe`.
-- [ ] 2.3 Fresh install, interactive, sign-in box left unticked; then `check-install.ps1 -Expect
+- [x] 2.3 Fresh install, interactive, sign-in box left unticked; then `check-install.ps1 -Expect
       Installed -Version 0.3.0`. Launch from the Start menu and confirm the HUD appears. (AC-1,
       AC-2, AC-3, AC-4, AC-9)
-- [ ] 2.4 Uninstall from Settings > Apps with Bingo running; then `-Expect Uninstalled`. Record
+- [x] 2.4 Uninstall from Settings > Apps with Bingo running; then `-Expect Uninstalled`. Record
       whether Restart Manager or the fallback closed it. (AC-8)
 - [ ] 2.5 Fresh install, interactive, sign-in box ticked; `-Expect Installed -StartsAtSignIn`.
       Sign out and in **(Trevor)**, and confirm Bingo starts. Uninstall and confirm the sign-in
