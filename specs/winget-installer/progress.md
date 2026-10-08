@@ -1,11 +1,11 @@
 # Installer and winget — Progress
 
 updated: 2026-10-08
-status: Phase 1 in progress; tasks 1.1 to 1.3 done
+status: Phase 2 in progress; tasks 2.1 and 2.2 done
 blockers: none
-next_session: start at task 1.4, the Phase 1 checkpoint. `ISCC.exe` is not on `PATH`; it is at
-`%LOCALAPPDATA%\Programs\Inno Setup 6\ISCC.exe`, so the build command in `plan.md` (Interfaces)
-needs the full path. See "Where the 2026-10-01 session stopped" below.
+next_session: start at task 2.3, the first interactive install. The setup is built at
+`artifacts\release-0.3.0\Bingo-0.3.0-setup.exe`; rebuild it with the command at the top of
+`installer\bingo.iss`, run from the repository root.
 
 ## 2026-10-08: the check script run red (1.3)
 
@@ -25,6 +25,30 @@ needs the full path. See "Where the 2026-10-01 session stopped" below.
   the checks above, now that the count is fixed.
 - The entry-name check is strict on purpose. Inno Setup names the entry "Bingo version X.Y.Z"
   unless told otherwise, so `bingo.iss` (2.2) must set `UninstallDisplayName=Bingo`.
+
+## 2026-10-08: the source executable confirmed (2.1)
+
+- `artifacts\self-contained\BingoHud.App.exe`, the release's `Bingo-0.3.0-win-x64.exe` as listed,
+  and the same asset downloaded fresh all hash to SHA-256
+  `5B4F2D9C551C7CAF048FEE885283075599F4BA46E2BCA879663B743BB7863FE8`.
+  The local file reports product version `0.3.0+e8c2c619c79f`, the `v0.3.0` tag. No rebuild was
+  needed, so whether a rebuild from the tag reproduces the same bytes was never tested.
+
+## 2026-10-08: the installer script (2.2)
+
+- `installer/bingo.iss` written. AppId `6B65FCD1-588C-4977-8EEB-6D3A62AD659F`, so the Settings >
+  Apps key and the manifest's ProductCode are `{6B65FCD1-588C-4977-8EEB-6D3A62AD659F}_is1`.
+- `SourceDir=..`: Inno Setup resolves relative paths from the script's folder, which would have
+  sent the plan's `/DSourceExe=artifacts\...` to `installer\artifacts\`. With the source folder set
+  to the repository root, the plan's command works as written, given ISCC's full path.
+- Choices the plan left open: the Start menu shortcut sits directly in Programs rather than in a
+  folder; there is no folder page, since the location is fixed; no license page; `OutputDir`
+  defaults to `artifacts` so a forgotten argument cannot drop a setup into the repository.
+- The uninstall fallback ends only a Bingo running from the install folder, matched on full path,
+  so the trial HUD in `bin\Release` is never touched by an uninstall test.
+- Built with Inno Setup 6.7.3: no warnings. `Bingo-0.3.0-setup.exe` is 69,114,142 bytes; its
+  version info reads Bingo, 0.3.0, stevensT. Local SHA-256 `35D6F097...F844C`, for reference only:
+  the manifest uses the hash of the uploaded file (3.2).
 
 ## Where the 2026-10-01 session stopped
 
@@ -48,3 +72,15 @@ needs the full path. See "Where the 2026-10-01 session stopped" below.
   of this feature.
 
 ## Checkpoints
+
+### CP: Phase 1 Tooling and the check script — 2026-10-08
+tests: 1455 pass / 0 fail / 0 skip (1455 at the 0.3.0 checkpoint; the app is untouched)
+build: pass (`dotnet clean` then `dotnet build`, 0 warnings, 0 errors)
+done: 1.1, 1.2, 1.3
+rework: 1.2's script fixed during 1.3, when the planted install showed one Settings > Apps entry
+counted as blank under Windows PowerShell 5.1
+criteria_met: none yet, as planned. Phase 1 builds the means of checking AC-3, AC-4, AC-5 and
+AC-8; the criteria themselves are met in Phase 2 against the real installer.
+issues:
+- Phase 1 was run inline: three sequential tasks, none parallel.
+- `ISCC.exe` is not on `PATH`; 2.2 calls it by its full path.

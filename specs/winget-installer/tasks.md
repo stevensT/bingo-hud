@@ -44,14 +44,14 @@ as given in `plan.md` under Interfaces.
 - [x] 1.3 Run the check script on this machine with nothing installed: `-Expect Installed` must
       fail on every install check, and `-Expect Uninstalled` must pass. A check that cannot fail
       proves nothing.
-- [ ] 1.4 Checkpoint: clean, build, full suite; record in `progress.md`.
+- [x] 1.4 Checkpoint: clean, build, full suite; record in `progress.md`.
 
 ## Phase 2: The installer
 
-- [ ] 2.1 Confirm the source exe: hash `artifacts\self-contained\BingoHud.App.exe` against the
+- [x] 2.1 Confirm the source exe: hash `artifacts\self-contained\BingoHud.App.exe` against the
       published `Bingo-0.3.0-win-x64.exe` on the 0.3.0 release. If they differ, republish from
       the `v0.3.0` tag first. The setup must wrap the build that was released.
-- [ ] 2.2 Write `installer/bingo.iss` per the plan: fixed `AppId` (generated once, commented never
+- [x] 2.2 Write `installer/bingo.iss` per the plan: fixed `AppId` (generated once, commented never
       to change), per-user, `{localappdata}\Programs\Bingo`, Start menu entry "Bingo", the
       unticked sign-in task, `CloseApplications=force`, the uninstall fallback, a ticked
       launch-at-finish box skipped when silent, version and source from the command line. Build
