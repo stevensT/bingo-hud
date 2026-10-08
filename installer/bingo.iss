@@ -49,10 +49,11 @@ ArchitecturesAllowed=x64compatible
 ArchitecturesInstallIn64BitMode=x64compatible
 
 ; Bingo has no single-instance guard, so a running copy is found by the file it holds open and
-; closed through Restart Manager, even when installing silently. Restart Manager reopens it after
-; an upgrade.
+; closed through Restart Manager, even when installing silently. Restart Manager only reopens apps
+; that register themselves for restart, which Bingo does not, so the code below reopens it instead.
+; Restart Manager's own restart stays off so that registering one day cannot start a second copy.
 CloseApplications=force
-RestartApplications=yes
+RestartApplications=no
 
 SourceDir=..
 OutputDir={#OutputDir}
@@ -77,34 +78,72 @@ Name: "{autoprograms}\{#AppName}"; Filename: "{app}\{#AppExe}"
 Name: "{userstartup}\{#AppName}"; Filename: "{app}\{#AppExe}"; Tasks: startatsignin
 
 [Run]
-; Ticked on the last page of an interactive install; skipped when silent.
-Filename: "{app}\{#AppExe}"; Description: "Launch Bingo"; Flags: nowait postinstall skipifsilent
+; Ticked on the last page of an interactive install; skipped when silent. Hidden when Bingo was
+; already running, because the code below starts it again and two copies would run.
+Filename: "{app}\{#AppExe}"; Description: "Launch Bingo"; Flags: nowait postinstall skipifsilent; Check: BingoWasNotRunning
 
 [Code]
-// The uninstaller does not use Restart Manager: an uninstall with Bingo running opened no Restart
-// Manager session, and this is what closed it. It ends a copy still running from the install
-// folder before its files are removed. It matches on the full path, so a copy of
-// BingoHud.App.exe running from anywhere else is left alone.
-procedure CurUninstallStepChanged(CurUninstallStep: TUninstallStep);
+const
+  BingoRunningExitCode = 10;
+
 var
-  ExePath: String;
+  BingoWasRunning: Boolean;
+
+// Runs a PowerShell command in which $p holds every Bingo running from ExePath, and returns its
+// exit code, or -1 if PowerShell could not be started. Matching on the full path leaves alone a
+// copy of BingoHud.App.exe running from anywhere else.
+function RunAgainstBingo(ExePath, Action: String): Integer;
+var
   Command: String;
   ResultCode: Integer;
 begin
-  if CurUninstallStep <> usUninstall then
-    Exit;
-
   // Single quotes in PowerShell are escaped by doubling them, for a user name like O'Brien.
-  ExePath := ExpandConstant('{app}\{#AppExe}');
   StringChangeEx(ExePath, '''', '''''', True);
 
   Command :=
     '$p = @(Get-Process -Name BingoHud.App -ErrorAction SilentlyContinue | ' +
-    'Where-Object { $_.Path -eq ''' + ExePath + ''' }); ' +
-    '$p | Stop-Process -Force; ' +
-    '$p | Wait-Process -Timeout 10 -ErrorAction SilentlyContinue';
+    'Where-Object { $_.Path -eq ''' + ExePath + ''' }); ' + Action;
 
-  Exec(ExpandConstant('{sys}\WindowsPowerShell\v1.0\powershell.exe'),
+  if not Exec(ExpandConstant('{sys}\WindowsPowerShell\v1.0\powershell.exe'),
     '-NoProfile -NonInteractive -ExecutionPolicy Bypass -Command "' + Command + '"',
-    '', SW_HIDE, ewWaitUntilTerminated, ResultCode);
+    '', SW_HIDE, ewWaitUntilTerminated, ResultCode) then
+    ResultCode := -1;
+  Result := ResultCode;
+end;
+
+// Runs first, before Restart Manager closes anything. The install folder is fixed, so the
+// executable's path is known before the wizard sets {app}.
+function InitializeSetup(): Boolean;
+begin
+  BingoWasRunning :=
+    RunAgainstBingo(ExpandConstant('{userpf}\{#AppName}\{#AppExe}'),
+      'if ($p.Count -gt 0) { exit ' + IntToStr(BingoRunningExitCode) + ' } else { exit 0 }')
+    = BingoRunningExitCode;
+  Result := True;
+end;
+
+function BingoWasNotRunning(): Boolean;
+begin
+  Result := not BingoWasRunning;
+end;
+
+// An upgrade closes a running Bingo to replace it; this starts it again, silent or not.
+procedure CurStepChanged(CurStep: TSetupStep);
+var
+  ResultCode: Integer;
+begin
+  if (CurStep = ssPostInstall) and BingoWasRunning then
+    ShellExec('', ExpandConstant('{app}\{#AppExe}'), '', '', SW_SHOWNORMAL, ewNoWait, ResultCode);
+end;
+
+// The uninstaller does not use Restart Manager: an uninstall with Bingo running opened no Restart
+// Manager session, and this is what closed it. It ends a copy still running from the install
+// folder before its files are removed.
+procedure CurUninstallStepChanged(CurUninstallStep: TUninstallStep);
+begin
+  if CurUninstallStep <> usUninstall then
+    Exit;
+
+  RunAgainstBingo(ExpandConstant('{app}\{#AppExe}'),
+    '$p | Stop-Process -Force; $p | Wait-Process -Timeout 10 -ErrorAction SilentlyContinue');
 end;

@@ -61,12 +61,12 @@ as given in `plan.md` under Interfaces.
       AC-2, AC-3, AC-4, AC-9)
 - [x] 2.4 Uninstall from Settings > Apps with Bingo running; then `-Expect Uninstalled`. Record
       whether Restart Manager or the fallback closed it. (AC-8)
-- [ ] 2.5 Fresh install, interactive, sign-in box ticked; `-Expect Installed -StartsAtSignIn`.
+- [x] 2.5 Fresh install, interactive, sign-in box ticked; `-Expect Installed -StartsAtSignIn`.
       Sign out and in **(Trevor)**, and confirm Bingo starts. Uninstall and confirm the sign-in
       shortcut is gone. (AC-5, AC-8)
-- [ ] 2.6 Silent install with `/VERYSILENT /SUPPRESSMSGBOXES /NORESTART /SP-`: no window appears,
+- [x] 2.6 Silent install with `/VERYSILENT /SUPPRESSMSGBOXES /NORESTART /SP-`: no window appears,
       and `-Expect Installed` passes without `-StartsAtSignIn`. (AC-6)
-- [ ] 2.7 Upgrade: build a throwaway setup versioned 0.2.99 from the same exe, install it with the
+- [x] 2.7 Upgrade: build a throwaway setup versioned 0.2.99 from the same exe, install it with the
       sign-in box ticked, move the HUD, leave Bingo running, then run the 0.3.0 setup silently.
       `-Expect Installed -Version 0.3.0 -StartsAtSignIn` passes, the HUD's position and settings
       are unchanged, and only one copy is installed. Delete the throwaway setup. (AC-7)

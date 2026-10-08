@@ -1,12 +1,12 @@
 # Installer and winget — Progress
 
 updated: 2026-10-08
-status: Phase 2 in progress; tasks 2.1 to 2.4 done
+status: Phase 2 in progress; tasks 2.1 to 2.7 done
 blockers: none
-next_session: start at task 2.5, an install with the sign-in box ticked. Nothing is installed.
-Trevor's settings are backed up in the session scratchpad (`settings-backup-2.3`) and are
-restored at the 2.9 checkpoint; the installed Bingo rewrote `settings.json` at 11:04 on
-2026-10-08, after the backup.
+next_session: start at task 2.8, the Defender scan. Bingo 0.3.0 is installed, starting at
+sign-in, and running. Trevor's settings are backed up in `artifacts\settings-backup-2.3`
+(git-ignored) and are restored at the 2.9 checkpoint; the installed Bingo rewrote `settings.json`
+at 11:04 on 2026-10-08, after the backup.
 
 ## 2026-10-08: the check script run red (1.3)
 
@@ -76,6 +76,52 @@ restored at the 2.9 checkpoint; the installed Bingo rewrote `settings.json` at 1
 - The fallback in `bingo.iss`'s code section closed Bingo, not Restart Manager. The Application
   log's Restart Manager events show one session, 11:03:28 to 11:03:47, which is the install; the
   uninstall opened none. The comment in the script was corrected to say so.
+
+## 2026-10-08: the sign-in install (2.5)
+
+- Trevor installed interactively with "Start Bingo when I sign in" ticked.
+  `check-install.ps1 -Expect Installed -Version 0.3.0 -StartsAtSignIn`: all nine checks pass,
+  and the Startup shortcut points at the installed executable.
+- The settings backup was copied from the session scratchpad to `artifacts\settings-backup-2.3`
+  before signing out, since signing out ends the session.
+- Trevor signed out and in. Explorer started at 11:18:15 and Bingo, from the install folder, at
+  11:19:26 with no hand from Trevor; the gap is Windows' usual delay for Startup-folder apps
+  (AC-5).
+- Uninstalled with Bingo running, this time silently through the entry's own uninstaller
+  (`unins000.exe /VERYSILENT /SUPPRESSMSGBOXES /NORESTART`), exit code 0.
+  `-Expect Uninstalled`: all six checks pass, the sign-in shortcut among them (AC-5, AC-8).
+
+## 2026-10-08: the silent install (2.6)
+
+- `Bingo-0.3.0-setup.exe /VERYSILENT /SUPPRESSMSGBOXES /NORESTART /SP-`: exit code 0, and Trevor
+  saw no window, progress bar, or prompt (AC-6).
+- `-Expect Installed -Version 0.3.0`: all eight checks pass, with no sign-in shortcut. The ticked
+  choice from 2.5 did not come back: uninstalling removed the entry Inno Setup remembers it in.
+- Bingo was not started, so the launch box is skipped when silent, as intended.
+
+## 2026-10-08: the upgrade (2.7)
+
+- A throwaway 0.2.99 setup was built from the same executable and installed silently with
+  `/TASKS="startatsignin"`. Bingo was started from the Start menu and Trevor moved the HUD. The
+  0.3.0 setup then ran silently over it: exit code 0, all nine checks pass with `-StartsAtSignIn`,
+  one Settings > Apps entry now at 0.3.0, and `alerts.json` and `settings.json` byte for byte
+  unchanged. Trevor confirmed the HUD came back where Trevor had put it (AC-7).
+- **Finding: Bingo did not come back after the upgrade.** Restart Manager closed it (event 10002,
+  "Shutting down application or service 'BingoHud.App'") but `RestartApplications=yes` did not
+  reopen it, because Restart Manager only restarts apps that register for restart and Bingo does
+  not. A `winget upgrade` would have left the HUD gone until the next sign-in.
+- **Fixed in the installer, Trevor's choice** over accepting it or deferring to an app change.
+  `bingo.iss` now checks at startup whether Bingo is running from the install folder and, if so,
+  starts it again after the files are replaced, silent or not. The "Launch Bingo" box is hidden in
+  that case, since Bingo has no single-instance guard and the box would start a second copy.
+  `RestartApplications` is now `no`, so Bingo registering for restart one day cannot double it.
+  The process lookup is shared with the uninstall fallback.
+- Rerun after the fix: silent upgrade from a running 0.2.99 left exactly one Bingo, a new process
+  seven seconds later; all checks pass and the settings are unchanged. A silent install with Bingo
+  not running still leaves it closed (2.6 holds). Two interactive reinstalls over a running 0.3.0
+  each left exactly one new Bingo, and Trevor saw no "Launch Bingo" box on either.
+- The throwaway 0.2.99 setup was built in the session scratchpad, which the session lost before it
+  could be deleted; it was never in the project. 4.4 rebuilds one.
 
 ## Where the 2026-10-01 session stopped
 
