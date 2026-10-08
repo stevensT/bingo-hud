@@ -73,7 +73,7 @@ as given in `plan.md` under Interfaces.
 - [x] 2.8 Scan the setup file with Microsoft Defender
       (`MpCmdRun.exe -Scan -ScanType 3 -File …`). A detection stops here and is reported to
       Microsoft as a false positive before anything is uploaded.
-- [ ] 2.9 Checkpoint: clean, build, full suite; every installer criterion (AC-1 to AC-10) assessed;
+- [x] 2.9 Checkpoint: clean, build, full suite; every installer criterion (AC-1 to AC-10) assessed;
       the trial HUD restored to how it was; record in `progress.md`.
 
 ## Phase 3: The release asset

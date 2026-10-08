@@ -1,12 +1,11 @@
 # Installer and winget — Progress
 
 updated: 2026-10-08
-status: Phase 2 in progress; tasks 2.1 to 2.8 done
+status: Phase 2 complete; Phase 3 not started
 blockers: none
-next_session: start at task 2.9, the Phase 2 checkpoint. Bingo 0.3.0 is installed, starting at
-sign-in, and running. Trevor's settings are backed up in `artifacts\settings-backup-2.3`
-(git-ignored) and are restored at the 2.9 checkpoint; the installed Bingo rewrote `settings.json`
-at 11:04 on 2026-10-08, after the backup.
+next_session: start at task 3.1, Trevor uploading `artifacts\release-0.3.0\Bingo-0.3.0-setup.exe`
+(SHA-256 `9B7809BB...FD5FD5`) to the 0.3.0 release. Bingo 0.3.0 is installed, starts at sign-in,
+and is Trevor's daily copy now, in place of the trial HUD.
 
 ## 2026-10-08: the check script run red (1.3)
 
@@ -167,3 +166,32 @@ AC-8; the criteria themselves are met in Phase 2 against the real installer.
 issues:
 - Phase 1 was run inline: three sequential tasks, none parallel.
 - `ISCC.exe` is not on `PATH`; 2.2 calls it by its full path.
+
+### CP: Phase 2 The installer — 2026-10-08
+tests: 1455 pass / 0 fail / 0 skip (unchanged; the app is untouched)
+build: pass (`dotnet clean` then `dotnet build`, 0 warnings, 0 errors)
+done: 2.1, 2.2, 2.3, 2.4, 2.5, 2.6, 2.7, 2.8
+rework: 2.7 found that Restart Manager does not reopen Bingo after an upgrade; `bingo.iss` gained a
+relaunch (Trevor's choice), and 2.6 and 2.7 were rerun against the rebuilt setup. 2.4 found the
+uninstaller does not use Restart Manager at all; the code-section fallback is what closes Bingo,
+and the script's comment says so.
+criteria_met:
+- AC-2 met: no administrator prompt (2.3); per-user entry under HKCU.
+- AC-3 met: Start menu entry "Bingo" opens the HUD (2.3).
+- AC-4 met: Settings > Apps shows Bingo, stevensT, 0.3.0, and uninstalls from there (2.3, 2.4).
+- AC-5 met: unticked by default (2.3, 2.6); ticked starts Bingo at sign-in (2.5); uninstall removes
+  it (2.5).
+- AC-6 met: silent install, no window, defaults applied (2.6).
+- AC-7 met: upgrade over a running Bingo closes it, replaces it, keeps settings, position, alert
+  state and the sign-in choice, and now reopens it (2.7).
+- AC-8 partly met: uninstall closes Bingo and removes files, Start menu and sign-in entries, and
+  keeps the settings folder (2.4, 2.5). The README's removal-by-hand note is 5.1.
+- AC-9 by construction only: the executable is self-contained, but this machine has the .NET SDK.
+  Confirmed on a clean machine at 5.5.
+- AC-1 and AC-10 open: the setup is built but not yet on the release (3.1, 3.2).
+issues:
+- Phase 2 was run inline: every task needed Trevor at the screen or depended on the one before.
+- Trial HUD not restored, by Trevor's choice: the installed 0.3.0 replaces it as the daily copy,
+  with the current settings kept (the HUD position moved in 2.7). `artifacts\settings-backup-2.3`
+  is no longer needed. The `bin\Release` build is still on disk; running it alongside the installed
+  copy would show two HUDs on the same settings.
