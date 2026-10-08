@@ -1,12 +1,13 @@
 # Installer and winget — Progress
 
 updated: 2026-10-08
-status: Phase 4 in progress; 4.1 done; 3.1 still waiting on the release notes
+status: Phase 4 in progress; 4.1 to 4.3 done; 3.1 still waiting on the release notes
 blockers: none
 next_session: finish task 3.1, which is Trevor's: the setup is uploaded, but the release notes
 have no line about it yet, still say there is no installer, and end with a stray pasted fragment.
-A replacement Getting started section and Downloads table were proposed on 2026-10-08. Then 4.2,
-`winget validate`. Bingo 0.3.0 is installed, starts at sign-in, and is Trevor's daily copy.
+A replacement Getting started section and Downloads table were proposed on 2026-10-08. Then 4.4,
+the local upgrade. Bingo 0.3.0 is installed through winget, without start at sign-in, and is not
+running; local manifests are on.
 
 ## 2026-10-08: the check script run red (1.3)
 
@@ -160,6 +161,26 @@ A replacement Getting started section and Downloads table were proposed on 2026-
 - Checked against the live install, not by eye: the `ProductCode` key exists under HKCU, and
   `PackageName`, `Publisher`, and `PackageVersion` equal its `DisplayName`, `Publisher`, and
   `DisplayVersion`. `InstallerSha256` equals the release file's hash.
+- 4.2: `winget validate --manifest packaging\winget\stevensT.Bingo\0.3.0` with winget 1.29.380:
+  "Manifest validation succeeded", exit code 0. Schema 1.12.0 is accepted.
+
+## 2026-10-08: installing through winget (4.3)
+
+- Trevor turned on `LocalManifestFiles` in an administrator terminal. The installed 0.3.0 was
+  uninstalled silently first, so the winget install started from nothing; `winget list` found
+  nothing before it.
+- `winget install --manifest packaging\winget\stevensT.Bingo\0.3.0`: downloaded the setup from the
+  release, "Successfully verified installer hash", installed silently, exit code 0.
+  `-Expect Installed -Version 0.3.0`: all eight checks pass, no sign-in shortcut, Bingo not
+  started (AC-11).
+- **Finding: `winget list stevensT.Bingo` cannot pass yet.** winget lists the install as
+  `ARP\User\X64\{6B65FCD1-588C-4977-8EEB-6D3A62AD659F}_is1` at 0.3.0, the right entry and version,
+  but links an installed app to a package ID only through a source, and `stevensT.Bingo` is in
+  none (`winget show --source winget` finds nothing) until the pull request merges. A `--manifest`
+  install uses no source. Trevor chose to check by name in 4.3 and 4.4 and to move the by-ID check
+  to 5.5; the three task lines are amended and say so.
+- The settings backup in `artifacts\settings-backup-2.3` is stale and unused; the current settings
+  were kept through this uninstall and reinstall.
 
 ## Where the 2026-10-01 session stopped
 

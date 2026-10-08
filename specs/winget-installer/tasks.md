@@ -90,13 +90,17 @@ as given in `plan.md` under Interfaces.
       (installer: `inno`, `Scope: user`, the public URL, the 3.2 hash, `ProductCode` set to the
       AppId's registry key, `UpgradeBehavior: install`, `ReleaseNotesUrl`). Names, publisher and
       version match the installer exactly.
-- [ ] 4.2 `winget validate --manifest packaging\winget\stevensT.Bingo\0.3.0` passes. (AC-14)
-- [ ] 4.3 Turn on local manifests with `winget settings --enable LocalManifestFiles` **(Trevor
+- [x] 4.2 `winget validate --manifest packaging\winget\stevensT.Bingo\0.3.0` passes. (AC-14)
+- [x] 4.3 Turn on local manifests with `winget settings --enable LocalManifestFiles` **(Trevor
       approves: administrator setting)**. `winget install --manifest …`; `-Expect Installed`
-      passes; `winget list stevensT.Bingo` shows 0.3.0. (AC-11, AC-14)
+      passes; `winget list Bingo` shows the entry `ARP\User\X64\{6B65FCD1-…}_is1` at 0.3.0.
+      (AC-11, AC-14) *Amended 2026-10-08: winget links an install to a package ID only through a
+      source, and `stevensT.Bingo` is in none until the pull request merges, so the by-ID check
+      moved to 5.5.*
 - [ ] 4.4 Local upgrade: install the throwaway 0.2.99 setup, write a matching local 0.2.99 manifest
-      in the scratchpad pointing at that file, then confirm `winget upgrade --manifest` for 0.3.0
-      replaces it and `winget list` moves from 0.2.99 to 0.3.0. Delete the throwaways. (AC-13, AC-14)
+      under `artifacts\` pointing at that file, then confirm `winget upgrade --manifest` for 0.3.0
+      replaces it and `winget list Bingo` moves the same entry from 0.2.99 to 0.3.0. Delete the
+      throwaways. (AC-13, AC-14) *Amended 2026-10-08, as 4.3.*
 - [ ] 4.5 `winget uninstall stevensT.Bingo`; `-Expect Uninstalled` passes. Turn local manifests back
       off if Trevor prefers. (AC-12, AC-14)
 - [ ] 4.6 Checkpoint: clean, build, full suite; AC-11 to AC-14 assessed; trial restored; record in
@@ -116,6 +120,8 @@ as given in `plan.md` under Interfaces.
       here, and any pipeline findings and their fixes.
 - [ ] 5.5 After the PR merges: on a machine or Windows Sandbox that has never had Bingo,
       `winget install stevensT.Bingo` with no local manifest, then `-Expect Installed`. (AC-15)
+      Then, on this machine, `winget list stevensT.Bingo` shows the installed 0.3.0 by its package
+      ID, which is the link `winget upgrade` depends on. (AC-13) *Added 2026-10-08, moved from 4.3.*
 
 ## Build Verification
 
