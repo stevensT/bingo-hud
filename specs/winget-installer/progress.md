@@ -1,13 +1,13 @@
 # Installer and winget — Progress
 
 updated: 2026-10-08
-status: Phase 4 in progress; 4.1 to 4.3 done; 3.1 still waiting on the release notes
+status: Phase 4 complete; 3.1 still waiting on the release notes; Phase 5 not started
 blockers: none
-next_session: finish task 3.1, which is Trevor's: the setup is uploaded, but the release notes
-have no line about it yet, still say there is no installer, and end with a stray pasted fragment.
-A replacement Getting started section and Downloads table were proposed on 2026-10-08. Then 4.4,
-the local upgrade. Bingo 0.3.0 is installed through winget, without start at sign-in, and is not
-running; local manifests are on.
+next_session: finish task 3.1, which is Trevor's: the release notes have no line about the
+setup, still say there is no installer, and end with a stray pasted fragment. A replacement
+Getting started section and Downloads table were proposed on 2026-10-08. Then 5.1, the README's
+release checklist. Bingo 0.3.0 is installed by Trevor's setup run, starts at sign-in, and is the
+daily copy; local manifests are turned off again.
 
 ## 2026-10-08: the check script run red (1.3)
 
@@ -182,6 +182,31 @@ running; local manifests are on.
 - The settings backup in `artifacts\settings-backup-2.3` is stale and unused; the current settings
   were kept through this uninstall and reinstall.
 
+## 2026-10-08: upgrading through winget (4.4)
+
+- The installed 0.3.0 was uninstalled, a throwaway 0.2.99 setup built into
+  `artifacts\throwaway-0.2.99` and installed silently with start at sign-in, and Bingo started
+  from the Start menu. `winget list Bingo` showed the entry at 0.2.99.
+- No 0.2.99 manifest was written, a departure from the task line agreed with Trevor: it existed
+  only to link the old install to the package ID, which cannot happen before the merge (4.3). The
+  test that matters is whether `winget upgrade --manifest` for 0.3.0 finds the 0.2.99 install
+  through the manifest's `ProductCode`, and it does.
+- `winget upgrade --manifest packaging\winget\stevensT.Bingo\0.3.0`: hash verified, installed,
+  exit code 0. `winget list Bingo` moved the same entry from 0.2.99 to 0.3.0. All nine checks pass
+  with `-StartsAtSignIn`, both settings files are byte for byte unchanged, and exactly one Bingo is
+  running, a new process, so the installer's relaunch works under winget too (AC-13 locally,
+  AC-14).
+- The throwaway folder, holding only `Bingo-0.2.99-setup.exe`, was deleted.
+
+## 2026-10-08: uninstalling through winget (4.5)
+
+- `winget uninstall Bingo` with Bingo running: winget found the entry by name, as
+  `ARP\User\X64\{6B65FCD1-...}_is1`, and uninstalled it, exit code 0. `-Expect Uninstalled`: all
+  six checks pass, Bingo closed and the settings folder kept (AC-12, AC-14). `winget list Bingo`
+  finds nothing afterwards.
+- Trevor turned local manifests back off (`winget --info`: `LocalManifestFiles Disabled`) and
+  reinstalled the daily copy with the setup, start at sign-in ticked; all nine checks pass.
+
 ## Where the 2026-10-01 session stopped
 
 - **Released:** v0.1.0 (`d08d170`), v0.2.0 (`f1de9f2`) and v0.3.0 (`e8c2c61`) are tagged and
@@ -245,3 +270,25 @@ issues:
   with the current settings kept (the HUD position moved in 2.7). `artifacts\settings-backup-2.3`
   is no longer needed. The `bin\Release` build is still on disk; running it alongside the installed
   copy would show two HUDs on the same settings.
+
+### CP: Phase 4 The manifest — 2026-10-08
+tests: 1455 pass / 0 fail / 0 skip (unchanged; the app is untouched)
+build: pass (`dotnet clean` then `dotnet build`, 0 warnings, 0 errors); `winget validate` passes
+done: 4.1, 4.2, 4.3, 4.4, 4.5
+rework: none to the manifest. The by-ID `winget list stevensT.Bingo` checks in 4.3 to 4.5 were
+replaced with by-name checks and the by-ID check moved to 5.5 (Trevor's choice), because winget
+links an install to a package ID only through a source. 4.4 wrote no 0.2.99 manifest, for the
+same reason.
+criteria_met:
+- AC-11 met locally: `winget install --manifest` installs silently; AC-3 and AC-4 hold (4.3).
+- AC-12 met locally: `winget uninstall Bingo` removes it with Bingo running; AC-8 holds (4.5).
+- AC-13 met locally as far as it can be: `winget upgrade --manifest` finds the older install by
+  `ProductCode`, upgrades it in place, AC-7 holds, and `winget list` shows the version before and
+  after by name (4.4). The by-ID listing waits for 5.5.
+- AC-14 met: validated, and installs, upgrades, and uninstalls from the local manifest.
+issues:
+- Phase 4 was run inline: each task depended on the installed state the one before left.
+- 3.1 is still open, out of phase order: the release notes need Trevor's edit (lines 32, 36, and
+  the stray line 73 of the release body as read at this checkpoint).
+- "Trial restored" in the 4.6 line no longer applies: the installed copy replaced the trial HUD at
+  2.9, and it is installed and running again.

@@ -97,13 +97,14 @@ as given in `plan.md` under Interfaces.
       (AC-11, AC-14) *Amended 2026-10-08: winget links an install to a package ID only through a
       source, and `stevensT.Bingo` is in none until the pull request merges, so the by-ID check
       moved to 5.5.*
-- [ ] 4.4 Local upgrade: install the throwaway 0.2.99 setup, write a matching local 0.2.99 manifest
+- [x] 4.4 Local upgrade: install the throwaway 0.2.99 setup, write a matching local 0.2.99 manifest
       under `artifacts\` pointing at that file, then confirm `winget upgrade --manifest` for 0.3.0
       replaces it and `winget list Bingo` moves the same entry from 0.2.99 to 0.3.0. Delete the
       throwaways. (AC-13, AC-14) *Amended 2026-10-08, as 4.3.*
-- [ ] 4.5 `winget uninstall stevensT.Bingo`; `-Expect Uninstalled` passes. Turn local manifests back
-      off if Trevor prefers. (AC-12, AC-14)
-- [ ] 4.6 Checkpoint: clean, build, full suite; AC-11 to AC-14 assessed; trial restored; record in
+- [x] 4.5 `winget uninstall Bingo`; `-Expect Uninstalled` passes. Turn local manifests back off if
+      Trevor prefers. (AC-12, AC-14) *Amended 2026-10-08: by name, as 4.3; the package ID is in no
+      source until the pull request merges.*
+- [x] 4.6 Checkpoint: clean, build, full suite; AC-11 to AC-14 assessed; trial restored; record in
       `progress.md`.
 
 ## Phase 5: Submission and the routine
