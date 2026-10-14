@@ -1,13 +1,13 @@
 # Inspects this machine after a Bingo install, upgrade, or uninstall, and reports each thing the
 # installer is supposed to have done as one PASS or FAIL line. Exits 1 if anything failed.
 #
-#   installer\check-install.ps1 -Expect Installed -Version 0.3.0
-#   installer\check-install.ps1 -Expect Installed -Version 0.3.0 -StartsAtSignIn
+#   installer\check-install.ps1 -Expect Installed -Version X.Y.Z
+#   installer\check-install.ps1 -Expect Installed -Version X.Y.Z -StartsAtSignIn
 #   installer\check-install.ps1 -Expect Uninstalled
 #
-# This is the installer's test. It was written before the installer and run against a machine with
-# nothing installed, where every Installed check has to fail; a check that cannot fail proves
-# nothing. It reads the machine and changes nothing.
+# This is the installer's test. Run with -Expect Installed on a machine with nothing installed,
+# every check has to fail; a check that cannot fail proves nothing. It reads the machine and
+# changes nothing.
 #
 # The Uninstalled checks look wider than the Installed ones. An entry or shortcut that is still
 # there under a slightly wrong name is still an install that was not removed.
@@ -36,7 +36,8 @@ if ($Expect -eq 'Uninstalled' -and ($Version -or $StartsAtSignIn)) {
 }
 
 # These names have to match installer\bingo.iss and the winget manifest exactly. winget finds the
-# installed app by its Settings > Apps name, publisher, and version.
+# installed app by the manifest's ProductCode, the entry's registry key, and lists it by the
+# entry's name, publisher, and version, which must equal the manifest's.
 $appName = 'Bingo'
 $publisher = 'stevensT'
 $exeName = 'BingoHud.App.exe'
@@ -71,8 +72,9 @@ function Test-SamePath([string]$a, [string]$b) {
 }
 
 # Each Get- function below is called as @(Get-...). PowerShell sends a one-item result back as a
-# single object, and in Windows PowerShell 5.1 a single registry entry has no .Count, so without
-# the @() a count of one reads as blank and the checks that depend on it never run.
+# single object, and in Windows PowerShell 5.1 a single registry entry has no .Count. Without the
+# @() a count of one reads as blank: the count check fails wrongly and the checks that depend on
+# it are skipped. The file results are wrapped the same way, to keep one rule.
 
 # Start menu shortcuts named Bingo, wherever under Programs the installer put them. The Startup
 # folder sits inside Programs, so it is left out here and checked on its own.
@@ -111,6 +113,12 @@ Write-Host ''
 
 if ($Expect -eq 'Installed') {
     Report (Test-Path $exePath -PathType Leaf) "The executable is at $exePath"
+    if (Test-Path $exePath -PathType Leaf) {
+        # The app reports X.Y.Z+commit. Checked on the file itself, because the Settings > Apps entry
+        # is written even when replacing the file failed.
+        $exeVersion = (Get-Item $exePath).VersionInfo.ProductVersion
+        Report ($exeVersion -eq $Version -or $exeVersion -like "$Version+*") "The executable reports version $Version (it reports '$exeVersion')"
+    }
 
     $menu = @(Get-StartMenuShortcuts)
     Report ($menu.Count -eq 1) "Exactly one Start menu shortcut named Bingo (found $($menu.Count))"

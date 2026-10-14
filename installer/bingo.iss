@@ -1,7 +1,7 @@
 ; Builds Bingo-X.Y.Z-setup.exe, a per-user installer around the self-contained executable.
 ; The version and the executable are passed in, so this script holds no version of its own:
 ;
-;   & "$env:LOCALAPPDATA\Programs\Inno Setup 6\ISCC.exe" /DAppVersion=0.3.0 /DSourceExe=artifacts\self-contained\BingoHud.App.exe /DOutputDir=artifacts\release-0.3.0 installer\bingo.iss
+;   & "$env:LOCALAPPDATA\Programs\Inno Setup 6\ISCC.exe" /DAppVersion=X.Y.Z /DSourceExe=artifacts\self-contained\BingoHud.App.exe /DOutputDir=artifacts\release-X.Y.Z installer\bingo.iss
 ;
 ; Run it from the repository root. Every relative path, here and on the command line, is resolved
 ; from there (SourceDir below), not from this script's folder.
@@ -36,7 +36,8 @@ AppSupportURL=https://github.com/stevensT/bingo-hud/issues
 AppUpdatesURL=https://github.com/stevensT/bingo-hud/releases
 VersionInfoVersion={#AppVersion}
 
-; Settings > Apps would otherwise say "Bingo version X.Y.Z". winget matches on this name.
+; Settings > Apps would otherwise say "Bingo version X.Y.Z". winget finds the install by its
+; ProductCode (the AppId key above) and lists it by this name, which must equal its PackageName.
 UninstallDisplayName={#AppName}
 UninstallDisplayIcon={app}\{#AppExe}
 
@@ -67,8 +68,14 @@ SolidCompression=yes
 Name: "en"; MessagesFile: "compiler:Default.isl"
 
 [Tasks]
-; Unticked, so a silent install leaves it off. Inno Setup remembers the choice across upgrades.
+; Unticked, so a first silent install leaves it off. Inno Setup remembers the choice, so an upgrade
+; keeps whatever was chosen before.
 Name: "startatsignin"; Description: "Start Bingo when I sign in"; Flags: unchecked
+
+[InstallDelete]
+; Inno Setup does not remove a task's shortcut when the task is unticked on a later run, so without
+; this, unticking the box would leave Bingo starting at sign-in.
+Type: files; Name: "{userstartup}\{#AppName}.lnk"; Tasks: not startatsignin
 
 [Files]
 Source: "{#SourceExe}"; DestDir: "{app}"; DestName: "{#AppExe}"; Flags: ignoreversion
@@ -111,8 +118,10 @@ begin
   Result := ResultCode;
 end;
 
-// Runs first, before Restart Manager closes anything. The install folder is fixed, so the
-// executable's path is known before the wizard sets {app}.
+// Runs first, before Restart Manager closes anything. The wizard offers no folder choice, so the
+// executable's path is known before {app} is set.
+// deferred: an install moved elsewhere with /DIR= is not found running, so an upgrade closes it
+// and does not start it again. Reading the previous install folder from the registry would lift it.
 function InitializeSetup(): Boolean;
 begin
   BingoWasRunning :=
@@ -136,9 +145,8 @@ begin
     ShellExec('', ExpandConstant('{app}\{#AppExe}'), '', '', SW_SHOWNORMAL, ewNoWait, ResultCode);
 end;
 
-// The uninstaller does not use Restart Manager: an uninstall with Bingo running opened no Restart
-// Manager session, and this is what closed it. It ends a copy still running from the install
-// folder before its files are removed.
+// Inno Setup's uninstaller does not use Restart Manager (an uninstall with Bingo running opened no
+// session), so this ends a copy still running from the install folder before its files are removed.
 procedure CurUninstallStepChanged(CurUninstallStep: TUninstallStep);
 begin
   if CurUninstallStep <> usUninstall then

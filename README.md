@@ -117,7 +117,7 @@ The setup program is built with Inno Setup 6. Verified 2026-10-08 against Inno S
 installed per-user with:
 
 ```
-winget install --id JRSoftware.InnoSetup --exact
+winget install --id JRSoftware.InnoSetup --exact --scope user
 ```
 
 That puts the command-line compiler at `%LOCALAPPDATA%\Programs\Inno Setup 6\ISCC.exe` and does
@@ -210,11 +210,13 @@ install. If a published file turns out to be wrong, release a new version instea
    ```
 
 5. **Publish both executables** with the two commands under Publishing, from the tagged commit
-   with no uncommitted changes. Check the version they carry; it reads `X.Y.Z+` followed by the
-   tagged commit:
+   with no uncommitted changes. Check the version both carry; each reads `X.Y.Z+` followed by the
+   tagged commit. A folder left over from an earlier release still holds that release's exe, so
+   both are checked:
 
    ```
    (Get-Item artifacts\self-contained\BingoHud.App.exe).VersionInfo.ProductVersion
+   (Get-Item artifacts\framework-dependent\BingoHud.App.exe).VersionInfo.ProductVersion
    ```
 
 6. **Build the setup program** from the self-contained build:
@@ -231,27 +233,33 @@ install. If a published file turns out to be wrong, release a new version instea
    Copy-Item artifacts\framework-dependent\BingoHud.App.exe artifacts\release-X.Y.Z\Bingo-X.Y.Z-win-x64-framework-dependent.exe
    ```
 
-8. **Scan the setup with Microsoft Defender.** It must report no threats. If it finds one, stop
-   and report it to Microsoft as a false positive before uploading anything:
+8. **Scan the release files with Microsoft Defender.** The scan must report no threats and the
+   exit code must be 0; 2 means a threat was found, and anything else means the scan did not
+   run. If it finds one, stop and report it to Microsoft as a false positive before uploading
+   anything:
 
    ```
-   & "$env:ProgramFiles\Windows Defender\MpCmdRun.exe" -Scan -ScanType 3 -File "$PWD\artifacts\release-X.Y.Z\Bingo-X.Y.Z-setup.exe" -DisableRemediation
+   & "$env:ProgramFiles\Windows Defender\MpCmdRun.exe" -Scan -ScanType 3 -File "$PWD\artifacts\release-X.Y.Z" -DisableRemediation
+   $LASTEXITCODE
    ```
 
-9. **Test the upgrade** over the previous version, installed and running, using the silent
-   switches winget uses. Then run the check script; add `-StartsAtSignIn` if the installed copy
-   starts at sign-in. Every check must pass, and Bingo must be running again with the HUD where
-   it was:
+9. **Test the upgrade** over the previous version, installed and running, with the setup fully
+   silent, as `winget install --silent` runs it. A plain winget install uses `/SILENT` instead,
+   which shows a progress window; both skip the Launch box. The exit code must be 0. Then run the
+   check script; add `-StartsAtSignIn` if the installed copy starts at sign-in. Every check must
+   pass, and Bingo must be running again with the HUD where it was:
 
    ```
    $setup = Start-Process artifacts\release-X.Y.Z\Bingo-X.Y.Z-setup.exe -ArgumentList '/VERYSILENT /SUPPRESSMSGBOXES /NORESTART /SP-' -PassThru
    $setup.WaitForExit()
+   $setup.ExitCode
    installer\check-install.ps1 -Expect Installed -Version X.Y.Z
    ```
 
    Do not use `Start-Process -Wait` here. In Windows PowerShell it waits for every process the
    setup starts, and the setup restarts Bingo as its last step, so the wait never ends.
-10. **Hash the release files.** These go in the release notes:
+10. **Hash the release files.** These go in the release notes. The list must name all three
+    files; a missing one is simply left out, with no error:
 
     ```
     Get-FileHash artifacts\release-X.Y.Z\*.exe
@@ -259,14 +267,16 @@ install. If a published file turns out to be wrong, release a new version instea
 
 11. **Publish the GitHub release** from the `vX.Y.Z` tag, with the three files from
     `artifacts\release-X.Y.Z` attached and the notes listing what changed and each file's SHA-256.
-12. **Hash the uploaded setup.** Download it from the release and hash it. It must equal the hash
-    from step 10, and it is the hash the manifest uses. If it differs, stop: do not replace the
-    file.
+12. **Hash the uploaded setup.** Download it from the release and compare it with the local
+    file; the last line must print `True`. The hash printed above it is the one the manifest
+    uses. If they differ, stop: do not replace the file.
 
     ```
     $ProgressPreference = 'SilentlyContinue'
-    Invoke-WebRequest https://github.com/stevensT/bingo-hud/releases/download/vX.Y.Z/Bingo-X.Y.Z-setup.exe -OutFile artifacts\uploaded-setup.exe
-    Get-FileHash artifacts\uploaded-setup.exe
+    Invoke-WebRequest https://github.com/stevensT/bingo-hud/releases/download/vX.Y.Z/Bingo-X.Y.Z-setup.exe -OutFile artifacts\uploaded-X.Y.Z-setup.exe
+    $uploaded = (Get-FileHash artifacts\uploaded-X.Y.Z-setup.exe).Hash
+    $uploaded
+    $uploaded -eq (Get-FileHash artifacts\release-X.Y.Z\Bingo-X.Y.Z-setup.exe).Hash
     ```
 
 13. **Write the manifest.** Copy the previous version's folder under `packaging\winget\stevensT.Bingo\`

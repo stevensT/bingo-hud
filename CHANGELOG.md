@@ -11,6 +11,10 @@ be treated as liable to break when that endpoint changes.
 
 ## [Unreleased]
 
+### Fixed
+- Running the setup again with "Start Bingo when I sign in" unticked now stops Bingo starting at
+  sign-in. Before, the shortcut from an earlier install was left in place.
+
 ## [0.4.0] - 2026-10-13
 
 Fixes from a source review of 0.3.0. This is a minor release rather than a patch because one fix

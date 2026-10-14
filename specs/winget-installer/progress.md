@@ -1,11 +1,10 @@
 # Installer and winget — Progress
 
 updated: 2026-10-14
-status: Phases 1 to 4 complete (3.1 closed); Phase 5 in progress (5.2 done, 5.1 written with two commands untested, 0.4.0 manifest written and validated)
+status: Phases 1 to 4 complete (3.1 closed); Phase 5 in progress (5.2 done, 5.1 and 5.3 done, 0.4.0 manifest written and validated)
 blockers: none
-next_session: prove the two untested commands in the README's release checklist (5.1), then 5.3,
-the review. Bingo 0.4.0 is installed by the upgrade test, starts at sign-in, and is the daily
-copy; local manifests are turned off.
+next_session: 5.4, the submission, is Trevor's; then 5.5 after the merge, and BV.1 to BV.4. Bingo 0.4.0 is installed by the upgrade test, starts at sign-in, and is the daily
+copy; local manifests were turned on 2026-10-14 for the download check.
 
 ## 2026-10-14: 3.1 closed, and the release checklist (5.1)
 
@@ -24,9 +23,32 @@ copy; local manifests are turned off.
   The install and upgrade behaviour is covered by step 9's upgrade test, run before upload,
   because an asset cannot be fixed once published. A full `winget install --manifest` would need
   Bingo uninstalled first, which loses the sign-in shortcut on a silent reinstall.
-- Untested as written: `winget download --manifest` (needs local manifests turned on), and
-  whether `$setup.WaitForExit()` returns once the setup has finished rather than before. The
-  outer setup file is expected to wait for the setup process it unpacks; not yet observed.
+- Step 14 proven on the 0.4.0 manifest, with local manifests turned on by Trevor in an
+  administrator terminal (a first attempt from an ordinary terminal left the setting disabled,
+  and winget refused with exit code -1978335230). `winget download --manifest` printed
+  "Successfully verified installer hash", exit 0, and saved the setup as
+  `Bingo_0.4.0_User_X64_inno_en-US.exe`, 69,113,615 bytes, SHA-256 `DEE89C0C…0B39`. A throwaway copy
+  of the manifest with the hash altered failed with "Installer hash does not match", exit
+  -1978335215, so the check can fail. Both download folders under `artifacts\` were deleted.
+- Step 9 proven by reinstalling 0.4.0 over itself (Trevor approved), run exactly as the README
+  writes it. Baseline `-Expect Installed -Version 0.4.0 -StartsAtSignIn` passed first.
+  `WaitForExit()` returned after 4 seconds with exit code 0, 0.14 seconds after the restarted
+  Bingo started, and no setup process was left, so the outer setup file does wait for the one it
+  unpacks. All nine checks passed afterwards. 5.1 is done; AC-16 met.
+
+## 2026-10-14: the review (5.3)
+
+- Three reviews ran on the installer feature: general code, comments, and error handling.
+  Findings, resolutions and deferrals are recorded under 5.3 in `tasks.md`.
+- The new executable version check in `check-install.ps1` passed on the installed 0.4.0 (it
+  reports `0.4.0+19d5aa3…`; ten checks now with `-StartsAtSignIn`) and failed with `-Version
+  0.4.1`, beside the entry's version check.
+- `bingo.iss` with `[InstallDelete]` compiles with no errors (built to a throwaway folder, then
+  deleted); not yet run. The published 0.4.0 setup does not have it.
+- The folder-wide Defender scan of `artifacts\release-0.4.0` found no threats, exit code 0.
+  Step 12's scripted comparison, run on 0.4.0, printed the manifest's hash and `True`.
+- The 0.4.0 winget description was corrected before submission; `winget validate` still passes.
+  The 0.3.0 folder is left as the record of what was tested.
 
 ## 2026-10-13: the submission retargeted to 0.4.0
 

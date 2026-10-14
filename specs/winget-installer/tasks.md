@@ -112,7 +112,7 @@ as given in `plan.md` under Interfaces.
 
 ## Phase 5: Submission and the routine
 
-- [~] 5.1 Rewrite the README's release steps as one ordered checklist covering the whole path, from
+- [x] 5.1 Rewrite the README's release steps as one ordered checklist covering the whole path, from
       version bump to winget pull request, including the rule that a published asset is never
       replaced and how to uninstall by hand, settings folder included. Remove the Chocolatey
       mentions from the Publishing section. (AC-8, AC-16)
@@ -127,8 +127,26 @@ as given in `plan.md` under Interfaces.
       already pushed and is not moved, so the tagged snapshot lacks the line. Winget is left out
       until the package is live (5.5); a line naming a package that cannot be installed yet
       would be wrong on the day it is read.*
-- [ ] 5.3 Run the review on the feature's changes and resolve or defer each finding, recording
+- [x] 5.3 Run the review on the feature's changes and resolve or defer each finding, recording
       deferrals here.
+      *Done 2026-10-14. Resolved: the winget description's click-through and notification claims;
+      an executable version check in `check-install.ps1`; the release checklist's version check
+      on both builds, folder-wide Defender scan with exit code, setup exit code, three-file hash
+      list, and scripted comparison of the uploaded setup; `--scope user` for Inno Setup; comments
+      that overstated how winget matches the install. Fixed but untested: `[InstallDelete]` in
+      `bingo.iss`, so unticking "Start Bingo when I sign in" on a later run removes the shortcut.
+      It ships with the next release; before that release is published, run its setup
+      interactively with the box unticked over an install that has it ticked, then
+      `check-install.ps1 -Expect Installed` without `-StartsAtSignIn`.
+      Deferred, with Bingo running as an ordinary per-user app and the normal paths tested (2.4,
+      2.7, 4.4, 4.5): a Bingo running elevated is invisible to the setup's and the check script's
+      process match, so an uninstall can leave the exe behind; the uninstall fallback and the
+      relaunch ignore their own results; a blocked PowerShell reads as "Bingo was not running";
+      an install that aborts after Restart Manager closed Bingo does not start it again. Also
+      deferred: an install moved with `/DIR=` (marked `deferred:` in `bingo.iss`); the check
+      script does not look for a machine-wide entry or an entry found only by its `_is1` key, or
+      confirm the uninstaller file exists. Rejected: "`Scope: user` untried through winget"; 4.3
+      and 4.4 installed and upgraded through winget with the same manifest fields.*
 - [ ] 5.4 Submit: fork `microsoft/winget-pkgs`, copy the manifest to
       `manifests/s/stevensT/Bingo/0.4.0/`, open the pull request **(Trevor)**. Record the PR link
       here, and any pipeline findings and their fixes. *Amended 2026-10-13: 0.3.0 is never
