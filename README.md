@@ -297,7 +297,9 @@ install. If a published file turns out to be wrong, release a new version instea
     its hash, and runs it the way it will on other machines. That is not the same as running it
     directly: started by winget, the setup has been seen to get no help from Windows in closing
     Bingo, which step 9 cannot show. winget must report "Successfully installed", Bingo must be
-    running again, and every check must pass (with `-StartsAtSignIn` if it starts at sign-in).
+    running again as a new process, and every check must pass (with `-StartsAtSignIn` if it
+    starts at sign-in). Step 9 already installed this version, so the checks alone do not show
+    that winget ran the setup; the message and the restarted Bingo do.
     This needs local manifests turned on, an administrator setting: run
     `winget settings --enable LocalManifestFiles` in an administrator terminal first, and
     `winget settings --disable LocalManifestFiles` after.

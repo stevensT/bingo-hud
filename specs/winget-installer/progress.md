@@ -1,10 +1,10 @@
 # Installer and winget — Progress
 
 updated: 2026-10-14
-status: Phases 1 to 4 complete (3.1 closed); Phase 5 in progress (5.2 done, 5.1 and 5.3 done, 5.6 code-complete and awaiting review, 0.4.0 manifest written and validated)
+status: Phases 1 to 4 complete (3.1 closed); Phase 5 in progress (5.2 done, 5.1, 5.3 and 5.6 done, 5.4 open as microsoft/winget-pkgs#452730, 0.4.0 manifest written and validated)
 blockers: none
-next_session: 5.6 is code-complete and proven; it waits on the review of its `bingo.iss` change.
-5.4, the submission, is Trevor's; then 5.5 after the merge, and BV.1 to BV.4. Bingo 0.4.0 is installed by the upgrade test, starts at sign-in, and is the daily
+next_session: follow microsoft/winget-pkgs#452730 (5.4): it needs Trevor's CLA, then the
+validation pipeline and a moderator. Then 5.5 after the merge, and BV.1 to BV.4. Bingo 0.4.0 is installed by the upgrade test, starts at sign-in, and is the daily
 copy; local manifests were turned on 2026-10-14 for the download check.
 
 ## 2026-10-14: 3.1 closed, and the release checklist (5.1)

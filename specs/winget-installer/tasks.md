@@ -146,18 +146,21 @@ as given in `plan.md` under Interfaces.
       script does not look for a machine-wide entry or an entry found only by its `_is1` key, or
       confirm the uninstaller file exists. Rejected: "`Scope: user` untried through winget"; 4.3
       and 4.4 installed and upgraded through winget with the same manifest fields.*
-- [ ] 5.4 Submit: fork `microsoft/winget-pkgs`, copy the manifest to
+- [~] 5.4 Submit: fork `microsoft/winget-pkgs`, copy the manifest to
       `manifests/s/stevensT/Bingo/0.4.0/`, open the pull request **(Trevor)**. Record the PR link
       here, and any pipeline findings and their fixes. *Amended 2026-10-13: 0.3.0 is never
       submitted. The 0.3.0 review fixes shipped as 0.4.0 before the submission, so the first
       version in winget is 0.4.0 rather than one already superseded.*
+      *Opened 2026-10-14 17:07 UTC: https://github.com/microsoft/winget-pkgs/pull/452730, "New
+      package: stevensT.Bingo version 0.4.0", adding only the three 0.4.0 manifest files. First
+      label: Needs-CLA.*
 - [ ] 5.5 After the PR merges: on a machine or Windows Sandbox that has never had Bingo,
       `winget install stevensT.Bingo` with no local manifest, then `-Expect Installed`. (AC-15)
       Then, on this machine, `winget list stevensT.Bingo` shows the installed 0.4.0 by its package
       ID, which is the link `winget upgrade` depends on. (AC-13) *Added 2026-10-08, moved from 4.3.
       Amended 2026-10-13 to 0.4.0, as 5.4.*
 
-- [~] 5.6 Make the setup close a running Bingo itself, so an install or upgrade run by winget does
+- [x] 5.6 Make the setup close a running Bingo itself, so an install or upgrade run by winget does
       not depend on Restart Manager. *Added 2026-10-14, Trevor's call, after the winget install
       of 0.4.0 failed with Bingo running (progress, same date): run by winget, Restart Manager
       also reported `System` holding the exe and closed nothing. Not in the published 0.4.0
@@ -182,6 +185,14 @@ as given in `plan.md` under Interfaces.
         as seen 2026-10-14, then the check script.
       - Restore: reinstall the published 0.4.0 setup, delete the throwaway folders, and Trevor
         turns local manifests off.
+      *Done 2026-10-14; see progress. Reviewed (commit `5cb155d`): no defects. Resolved: step 14
+      now says the checks alone cannot show winget ran the setup over the version step 9
+      installed; the "Successfully installed" message and Bingo restarted as a new process do.
+      Deferred: an install that stops between Preparing and the end (cancel, write error,
+      rollback) leaves Bingo closed, as Restart Manager's close at the same stage already did
+      before this change; relaunching from `DeinitializeSetup` would lift it. Also deferred: a
+      Bingo started while the wizard is open is closed and not restarted, since the relaunch
+      follows only what was running when setup began.*
 
 ## Build Verification
 
