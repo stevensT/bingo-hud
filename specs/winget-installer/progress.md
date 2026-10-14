@@ -1,13 +1,32 @@
 # Installer and winget — Progress
 
-updated: 2026-10-13
-status: Phase 4 complete; 3.1 still waiting on the release notes; Phase 5 in progress (5.2 done, 0.4.0 manifest written and validated)
+updated: 2026-10-14
+status: Phases 1 to 4 complete (3.1 closed); Phase 5 in progress (5.2 done, 5.1 written with two commands untested, 0.4.0 manifest written and validated)
 blockers: none
-next_session: finish task 3.1, which is Trevor's: the release notes have no line about the
-setup, still say there is no installer, and end with a stray pasted fragment. A replacement
-Getting started section and Downloads table were proposed on 2026-10-08. Then 5.1, the README's
-release checklist. Bingo 0.3.0 is installed by Trevor's setup run, starts at sign-in, and is the
-daily copy; local manifests are turned off again.
+next_session: prove the two untested commands in the README's release checklist (5.1), then 5.3,
+the review. Bingo 0.4.0 is installed by the upgrade test, starts at sign-in, and is the daily
+copy; local manifests are turned off.
+
+## 2026-10-14: 3.1 closed, and the release checklist (5.1)
+
+- 3.1 closed at Trevor's call. The 0.3.0 release has the setup attached (69,114,465 bytes), but its
+  notes were left as they were: no line about the setup, "There's no installer" under Getting
+  started, and a stray fragment of the 0.3.0 bullet after the hash block. 0.3.0 is never
+  submitted to winget, and the 0.4.0 page carries the setup.
+- README: a Releasing section with sixteen ordered steps, from choosing the version to the winget
+  pull request, carrying the never-replace rule, the Defender scan, the upgrade test with the
+  `Start-Process -Wait` trap, the hash of the uploaded setup, and the manifest folder. A Removing
+  Bingo section, settings folder included (AC-8). The Publishing section no longer names
+  Chocolatey or says winget ships the framework-dependent build: winget installs the setup, which
+  wraps the self-contained one.
+- Each release's local check (AC-16's "check it locally") is `winget validate` plus
+  `winget download --manifest`, which fetches the setup through the manifest and checks its hash.
+  The install and upgrade behaviour is covered by step 9's upgrade test, run before upload,
+  because an asset cannot be fixed once published. A full `winget install --manifest` would need
+  Bingo uninstalled first, which loses the sign-in shortcut on a silent reinstall.
+- Untested as written: `winget download --manifest` (needs local manifests turned on), and
+  whether `$setup.WaitForExit()` returns once the setup has finished rather than before. The
+  outer setup file is expected to wait for the setup process it unpacks; not yet observed.
 
 ## 2026-10-13: the submission retargeted to 0.4.0
 

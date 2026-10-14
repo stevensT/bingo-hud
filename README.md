@@ -60,6 +60,20 @@ Two consequences worth stating plainly:
 - Claude Code installed and signed in — Bingo reads its credentials and delegates token refresh
   to it
 
+## Removing Bingo
+
+If you installed it with the setup program, uninstall it from **Settings > Apps > Installed
+apps**. That closes Bingo if it is running and removes the app, its Start menu entry, and the
+sign-in shortcut. Your settings stay in `%LOCALAPPDATA%\Bingo`, so reinstalling puts the HUD back
+where you left it. To remove them as well, delete that folder after uninstalling. In PowerShell:
+
+```
+Remove-Item "$env:LOCALAPPDATA\Bingo" -Recurse
+```
+
+If you run the standalone exe instead, quit Bingo from its tray icon, then delete the exe, that
+same folder, and any shortcut to it you put in your Startup folder (Win+R, `shell:startup`).
+
 ## Repository layout
 
 | Path | Contents |
@@ -118,25 +132,22 @@ not add it to `PATH`, so call it by its full path. In PowerShell:
 Bingo ships in two shapes, each a single `.exe`. Publish to separate folders under `artifacts/`,
 which is git-ignored; the default publish folder is shared, so one would overwrite the other.
 
-**Self-contained**, for downloading from the GitHub releases page. Needs nothing else installed, on
-any 64-bit Windows version .NET 9 supports. Tested on Windows 11 only:
+**Self-contained**, for the GitHub releases page and the setup program, which wraps it. Needs
+nothing else installed, on any 64-bit Windows version .NET 9 supports. Tested on Windows 11 only:
 
 ```
 dotnet publish src/BingoHud.App/BingoHud.App.csproj -c Release -r win-x64 --self-contained -p:PublishSingleFile=true -p:IncludeNativeLibrariesForSelfExtract=true -p:EnableCompressionInSingleFile=true -o artifacts/self-contained
 ```
 
-**Framework-dependent**, for winget and Chocolatey. Needs the .NET 9 Desktop Runtime, which the
-package manifest declares as a dependency so the package manager installs it first:
+**Framework-dependent**, for anyone who already has the .NET 9 Desktop Runtime. Same app, a
+fraction of the download, but it will not start without that runtime:
 
 ```
 dotnet publish src/BingoHud.App/BingoHud.App.csproj -c Release -r win-x64 --self-contained false -p:PublishSingleFile=true -o artifacts/framework-dependent
 ```
 
-Ship `BingoHud.App.exe` from each folder, renamed for the release so the two can sit side by side
-on one GitHub release: `Bingo-X.Y.Z-win-x64.exe` for the self-contained build and
-`Bingo-X.Y.Z-win-x64-framework-dependent.exe` for the other. Publish after the release commit is
-tagged, so the version the app reports carries that commit. The `.pdb` files beside each exe are
-debug symbols and are not shipped.
+Each folder's `BingoHud.App.exe` is shipped renamed, as Releasing below describes. The `.pdb`
+files beside each exe are debug symbols and are not shipped.
 
 Measured 2026-09-22 on SDK 9.0.317, launched from a folder outside the repository:
 
@@ -174,6 +185,118 @@ The version earns its keep beyond bookkeeping: when the upstream payload drifts,
 question is which build is misreading it. A version the app displays and a changelog that
 explains it is what makes that answerable. Record user-visible changes under `[Unreleased]` as
 they land.
+
+## Releasing
+
+Every release follows these steps, in order. Commands are PowerShell, run from the repository
+root; `X.Y.Z` is the new version.
+
+One rule overrides convenience: **a file attached to a published release is never replaced.** The
+winget manifest pins the setup's SHA-256, so a replaced file fails the hash check on every winget
+install. If a published file turns out to be wrong, release a new version instead.
+
+1. **Choose the version** by the rules under Versioning.
+2. **Bump and record.** Set `<Version>` in `src/BingoHud.App/BingoHud.App.csproj` to `X.Y.Z`,
+   and move the entries under `[Unreleased]` in `CHANGELOG.md` into a new
+   `## [X.Y.Z] - YYYY-MM-DD` section.
+3. **Check the build.** Run `dotnet clean`, then `dotnet build` and `dotnet test`: no warnings, no
+   failures. The clean matters, because an incremental build does not repeat warnings for
+   projects it did not rebuild.
+4. **Commit and tag.** Commit the release, then tag that commit and push both:
+
+   ```
+   git tag vX.Y.Z
+   git push origin main vX.Y.Z
+   ```
+
+5. **Publish both executables** with the two commands under Publishing, from the tagged commit
+   with no uncommitted changes. Check the version they carry; it reads `X.Y.Z+` followed by the
+   tagged commit:
+
+   ```
+   (Get-Item artifacts\self-contained\BingoHud.App.exe).VersionInfo.ProductVersion
+   ```
+
+6. **Build the setup program** from the self-contained build:
+
+   ```
+   & "$env:LOCALAPPDATA\Programs\Inno Setup 6\ISCC.exe" /DAppVersion=X.Y.Z /DSourceExe=artifacts\self-contained\BingoHud.App.exe /DOutputDir=artifacts\release-X.Y.Z installer\bingo.iss
+   ```
+
+7. **Gather the release files** beside the setup, renamed so they can sit side by side on one
+   release:
+
+   ```
+   Copy-Item artifacts\self-contained\BingoHud.App.exe artifacts\release-X.Y.Z\Bingo-X.Y.Z-win-x64.exe
+   Copy-Item artifacts\framework-dependent\BingoHud.App.exe artifacts\release-X.Y.Z\Bingo-X.Y.Z-win-x64-framework-dependent.exe
+   ```
+
+8. **Scan the setup with Microsoft Defender.** It must report no threats. If it finds one, stop
+   and report it to Microsoft as a false positive before uploading anything:
+
+   ```
+   & "$env:ProgramFiles\Windows Defender\MpCmdRun.exe" -Scan -ScanType 3 -File "$PWD\artifacts\release-X.Y.Z\Bingo-X.Y.Z-setup.exe" -DisableRemediation
+   ```
+
+9. **Test the upgrade** over the previous version, installed and running, using the silent
+   switches winget uses. Then run the check script; add `-StartsAtSignIn` if the installed copy
+   starts at sign-in. Every check must pass, and Bingo must be running again with the HUD where
+   it was:
+
+   ```
+   $setup = Start-Process artifacts\release-X.Y.Z\Bingo-X.Y.Z-setup.exe -ArgumentList '/VERYSILENT /SUPPRESSMSGBOXES /NORESTART /SP-' -PassThru
+   $setup.WaitForExit()
+   installer\check-install.ps1 -Expect Installed -Version X.Y.Z
+   ```
+
+   Do not use `Start-Process -Wait` here. In Windows PowerShell it waits for every process the
+   setup starts, and the setup restarts Bingo as its last step, so the wait never ends.
+10. **Hash the release files.** These go in the release notes:
+
+    ```
+    Get-FileHash artifacts\release-X.Y.Z\*.exe
+    ```
+
+11. **Publish the GitHub release** from the `vX.Y.Z` tag, with the three files from
+    `artifacts\release-X.Y.Z` attached and the notes listing what changed and each file's SHA-256.
+12. **Hash the uploaded setup.** Download it from the release and hash it. It must equal the hash
+    from step 10, and it is the hash the manifest uses. If it differs, stop: do not replace the
+    file.
+
+    ```
+    $ProgressPreference = 'SilentlyContinue'
+    Invoke-WebRequest https://github.com/stevensT/bingo-hud/releases/download/vX.Y.Z/Bingo-X.Y.Z-setup.exe -OutFile artifacts\uploaded-setup.exe
+    Get-FileHash artifacts\uploaded-setup.exe
+    ```
+
+13. **Write the manifest.** Copy the previous version's folder under `packaging\winget\stevensT.Bingo\`
+    to a new `X.Y.Z` folder, then edit the copies in an editor:
+    - all three files: `PackageVersion`;
+    - `stevensT.Bingo.installer.yaml`: `ReleaseDate` (the day the release was published),
+      `InstallerUrl`, and `InstallerSha256` from step 12;
+    - `stevensT.Bingo.locale.en-US.yaml`: `ReleaseNotesUrl`.
+
+    Nothing else changes unless the setup itself changed.
+14. **Check the manifest.** winget's own validation must pass:
+
+    ```
+    winget validate --manifest packaging\winget\stevensT.Bingo\X.Y.Z
+    ```
+
+    Then have winget download the setup through the manifest, which checks the URL and hash
+    together the way an install would. This needs local manifests turned on, an administrator
+    setting: run `winget settings --enable LocalManifestFiles` in an administrator terminal
+    first, and `winget settings --disable LocalManifestFiles` after.
+
+    ```
+    winget download --manifest packaging\winget\stevensT.Bingo\X.Y.Z --download-directory artifacts\winget-check
+    ```
+
+15. **Commit the manifest folder** and push it.
+16. **Submit to winget.** In a fork of
+    [`microsoft/winget-pkgs`](https://github.com/microsoft/winget-pkgs), copy the folder to
+    `manifests/s/stevensT/Bingo/X.Y.Z/` and open a pull request. Its automated checks install the
+    package on a clean machine; a moderator then reviews and merges it.
 
 ## Prior art
 

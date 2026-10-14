@@ -78,8 +78,11 @@ as given in `plan.md` under Interfaces.
 
 ## Phase 3: The release asset
 
-- [~] 3.1 Upload `Bingo-0.3.0-setup.exe` to the existing 0.3.0 release, without touching the assets
+- [x] 3.1 Upload `Bingo-0.3.0-setup.exe` to the existing 0.3.0 release, without touching the assets
       already there, and add a line about it to the release notes **(Trevor)**. (AC-1, AC-10)
+      *Closed 2026-10-14 at Trevor's call with the upload done and the notes left unchanged: 0.3.0
+      is never submitted to winget, and the 0.4.0 release carries the setup on its page. The 0.3.0
+      notes still say there is no installer and end with a stray pasted fragment.*
 - [x] 3.2 Download the uploaded setup from its public URL and hash it; the hash must equal the local
       file's. This is the hash the manifest uses.
 
@@ -109,7 +112,7 @@ as given in `plan.md` under Interfaces.
 
 ## Phase 5: Submission and the routine
 
-- [ ] 5.1 Rewrite the README's release steps as one ordered checklist covering the whole path, from
+- [~] 5.1 Rewrite the README's release steps as one ordered checklist covering the whole path, from
       version bump to winget pull request, including the rule that a published asset is never
       replaced and how to uninstall by hand, settings folder included. Remove the Chocolatey
       mentions from the Publishing section. (AC-8, AC-16)
