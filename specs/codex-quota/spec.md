@@ -39,7 +39,8 @@ Recorded so they are not reopened:
   check mark in the tray menu (AC-8b, AC-8c).
 - A Codex reading that stopped because Codex is idle looks different from one that stopped because
   a fetch failed (AC-3a).
-- Readings from a remote source carry a remote icon; local readings carry none (AC-3b).
+- Codex readings from a remote source carry a remote icon; local readings carry none. Claude
+  lines never carry it (AC-3b).
 - Target release 0.4.0.
 
 ## Acceptance Criteria
@@ -58,10 +59,14 @@ Recorded so they are not reopened:
 - [ ] AC-3b: A reading taken on this machine carries no mark. A reading fetched from a remote
       source carries a remote icon, so the reader can tell a figure from Codex's own logs here
       from one the server reported for the whole account.
-      [Assumed, to confirm: the icon applies to Codex only. Bingo can tell where a reading came
-      from, not where the usage behind it happened, so the icon marks the source of the reading.
-      Every Claude reading comes from the server, so under the same rule every Claude line would
-      carry the icon permanently, which tells the reader nothing.]
+      The icon is Codex-only. Bingo can tell where a reading came from, not where the usage
+      behind it happened, so the icon marks the source of the reading, and only Codex has two
+      possible sources. Every Claude reading comes from the server and is already the
+      account-wide figure, so on Claude lines the icon would be permanent, would carry no
+      information, and would teach the reader to ignore it where it does mean something. The
+      cost: an unmarked line means "this machine's logs" for Codex and "the server" for Claude.
+      That is accepted, because what protects the reader from acting on an old figure is the
+      staleness marking (AC-3a and the existing Claude marks), not the icon.
       [Depends on the spike: a remote Codex reading exists only if Codex is also read from its
       endpoint. If the session logs prove sufficient on their own, Codex has no remote readings
       and this criterion is dropped.]
@@ -116,7 +121,6 @@ Recorded so they are not reopened:
 
 ## Open Questions
 
-- Whether the remote icon (AC-3b) applies to Codex only. Assumed so; to confirm.
 - The source, and with it whether "nothing leaves your machine" still holds: settled by the spike.
 
 ## Dependencies

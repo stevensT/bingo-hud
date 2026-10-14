@@ -1,7 +1,7 @@
 # Spike: Codex session log probe
 
-**Status:** open — written 2026-10-13, criteria agreed 2026-10-13, not yet run
-**Script:** `scripts/codex-ratelimit-probe.js` (to be written once the criteria below are agreed)
+**Status:** open — written and criteria agreed 2026-10-13; first run 2026-10-13; due to close no earlier than 2026-10-21
+**Script:** `scripts/codex-ratelimit-probe.js`
 
 ## Question
 
@@ -42,8 +42,8 @@ One record, from the newest log on 2026-10-13:
 `primary` is a five-hour window and `secondary` a weekly one, each with a consumed percentage and
 a reset time in Unix seconds. The weekly reset falls on Tue 2026-10-20 15:47 local time.
 
-Only seven logs exist, all from 2026-10-13. A survey of history cannot answer the question; the
-probe has to run forward.
+Only seven logs exist: three from 2026-08-12 and four from 2026-10-13. That is too little
+history to answer the question, so the probe has to run forward.
 
 ## Method
 
@@ -113,7 +113,22 @@ committed so the experiment is reproducible, not because it is a deliverable.
 
 ## Findings
 
-None yet.
+**2026-10-13, first run: 7 logs, 131 records.**
+
+- **The older version wrote no figures.** All three logs from `Codex Desktop 0.147.0-alpha.6.6`
+  (2026-08-12) have one record each, and each is `rate_limits: null`. The 128 records from
+  `0.162.0-alpha.17.2`, written by both originators, share one shape. So the shape has already
+  changed once across versions. That is a change from nothing to something rather than a field
+  moving, but it means any reader has to treat a null record as "no reading", never as 0%. It
+  does not trigger the "shape changes" row yet; whether it does depends on what the next version
+  writes.
+- **One reset observed, and it behaved.** The five-hour window reset at 8:47 PM. The last record
+  before it read 50%, and the first after it, at 9:23 PM, read 0% with a later reset time.
+- **Records arrive every turn but not continuously.** The longest gap inside one session was
+  99 minutes, presumably idle time. One log has no records at all.
+- **Values:** `limit_id` was always `codex`, the plan was `plus`, and the windows were always 300
+  and 10080 minutes.
+- **Comparisons with Codex's own figure:** none yet.
 
 ## Result
 

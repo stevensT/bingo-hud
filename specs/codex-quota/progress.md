@@ -1,9 +1,9 @@
 # Codex Quota — Progress
 
 updated: 2026-10-13
-status: Phase 2 (spec) drafted; spike written, not yet run
-blockers: spec open on whether the remote icon (AC-3b) is Codex-only
-next_session: write `scripts/codex-ratelimit-probe.js`, start the week-long run (spans the weekly reset on 2026-10-20)
+status: Phase 2 (spec) drafted; session log spike running since 2026-10-13
+blockers: spike open until at least 2026-10-21
+next_session: run the probe, record any comparisons against Codex's own figure in the spike document; close it after the weekly reset on 2026-10-20
 
 ## Checkpoints
 
