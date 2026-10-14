@@ -41,7 +41,9 @@ Recorded so they are not reopened:
   a fetch failed (AC-3a).
 - Codex readings from a remote source carry a remote icon; local readings carry none. Claude
   lines never carry it (AC-3b).
-- Target release 0.4.0.
+- Target release 0.5.0. First set at 0.4.0, and moved on 2026-10-13 when the 0.3.0 review fixes
+  took 0.4.0: one of them changes how the usage response is parsed, which the versioning policy
+  makes at least MINOR.
 
 ## Acceptance Criteria
 
@@ -91,7 +93,7 @@ Recorded so they are not reopened:
       existing display settings are and persisted like them. At least one product is always on.
 - [ ] AC-8a: The first time Bingo starts without that setting saved, it asks which products to
       show, and remembers the answer. This covers a new install and the first start after
-      upgrading from 0.3.0. Bingo does not ask again; the answer is changed afterwards through the
+      upgrading from an earlier version. Bingo does not ask again; the answer is changed afterwards through the
       setting.
 - [ ] AC-8b: Before asking, Bingo looks for Claude Code and Codex on the machine. Each one found
       starts ticked; the user unticks any they do not want before continuing. A product not found
@@ -99,7 +101,7 @@ Recorded so they are not reopened:
       installed later.
 - [ ] AC-8c: After setup, each product has a check mark in the tray menu beside the existing
       display settings, which turns it on or off.
-- [ ] AC-9: With only Claude shown, the HUD reads as 0.3.0 does apart from the product label
+- [ ] AC-9: With only Claude shown, the HUD reads as 0.4.0 does apart from the product label
       (AC-7a).
 
 ### Alerts

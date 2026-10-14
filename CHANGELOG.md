@@ -11,6 +11,12 @@ be treated as liable to break when that endpoint changes.
 
 ## [Unreleased]
 
+## [0.4.0] - 2026-10-13
+
+Fixes from a source review of 0.3.0. This is a minor release rather than a patch because one fix
+changes how the usage response is read: a known field in the wrong shape is now reported as
+unreadable instead of being passed over.
+
 ### Fixed
 - An account that reports a per-model weekly cap no longer crashes Bingo when that cap runs
   low. Per-model caps stay in the detail panel and do not raise notifications, the same way

@@ -1,6 +1,6 @@
 # Installer and winget — Progress
 
-updated: 2026-10-08
+updated: 2026-10-13
 status: Phase 4 complete; 3.1 still waiting on the release notes; Phase 5 not started
 blockers: none
 next_session: finish task 3.1, which is Trevor's: the release notes have no line about the
@@ -8,6 +8,16 @@ setup, still say there is no installer, and end with a stray pasted fragment. A 
 Getting started section and Downloads table were proposed on 2026-10-08. Then 5.1, the README's
 release checklist. Bingo 0.3.0 is installed by Trevor's setup run, starts at sign-in, and is the
 daily copy; local manifests are turned off again.
+
+## 2026-10-13: the submission retargeted to 0.4.0
+
+- The ten fixes from the 0.3.0 source review are being released before the winget submission. One
+  of them changes how the usage response is parsed, so under the versioning policy the release is
+  0.4.0, not 0.3.1.
+- Trevor's call: 0.3.0 is never submitted to winget. 5.4 and 5.5 now name 0.4.0. The 0.3.0
+  manifest folder stays as the record of what 4.1 to 4.5 tested.
+- Not yet covered by any task: a 0.4.0 manifest folder, its hash, and its validation. Raised
+  rather than added.
 
 ## 2026-10-08: the check script run red (1.3)
 

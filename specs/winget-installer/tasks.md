@@ -117,12 +117,15 @@ as given in `plan.md` under Interfaces.
 - [ ] 5.3 Run the review on the feature's changes and resolve or defer each finding, recording
       deferrals here.
 - [ ] 5.4 Submit: fork `microsoft/winget-pkgs`, copy the manifest to
-      `manifests/s/stevensT/Bingo/0.3.0/`, open the pull request **(Trevor)**. Record the PR link
-      here, and any pipeline findings and their fixes.
+      `manifests/s/stevensT/Bingo/0.4.0/`, open the pull request **(Trevor)**. Record the PR link
+      here, and any pipeline findings and their fixes. *Amended 2026-10-13: 0.3.0 is never
+      submitted. The 0.3.0 review fixes shipped as 0.4.0 before the submission, so the first
+      version in winget is 0.4.0 rather than one already superseded.*
 - [ ] 5.5 After the PR merges: on a machine or Windows Sandbox that has never had Bingo,
       `winget install stevensT.Bingo` with no local manifest, then `-Expect Installed`. (AC-15)
-      Then, on this machine, `winget list stevensT.Bingo` shows the installed 0.3.0 by its package
-      ID, which is the link `winget upgrade` depends on. (AC-13) *Added 2026-10-08, moved from 4.3.*
+      Then, on this machine, `winget list stevensT.Bingo` shows the installed 0.4.0 by its package
+      ID, which is the link `winget upgrade` depends on. (AC-13) *Added 2026-10-08, moved from 4.3.
+      Amended 2026-10-13 to 0.4.0, as 5.4.*
 
 ## Build Verification
 
