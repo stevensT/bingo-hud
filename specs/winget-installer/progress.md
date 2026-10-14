@@ -1,9 +1,10 @@
 # Installer and winget — Progress
 
 updated: 2026-10-14
-status: Phases 1 to 4 complete (3.1 closed); Phase 5 in progress (5.2 done, 5.1 and 5.3 done, 0.4.0 manifest written and validated)
+status: Phases 1 to 4 complete (3.1 closed); Phase 5 in progress (5.2 done, 5.1 and 5.3 done, 5.6 code-complete and awaiting review, 0.4.0 manifest written and validated)
 blockers: none
-next_session: 5.4, the submission, is Trevor's; then 5.5 after the merge, and BV.1 to BV.4. Bingo 0.4.0 is installed by the upgrade test, starts at sign-in, and is the daily
+next_session: 5.6 is code-complete and proven; it waits on the review of its `bingo.iss` change.
+5.4, the submission, is Trevor's; then 5.5 after the merge, and BV.1 to BV.4. Bingo 0.4.0 is installed by the upgrade test, starts at sign-in, and is the daily
 copy; local manifests were turned on 2026-10-14 for the download check.
 
 ## 2026-10-14: 3.1 closed, and the release checklist (5.1)
@@ -49,6 +50,63 @@ copy; local manifests were turned on 2026-10-14 for the download check.
   Step 12's scripted comparison, run on 0.4.0, printed the manifest's hash and `True`.
 - The 0.4.0 winget description was corrected before submission; `winget validate` still passes.
   The 0.3.0 folder is left as the record of what was tested.
+
+## 2026-10-14: winget install of 0.4.0 from the local manifest (before 5.4)
+
+- Run for the pull request checklist's "Tested manifest locally with `winget install --manifest`",
+  with local manifests turned on by Trevor. With 0.4.0 already installed, `winget install
+  --manifest` did not skip; it downloaded, verified the hash, and ran the setup.
+- **With Bingo running, it failed twice in a row**: setup exit code 5, winget -1978334964, "You
+  cancelled the installation". Setup log: Restart Manager found two users of
+  `BingoHud.App.exe`, `System` and `BingoHud.App`, answered "Can use RestartManager to avoid
+  reboot? No (3: Permission Denied+Session Mismatch)", so nothing was closed; replacing the exe
+  failed with access denied, and the suppressed Abort/Retry/Ignore box defaulted to Abort. Setup
+  rolled back cleanly: all ten checks still passed, the same Bingo process kept running.
+- The same setup run directly, at the same time, with winget's own switches (`/SP- /SILENT
+  /SUPPRESSMSGBOXES /NORESTART`) and a log: Restart Manager found only `BingoHud.App`, answered
+  "Yes (0)", closed it, installed, and Bingo restarted; exit code 0. The winget-run log also
+  says "Compatibility mode: Yes (DetectorsAppHealth)", the direct one does not. So the cause is
+  the context winget starts the setup in, not the setup's switches.
+- With Bingo quit first, `winget install --manifest` succeeded: "Successfully installed", exit
+  code 0, all ten checks pass. Bingo was started again by hand from the install folder.
+- Consequence: a first install through winget works, and that is what 5.4 submits. But
+  `winget upgrade` with Bingo running, which is nearly always, fails on this machine as it is
+  today. That contradicts 4.4 (2026-10-08), where `winget upgrade --manifest` closed and
+  restarted a running Bingo; something in winget or Windows has changed since, not identified.
+  The 0.4.0 setup is published and cannot change, but an upgrade runs the *new* version's setup,
+  so a fix in the next release's setup covers everyone upgrading from 0.4.0.
+- The uninstall path already works under winget (4.5) because it stops Bingo itself with
+  `Stop-Process` rather than through Restart Manager. Raised with Trevor; he added it as task
+  5.6, to be fixed and proven through winget now rather than at the next release.
+- The pull request checklist's local install box can be ticked on the strength of the
+  successful install with Bingo quit: a first install is what 5.4 submits.
+
+## 2026-10-14: the setup closes Bingo itself (5.6)
+
+- Inno Setup's documentation: `PrepareToInstall` "is called before Setup checks for files being
+  in-use", so ending Bingo there comes before Restart Manager's check.
+- `bingo.iss`: `PrepareToInstall` ends a Bingo running from `{app}` with the process match the
+  uninstall already used, now shared as `StopBingo`. Compiles with no errors.
+- Red, already recorded above: the published 0.4.0 setup under `winget install --manifest` with
+  Bingo running, exit code 5, twice.
+- Green: the changed setup built as 0.4.0 from the same executable, served from
+  `http://127.0.0.1:8765` by a throwaway Node server, behind a throwaway manifest with its hash
+  (`winget validate` passed with the http URL). `winget install --manifest` with Bingo running:
+  hash verified, "Successfully installed", exit code 0, Bingo running again as a new process, all
+  ten checks pass. The log still shows Restart Manager finding `System` and refusing, so the fix
+  works because the setup no longer depends on it.
+- Direct runs of the changed setup with `/VERYSILENT`: with Bingo running, exit code 0 and Bingo
+  restarted; with Bingo not running, exit code 0 and Bingo stayed closed (2.6 holds). All checks
+  pass after each.
+- The sign-in fix from 5.3 proven at the same time, silently, with `/TASKS=""` standing in for
+  unticking the box. Changed setup: exit code 0 and "No sign-in shortcut" passes; ticked again
+  with `/TASKS="startatsignin"`, the shortcut is back. Red: the published 0.4.0 setup with
+  `/TASKS=""` left the shortcut in place, "No sign-in shortcut" failed (found 1).
+- README release step 14 now installs through the manifest with Bingo running and runs the
+  check script, in place of `winget download`, which it covers.
+- Restored: the published 0.4.0 setup reinstalled with `/TASKS="startatsignin"`, all ten checks
+  pass, Bingo started from the install folder. The throwaway folder `artifacts\task-5.6` was
+  deleted and the server stopped. Local manifests are still on, for Trevor to turn off.
 
 ## 2026-10-13: the submission retargeted to 0.4.0
 

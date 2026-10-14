@@ -293,13 +293,18 @@ install. If a published file turns out to be wrong, release a new version instea
     winget validate --manifest packaging\winget\stevensT.Bingo\X.Y.Z
     ```
 
-    Then have winget download the setup through the manifest, which checks the URL and hash
-    together the way an install would. This needs local manifests turned on, an administrator
-    setting: run `winget settings --enable LocalManifestFiles` in an administrator terminal
-    first, and `winget settings --disable LocalManifestFiles` after.
+    Then, with Bingo running, install it through the manifest. winget downloads the setup, checks
+    its hash, and runs it the way it will on other machines. That is not the same as running it
+    directly: started by winget, the setup has been seen to get no help from Windows in closing
+    Bingo, which step 9 cannot show. winget must report "Successfully installed", Bingo must be
+    running again, and every check must pass (with `-StartsAtSignIn` if it starts at sign-in).
+    This needs local manifests turned on, an administrator setting: run
+    `winget settings --enable LocalManifestFiles` in an administrator terminal first, and
+    `winget settings --disable LocalManifestFiles` after.
 
     ```
-    winget download --manifest packaging\winget\stevensT.Bingo\X.Y.Z --download-directory artifacts\winget-check
+    winget install --manifest packaging\winget\stevensT.Bingo\X.Y.Z
+    installer\check-install.ps1 -Expect Installed -Version X.Y.Z
     ```
 
 15. **Commit the manifest folder** and push it.

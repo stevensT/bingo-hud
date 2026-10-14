@@ -49,10 +49,11 @@ DisableProgramGroupPage=yes
 ArchitecturesAllowed=x64compatible
 ArchitecturesInstallIn64BitMode=x64compatible
 
-; Bingo has no single-instance guard, so a running copy is found by the file it holds open and
-; closed through Restart Manager, even when installing silently. Restart Manager only reopens apps
-; that register themselves for restart, which Bingo does not, so the code below reopens it instead.
-; Restart Manager's own restart stays off so that registering one day cannot start a second copy.
+; The code below ends a running Bingo before files are replaced (PrepareToInstall). Restart Manager
+; stays on, forced so it works when silent, as a second line for anything else holding the file.
+; Restart Manager only reopens apps that register themselves for restart, which Bingo does not, so
+; the code below reopens it instead. Restart Manager's own restart stays off so that registering
+; one day cannot start a second copy.
 CloseApplications=force
 RestartApplications=no
 
@@ -118,7 +119,14 @@ begin
   Result := ResultCode;
 end;
 
-// Runs first, before Restart Manager closes anything. The wizard offers no folder choice, so the
+// Ends every Bingo running from ExePath and waits up to ten seconds for it to exit.
+procedure StopBingo(ExePath: String);
+begin
+  RunAgainstBingo(ExePath,
+    '$p | Stop-Process -Force; $p | Wait-Process -Timeout 10 -ErrorAction SilentlyContinue');
+end;
+
+// Runs first, before anything closes Bingo. The wizard offers no folder choice, so the
 // executable's path is known before {app} is set.
 // deferred: an install moved elsewhere with /DIR= is not found running, so an upgrade closes it
 // and does not start it again. Reading the previous install folder from the registry would lift it.
@@ -134,6 +142,15 @@ end;
 function BingoWasNotRunning(): Boolean;
 begin
   Result := not BingoWasRunning;
+end;
+
+// Runs before Setup's own check for files in use. When winget runs the setup, Restart Manager has
+// been seen to close nothing: it also reported System holding the executable, and the install
+// aborted on the locked file. So the setup ends a running Bingo itself, as the uninstall does.
+function PrepareToInstall(var NeedsRestart: Boolean): String;
+begin
+  StopBingo(ExpandConstant('{app}\{#AppExe}'));
+  Result := '';
 end;
 
 // An upgrade closes a running Bingo to replace it; this starts it again, silent or not.
@@ -152,6 +169,5 @@ begin
   if CurUninstallStep <> usUninstall then
     Exit;
 
-  RunAgainstBingo(ExpandConstant('{app}\{#AppExe}'),
-    '$p | Stop-Process -Force; $p | Wait-Process -Timeout 10 -ErrorAction SilentlyContinue');
+  StopBingo(ExpandConstant('{app}\{#AppExe}'));
 end;

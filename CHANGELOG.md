@@ -12,6 +12,8 @@ be treated as liable to break when that endpoint changes.
 ## [Unreleased]
 
 ### Fixed
+- Upgrading through winget while Bingo is running now closes Bingo, installs, and starts it
+  again. Before, the setup could fail to close it and stop with the file in use.
 - Running the setup again with "Start Bingo when I sign in" unticked now stops Bingo starting at
   sign-in. Before, the shortcut from an earlier install was left in place.
 

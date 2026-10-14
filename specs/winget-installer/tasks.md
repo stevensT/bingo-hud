@@ -135,9 +135,8 @@ as given in `plan.md` under Interfaces.
       list, and scripted comparison of the uploaded setup; `--scope user` for Inno Setup; comments
       that overstated how winget matches the install. Fixed but untested: `[InstallDelete]` in
       `bingo.iss`, so unticking "Start Bingo when I sign in" on a later run removes the shortcut.
-      It ships with the next release; before that release is published, run its setup
-      interactively with the box unticked over an install that has it ticked, then
-      `check-install.ps1 -Expect Installed` without `-StartsAtSignIn`.
+      It ships with the next release. *Proven 2026-10-14 under 5.6, silently with `/TASKS=""`,
+      red against the published 0.4.0 setup and green against the changed one.*
       Deferred, with Bingo running as an ordinary per-user app and the normal paths tested (2.4,
       2.7, 4.4, 4.5): a Bingo running elevated is invisible to the setup's and the check script's
       process match, so an uninstall can leave the exe behind; the uninstall fallback and the
@@ -157,6 +156,32 @@ as given in `plan.md` under Interfaces.
       Then, on this machine, `winget list stevensT.Bingo` shows the installed 0.4.0 by its package
       ID, which is the link `winget upgrade` depends on. (AC-13) *Added 2026-10-08, moved from 4.3.
       Amended 2026-10-13 to 0.4.0, as 5.4.*
+
+- [~] 5.6 Make the setup close a running Bingo itself, so an install or upgrade run by winget does
+      not depend on Restart Manager. *Added 2026-10-14, Trevor's call, after the winget install
+      of 0.4.0 failed with Bingo running (progress, same date): run by winget, Restart Manager
+      also reported `System` holding the exe and closed nothing. Not in the published 0.4.0
+      setup; an upgrade runs the new version's setup, so this reaches everyone upgrading from
+      0.4.0 when the next release ships.* (AC-7, AC-13)
+      - Red is already recorded: the published 0.4.0 setup, run by `winget install --manifest`
+        with Bingo running, exit code 5, twice.
+      - In `bingo.iss`, end a Bingo running from the install folder in `PrepareToInstall`, before
+        Restart Manager's check, with the uninstall fallback's existing process match.
+        `BingoWasRunning` is still read in `InitializeSetup`, so the restart after install is
+        unchanged.
+      - Build the changed setup as 0.4.0 from the same executable into a throwaway folder under
+        `artifacts\`, serve it from this machine, and write a throwaway local manifest under
+        `artifacts\` pointing at it with its hash. With Bingo running,
+        `winget install --manifest` on that manifest: exit code 0, Bingo running again as a new
+        process, `check-install.ps1 -Expect Installed -Version 0.4.0 -StartsAtSignIn` passes.
+      - Also run the changed setup directly with `/VERYSILENT` and Bingo running, and once with
+        Bingo not running (Bingo must stay closed, as 2.6), so the direct paths still hold.
+      - Add a winget-run install with Bingo running to the README's release checklist, since
+        running the setup directly (step 9) did not catch this. It belongs in step 14, where the
+        manifest exists: `winget install --manifest` reruns the setup even over the same version,
+        as seen 2026-10-14, then the check script.
+      - Restore: reinstall the published 0.4.0 setup, delete the throwaway folders, and Trevor
+        turns local manifests off.
 
 ## Build Verification
 
