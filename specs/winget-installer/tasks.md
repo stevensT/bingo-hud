@@ -113,7 +113,17 @@ as given in `plan.md` under Interfaces.
       version bump to winget pull request, including the rule that a published asset is never
       replaced and how to uninstall by hand, settings folder included. Remove the Chocolatey
       mentions from the Publishing section. (AC-8, AC-16)
-- [ ] 5.2 Add the installer and winget to `CHANGELOG.md` under `[Unreleased]`.
+      *Amended 2026-10-14: the checklist includes writing the version's manifest folder under
+      `packaging/winget/stevensT.Bingo/`, with the installer hash taken from the uploaded setup as
+      3.2 did, and `winget validate` passing on it. Trevor's call, over a separate task, because
+      every release repeats the step. The 0.4.0 folder is written by hand ahead of the checklist,
+      since 5.4 needs it.*
+- [x] 5.2 Add the installer and winget to `CHANGELOG.md` under `[Unreleased]`.
+      *Done early, 2026-10-14, and in the 0.4.0 section rather than `[Unreleased]`: 0.4.0 is the
+      first release to carry the setup on its page. It landed after the `v0.4.0` tag, which was
+      already pushed and is not moved, so the tagged snapshot lacks the line. Winget is left out
+      until the package is live (5.5); a line naming a package that cannot be installed yet
+      would be wrong on the day it is read.*
 - [ ] 5.3 Run the review on the feature's changes and resolve or defer each finding, recording
       deferrals here.
 - [ ] 5.4 Submit: fork `microsoft/winget-pkgs`, copy the manifest to

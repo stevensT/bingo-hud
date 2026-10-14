@@ -1,7 +1,7 @@
 # Installer and winget — Progress
 
 updated: 2026-10-13
-status: Phase 4 complete; 3.1 still waiting on the release notes; Phase 5 not started
+status: Phase 4 complete; 3.1 still waiting on the release notes; Phase 5 in progress (5.2 done, 0.4.0 manifest written and validated)
 blockers: none
 next_session: finish task 3.1, which is Trevor's: the release notes have no line about the
 setup, still say there is no installer, and end with a stray pasted fragment. A replacement
@@ -17,7 +17,40 @@ daily copy; local manifests are turned off again.
 - Trevor's call: 0.3.0 is never submitted to winget. 5.4 and 5.5 now name 0.4.0. The 0.3.0
   manifest folder stays as the record of what 4.1 to 4.5 tested.
 - Not yet covered by any task: a 0.4.0 manifest folder, its hash, and its validation. Raised
-  rather than added.
+  rather than added. Settled 2026-10-14: folded into the 5.1 release checklist, and done by hand
+  for 0.4.0.
+
+## 2026-10-14: the 0.4.0 release files
+
+- Published from `v0.4.0` (`19d5aa3`); both executables report `0.4.0+19d5aa3d8725…`. The setup
+  was built with the README's Inno Setup command into `artifacts\release-0.4.0\`.
+- Local SHA-256, to be matched against the uploaded copies:
+  - `Bingo-0.4.0-setup.exe` (65.9 MB): `DEE89C0CEE3110A091C9B3716E2C9AFEA51C6FD33562A1A2665D48D9A6FB0B39`
+  - `Bingo-0.4.0-win-x64.exe` (70.9 MB): `39D1D14FA8DC1CC2C60E12DDD295A583148660209448ED9409F5554A6C273480`
+  - `Bingo-0.4.0-win-x64-framework-dependent.exe` (0.4 MB): `9505B2CB0338B2FEC7BABBF149F312DD79E080DA51F6011DC3EC6197EFB03F95`
+- Upgrade run on this machine before upload (Trevor approved), over the daily 0.3.0 install,
+  which was running and set to start at sign-in. `-Expect Installed -Version 0.3.0
+  -StartsAtSignIn` passed first as a baseline. The setup ran with `/VERYSILENT
+  /SUPPRESSMSGBOXES /NORESTART`, the way winget runs it. Afterwards
+  `-Expect Installed -Version 0.4.0 -StartsAtSignIn` passed all nine checks, Bingo was running
+  again as `0.4.0+19d5aa3…` without being started by hand, and `settings.json` was byte-identical.
+- `alerts.json` changed, to `[]`, two seconds after 0.4.0 started. That is the store pruning on
+  load: it saves at startup only when it has removed entries whose window already reset, and a
+  file it could not read would have been left untouched. So every entry 0.3.0 held was for a
+  window that had reset while 0.3.0 kept running. No alert for a current window was lost.
+- Trap for the release checklist (5.1): `Start-Process -Wait` in Windows PowerShell waits for the
+  whole process tree, and the setup restarts Bingo as its last step, so the wait never returns.
+  Run the setup without `-Wait` and check for the setup process to be gone, or wait on its
+  process alone.
+- After Trevor published the release (2026-10-14 07:10 UTC), all three assets were downloaded from
+  their public URLs and each hashed equal to the local file above.
+- `packaging/winget/stevensT.Bingo/0.4.0/` written from the 0.3.0 folder. Against it, the only
+  differences are the version, the setup URL and hash, the release notes link, and `ReleaseDate:
+  2026-10-14`, the day the release was published; the changelog dates 0.4.0 by its tag, a few
+  minutes before midnight on 2026-10-13. `winget validate` passed. This is the manifest 5.4
+  submits.
+- Both GitHub releases, 0.3.0 and 0.4.0, are marked as pre-releases, so the repository has no
+  "latest" release.
 
 ## 2026-10-08: the check script run red (1.3)
 

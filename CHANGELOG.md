@@ -17,6 +17,12 @@ Fixes from a source review of 0.3.0. This is a minor release rather than a patch
 changes how the usage response is read: a known field in the wrong shape is now reported as
 unreadable instead of being passed over.
 
+### Added
+- A setup program, `Bingo-0.4.0-setup.exe`, beside the standalone executables on the release
+  page. It installs for the current user without administrator rights, adds a Start menu entry
+  and an entry in Settings > Apps, and can start Bingo at sign-in. Running a newer setup replaces
+  the installed version, restarting Bingo if it was running. Uninstalling keeps your settings.
+
 ### Fixed
 - An account that reports a per-model weekly cap no longer crashes Bingo when that cap runs
   low. Per-model caps stay in the detail panel and do not raise notifications, the same way
