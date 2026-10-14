@@ -85,6 +85,13 @@ public sealed class AlertStateStore : IAlertStateStore
     {
         try
         {
+            // Nothing else may have made Bingo's folder yet: on a fresh install the settings
+            // file is only written once the user changes something.
+            if (Path.GetDirectoryName(_path) is { Length: > 0 } directory)
+            {
+                Directory.CreateDirectory(directory);
+            }
+
             File.WriteAllText(_path, JsonSerializer.Serialize(_fired, Format));
         }
         catch (Exception e) when (e is IOException or UnauthorizedAccessException

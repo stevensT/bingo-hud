@@ -13,4 +13,6 @@ internal sealed class InMemoryAlertStateStore : IAlertStateStore
     public bool HasFired(AlertKey key) => _fired.Contains(key);
 
     public void MarkFired(AlertKey key) => _fired.Add(key);
+
+    public int Count => _fired.Count;
 }

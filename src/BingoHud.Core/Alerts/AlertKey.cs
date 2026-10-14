@@ -15,13 +15,15 @@ namespace BingoHud.Core.Alerts;
 /// <param name="Kind">Which window the alert is about.</param>
 /// <param name="ThresholdPercent">
 /// The threshold that was crossed, as percentage <em>remaining</em>, matching
-/// <see cref="Thresholds"/>. 25 and 10 are the defaults.
+/// <see cref="Thresholds"/>. 25 and 10 are the defaults. Kept exactly as set, not rounded, so
+/// two thresholds that round alike stay two alerts; 0.3.0 wrote whole numbers, which read back
+/// equal.
 /// </param>
 /// <param name="ResetsAt">
 /// When the window occurrence ends. Compared as an instant, not as a spelling, so state that
 /// round-trips through a store in a different offset still matches.
 /// </param>
-public sealed record AlertKey(WindowKind Kind, int ThresholdPercent, DateTimeOffset ResetsAt)
+public sealed record AlertKey(WindowKind Kind, double ThresholdPercent, DateTimeOffset ResetsAt)
 {
     /// <summary>
     /// The key for a threshold on a window, or null when the window reports no reset time.
@@ -32,7 +34,7 @@ public sealed record AlertKey(WindowKind Kind, int ThresholdPercent, DateTimeOff
     /// alert that fires on every poll and can never be rearmed or silenced.
     /// </para>
     /// </summary>
-    public static AlertKey? For(QuotaWindow window, int thresholdPercent) =>
+    public static AlertKey? For(QuotaWindow window, double thresholdPercent) =>
         window.ResetsAt is { } resetsAt
             ? new AlertKey(window.Kind, thresholdPercent, resetsAt)
             : null;

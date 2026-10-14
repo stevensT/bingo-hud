@@ -11,6 +11,25 @@ be treated as liable to break when that endpoint changes.
 
 ## [Unreleased]
 
+### Fixed
+- An account that reports a per-model weekly cap no longer crashes Bingo when that cap runs
+  low. Per-model caps stay in the detail panel and do not raise notifications, the same way
+  they already did not color the HUD.
+- Muting during a poll can no longer crash Bingo.
+- "Refresh now" works once two minutes have passed since the last check. Before, after a quiet
+  spell it could be refused for up to half an hour. A wait the server asked for, or the backoff
+  after a failed check, still applies.
+- Alerts already shown, and mutes, are now remembered across a restart on a fresh install, even
+  before any setting has been changed.
+- A response with a known window in the wrong shape is reported as unreadable. Before, the
+  window was dropped and the rest was shown as a complete reading.
+- A credential file with an out-of-range expiry no longer stops Bingo. The expiry is treated
+  as unknown and the token is still used.
+- Hand-edited warning and critical thresholds that round to the same whole number are now
+  separate alerts, so the critical alert still fires after the warning.
+- Reset times on the far side of a daylight-saving change show the local time on the day of
+  the reset, not one hour off.
+
 ## [0.3.0] - 2026-10-01
 
 ### Changed

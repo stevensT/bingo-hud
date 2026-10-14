@@ -113,6 +113,7 @@ public class RefreshNoticeTests
     [InlineData("the panel is open")]
     [InlineData("Claude Code is working")]
     [InlineData("nothing is happening")]
+    [InlineData("the last check was under two minutes ago")]
     public void EveryReasonTheCadencePolicyCanChooseReadsAsASentence(string reason)
     {
         // Listed by value rather than reflected out of the policy, so a new reason worded as a

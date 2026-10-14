@@ -151,4 +151,36 @@ public class CredentialExpiryTests : IDisposable
 
         Assert.Equal(Expiry, credential?.ExpiresAt);
     }
+
+    [Theory]
+    [InlineData("9223372036854775807")] // long.MaxValue
+    [InlineData("-9223372036854775808")] // long.MinValue
+    [InlineData("253402300800000")] // one millisecond past 9999-12-31T23:59:59.999Z
+    [InlineData("-62135596801")] // one second before 0001-01-01T00:00:00Z
+    public async Task AnExpiryNoDateCanHoldIsUnknownAndTheTokenIsKept(string rawExpiresAt)
+    {
+        // These once threw out of the conversion, past the parser and into the poll loop, which
+        // ends the app on purpose when it faults. An expiry is metadata; the token beside it is
+        // still the one to use.
+        var credential = await ReadWithExpiry(rawExpiresAt);
+
+        Assert.Equal("sk-ant-oat01-example-token", credential?.AccessToken);
+        Assert.Null(credential?.ExpiresAt);
+    }
+
+    [Fact]
+    public async Task TheLatestExpiryADateCanHoldIsStillRead()
+    {
+        var credential = await ReadWithExpiry("253402300799999");
+
+        Assert.Equal(DateTimeOffset.FromUnixTimeMilliseconds(253402300799999), credential?.ExpiresAt);
+    }
+
+    [Fact]
+    public async Task TheEarliestExpiryADateCanHoldIsStillRead()
+    {
+        var credential = await ReadWithExpiry("-62135596800");
+
+        Assert.Equal(DateTimeOffset.MinValue, credential?.ExpiresAt);
+    }
 }

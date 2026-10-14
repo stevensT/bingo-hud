@@ -13,8 +13,9 @@ namespace BingoHud.Core.Display;
 ///
 /// <para>
 /// A pure function over the current reading state, the user's display settings, the moment of
-/// rendering, and a culture. The shell passes no culture and gets the user's Windows setting,
-/// which is the intent; tests pass one so the phrase is fixed. Being pure is what makes the one
+/// rendering, a culture, and a time zone. The shell passes no culture and gets the user's Windows
+/// setting, which is the intent, and passes the machine's zone; tests pass both so the phrase is
+/// fixed. Being pure is what makes the one
 /// error nobody could spot by looking at the screen — a percentage reading the wrong way round
 /// — a thing a test pins instead.
 /// </para>
@@ -40,13 +41,15 @@ public static class Readout
     /// </summary>
     /// <param name="state">The monitor's current state.</param>
     /// <param name="settings">The user's display preferences: direction, collapse, thresholds, reset format, bar.</param>
-    /// <param name="now">The moment of rendering, carrying the offset reset times are shown in.</param>
+    /// <param name="now">The moment of rendering. Its offset is used only when no zone is given.</param>
     /// <param name="culture">Whose clock conventions the reset phrase uses.</param>
+    /// <param name="zone">The time zone times are shown in, using the offset in force at each instant; null keeps the offset of <paramref name="now"/>.</param>
     public static IReadOnlyList<ReadoutLine> Lines(
         ReadingState state,
         UserSettings settings,
         DateTimeOffset now,
-        CultureInfo? culture = null)
+        CultureInfo? culture = null,
+        TimeZoneInfo? zone = null)
     {
         if (state.Last is not { } snapshot)
         {
@@ -67,7 +70,7 @@ public static class Readout
             lines.Add(new ReadoutLine(
                 WindowName.Short(window.Kind),
                 Percentage.Describe(window.UsedPercent, settings.Direction),
-                Reset(window, severity, settings.ResetFormat, now, culture),
+                Reset(window, severity, settings.ResetFormat, now, culture, zone),
                 severity,
                 // Always the used figure, whatever the direction setting: the bar fills as usage
                 // rises, and the words beside it are what follow the direction (display options
@@ -91,15 +94,17 @@ public static class Readout
     /// </summary>
     /// <param name="state">The monitor's current state.</param>
     /// <param name="settings">The user's display preferences: direction, collapse, thresholds, reset format, bar.</param>
-    /// <param name="now">The moment of rendering, carrying the offset reset times are shown in.</param>
+    /// <param name="now">The moment of rendering. Its offset is used only when no zone is given.</param>
     /// <param name="culture">Whose clock conventions the reset phrase uses.</param>
+    /// <param name="zone">The time zone times are shown in, using the offset in force at each instant; null keeps the offset of <paramref name="now"/>.</param>
     public static HudContent Content(
         ReadingState state,
         UserSettings settings,
         DateTimeOffset now,
-        CultureInfo? culture = null)
+        CultureInfo? culture = null,
+        TimeZoneInfo? zone = null)
     {
-        var lines = Lines(state, settings, now, culture);
+        var lines = Lines(state, settings, now, culture, zone);
 
         if (lines.Count == 0)
         {
@@ -130,11 +135,12 @@ public static class Readout
         Severity severity,
         ResetFormat format,
         DateTimeOffset now,
-        CultureInfo? culture)
+        CultureInfo? culture,
+        TimeZoneInfo? zone)
     {
         var reset = format == ResetFormat.Countdown
             ? ResetFormatter.Countdown(window.ResetsAt, now, culture)
-            : ResetFormatter.Describe(window.ResetsAt, now, culture);
+            : ResetFormatter.Describe(window.ResetsAt, now, culture, zone);
 
         if (severity != Severity.RateLimited)
         {

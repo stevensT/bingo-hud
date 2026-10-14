@@ -15,7 +15,7 @@ namespace BingoHud.Core.Usage;
 /// <para>
 /// Two parse paths. The <c>limits</c> array is preferred: it is self-describing, needs no alias
 /// map, and carries the server's own severity. The flat window keys are read only when
-/// <c>limits</c> is absent entirely — they are a fallback, not a supplement, and reading both
+/// <c>limits</c> is absent or null — they are a fallback, not a supplement, and reading both
 /// would double every window.
 /// </para>
 /// <para>
@@ -41,6 +41,14 @@ public static class UsageNormalizer
         (WindowKind.Session, ["five_hour", "5_hour", "session", "primary"]),
         (WindowKind.WeeklyAll, ["seven_day", "7_day", "weekly", "week", "secondary"]),
     ];
+
+    /// <summary>
+    /// The flat keys that can name nothing but a window. Present as anything other than an
+    /// object, one of these is a broken window. The other aliases are ordinary words — a
+    /// top-level <c>session</c> could as easily hold an identifier — so a non-object under one
+    /// of them is a field about something else, and is passed over.
+    /// </summary>
+    private static readonly HashSet<string> WindowOnlyKeys = ["five_hour", "5_hour", "seven_day", "7_day"];
 
     /// <summary>
     /// Parses a response body into windows.
@@ -152,16 +160,23 @@ public static class UsageNormalizer
     }
 
     /// <summary>
-    /// Reads the <c>limits</c> array, or null when it is absent — which is the signal to fall
-    /// back to the flat keys. An empty array is present, not absent: it means the server
-    /// reported no windows, and no fallback can improve on that.
+    /// Reads the <c>limits</c> array, or null when it is absent or null — which is the signal to
+    /// fall back to the flat keys. An empty array is present, not absent: it means the server
+    /// reported no windows, and no fallback can improve on that. Present as anything other than
+    /// an array is malformed rather than absent, because the payload has moved and the flat keys
+    /// beside it cannot be assumed to describe the same thing.
     /// </summary>
     private static WindowReading? ReadLimitsArray(JsonElement root)
     {
         if (!root.TryGetProperty("limits", out var limits)
-            || limits.ValueKind != JsonValueKind.Array)
+            || limits.ValueKind == JsonValueKind.Null)
         {
             return null;
+        }
+
+        if (limits.ValueKind != JsonValueKind.Array)
+        {
+            return WindowReading.Malformed("The limits field was not an array.");
         }
 
         var windows = new List<QuotaWindow>();
@@ -171,6 +186,16 @@ public static class UsageNormalizer
             if (limit.ValueKind != JsonValueKind.Object)
             {
                 return WindowReading.Malformed("An entry of the limits array was not an object.");
+            }
+
+            // A scope present in the wrong shape cannot be read as no scope. The entry would be
+            // classified by its kind alone, and a per-model cap reporting weekly_all would be
+            // shown and alerted on as the account-wide week.
+            if (limit.TryGetProperty("scope", out var rawScope)
+                && rawScope.ValueKind is not (JsonValueKind.String or JsonValueKind.Null))
+            {
+                return WindowReading.Malformed(
+                    "An entry of the limits array had a scope that was not a string.");
             }
 
             var scope = ReadScope(limit);
@@ -222,8 +247,22 @@ public static class UsageNormalizer
                 // alias. Both are ordinary — the live payload nulls several window keys — so
                 // the next alias gets its turn.
                 if (!root.TryGetProperty(key, out var flat)
-                    || flat.ValueKind != JsonValueKind.Object)
+                    || flat.ValueKind == JsonValueKind.Null)
                 {
+                    continue;
+                }
+
+                // Present as anything else under a name that can only mean a window, it is a
+                // broken window, and skipping it would report the rest of the payload as a
+                // complete reading. Under a generic name it is something else.
+                if (flat.ValueKind != JsonValueKind.Object)
+                {
+                    if (WindowOnlyKeys.Contains(key))
+                    {
+                        return WindowReading.Malformed(
+                            $"The {Describe(kind)} window was not an object.");
+                    }
+
                     continue;
                 }
 
@@ -249,9 +288,6 @@ public static class UsageNormalizer
     }
 
     /// <summary>
-    /// Maps an entry's <c>kind</c> string, or null when it names a window Bingo does not know.
-    /// </summary>
-    /// <summary>
     /// The scope an entry is restricted to, or null when it is restricted to nothing.
     ///
     /// <para>
@@ -273,6 +309,9 @@ public static class UsageNormalizer
         return string.IsNullOrWhiteSpace(value) ? null : value;
     }
 
+    /// <summary>
+    /// Maps an entry's <c>kind</c> string, or null when it names a window Bingo does not know.
+    /// </summary>
     private static WindowKind? ReadWindowKind(JsonElement limit)
     {
         if (!limit.TryGetProperty("kind", out var kind)

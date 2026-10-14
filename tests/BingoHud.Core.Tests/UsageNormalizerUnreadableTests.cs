@@ -134,6 +134,57 @@ public class UsageNormalizerUnreadableTests
     }
 
     [Fact]
+    public void AFlatWindowThatIsNotAnObjectIsUnreadableRatherThanSkipped()
+    {
+        // Skipped, this read as a success carrying only the weekly window, with nothing to say
+        // the 5-hour one had been dropped. Null is still allowed: the live payload nulls keys.
+        var body =
+            """
+            {
+              "five_hour": 42,
+              "seven_day": { "utilization": 37 }
+            }
+            """;
+
+        ParseExpectingUnreadable(body);
+    }
+
+    [Fact]
+    public void AScopeThatIsNotAStringIsUnreadableRatherThanIgnored()
+    {
+        // Ignored, the entry would be classified by its kind alone, and a per-model cap whose
+        // kind says weekly_all would be read as the account-wide week — on the HUD and in the
+        // alerts, which per-model caps are kept out of.
+        var body =
+            """
+            {
+              "limits": [
+                { "kind": "weekly_all", "percent": 90, "scope": { "model": "opus" } }
+              ]
+            }
+            """;
+
+        ParseExpectingUnreadable(body);
+    }
+
+    [Fact]
+    public void ALimitsFieldThatIsNotAnArrayIsUnreadableRatherThanAFallback()
+    {
+        // The flat keys are a fallback for when the server sends no limits at all. A limits
+        // field that is present and broken says the payload moved, and the flat keys beside it
+        // cannot be assumed to describe the same thing.
+        var body =
+            """
+            {
+              "limits": "broken",
+              "five_hour": { "utilization": 12 }
+            }
+            """;
+
+        ParseExpectingUnreadable(body);
+    }
+
+    [Fact]
     public void TheReasonGivenIsNonEmptySoTheDetailPanelHasSomethingToShow()
     {
         var unreadable = ParseExpectingUnreadable("{}");

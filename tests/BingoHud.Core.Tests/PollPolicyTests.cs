@@ -270,4 +270,13 @@ public class PollPolicyTests
 
         Assert.Equal(PollPolicy.Reasons.LastAttemptFailed, reason);
     }
+
+    [Fact]
+    public void TheReasonForAFloorRefusalStatesTheFloorItself()
+    {
+        // The panel shows this sentence verbatim. It names the floor in words, so changing the
+        // floor without the sentence would have the panel tell the user something false.
+        Assert.Equal(TimeSpan.FromMinutes(2), PollPolicy.Floor);
+        Assert.Contains("under two minutes ago", PollPolicy.Reasons.JustChecked);
+    }
 }

@@ -2,7 +2,7 @@
 'use strict';
 
 // Captures a live response from the undocumented quota endpoint and writes a scrubbed
-// fixture for the parser tests. The access token is read into memory, used for the one
+// fixture for the parser tests (JSON bodies only; see below). The access token is read into memory, used for the one
 // request, and never printed, logged, or written to disk.
 //
 //   node scripts/capture-usage.js --label five-hour-normal
@@ -206,16 +206,26 @@ async function main() {
 
   fs.mkdirSync(outDir, { recursive: true });
 
+  // A flag of its own, because a body of null, 0, false or "" is valid JSON whose parsed
+  // value is falsy, and testing the value would call it something else.
   let parsed = null;
+  let isJson = false;
   try {
     parsed = JSON.parse(bodyText);
+    isJson = true;
   } catch (e) {
-    // A non-JSON body is itself a finding worth keeping.
+    // A non-JSON body is itself a finding worth keeping, but not here: the scrubber only
+    // understands JSON, so a proxy error page would reach the fixture folder exactly as it
+    // arrived, email addresses and account identifiers included. It is kept only under
+    // --raw-dir, which belongs outside the repository; the metadata below still records
+    // status, headers, and size. The parse error is not printed: it can quote the body.
   }
 
-  const bodyFile = path.join(outDir, day + '-' + label + (parsed ? '.json' : '.txt'));
-  const scrubbed = parsed ? scrub(parsed) : bodyText;
-  fs.writeFileSync(bodyFile, parsed ? JSON.stringify(scrubbed, null, 2) + '\n' : bodyText, 'utf8');
+  let bodyFile = null;
+  if (isJson) {
+    bodyFile = path.join(outDir, day + '-' + label + '.json');
+    fs.writeFileSync(bodyFile, JSON.stringify(scrub(parsed), null, 2) + '\n', 'utf8');
+  }
 
   const metaFile = path.join(outDir, day + '-' + label + '.meta.json');
   fs.writeFileSync(metaFile, JSON.stringify({
@@ -225,16 +235,21 @@ async function main() {
     status: res.status,
     statusText: res.statusText,
     bodyBytes: Buffer.byteLength(bodyText, 'utf8'),
-    bodyIsJson: parsed !== null,
+    bodyIsJson: isJson,
     headers: headers,
   }, null, 2) + '\n', 'utf8');
 
   console.log('HTTP ' + res.status + ' ' + res.statusText + '  (' + Buffer.byteLength(bodyText, 'utf8') + ' bytes)');
-  console.log('Scrubbed fixture  : ' + bodyFile);
+  if (bodyFile) {
+    console.log('Scrubbed fixture  : ' + bodyFile);
+  } else {
+    console.log('Body not saved    : not JSON, so it cannot be scrubbed. '
+      + (rawDir ? 'The unscrubbed copy is under --raw-dir.' : 'Re-run with --raw-dir to keep it outside the repo.'));
+  }
   console.log('Capture metadata  : ' + metaFile);
   console.log('');
   console.log('Response shape (key paths and types only):');
-  if (parsed) {
+  if (isJson) {
     for (const line of shapeLines(parsed)) console.log('  ' + line);
   } else {
     console.log('  body did not parse as JSON');

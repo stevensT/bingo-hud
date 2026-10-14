@@ -89,11 +89,16 @@ public class CredentialAvailabilityProbeTests : IDisposable
         // It is a read-only diagnostic on a file holding a secret. It must not create it,
         // truncate it, or touch its timestamps.
         var path = _directory.WriteFile(".credentials.json", """{ "accessToken": "one" }""");
-        var before = CredentialWatchSignature.Capture(path);
+        // Copied out before probing: FileInfo reads the file's metadata on first use, so holding
+        // the object would compare the file after the probe with itself.
+        var lengthBefore = new FileInfo(path).Length;
+        var writtenBefore = File.GetLastWriteTimeUtc(path);
 
         CredentialProbe.Probe(path);
 
-        Assert.Equal(before, CredentialWatchSignature.Capture(path));
+        Assert.Equal(lengthBefore, new FileInfo(path).Length);
+        Assert.Equal(writtenBefore, File.GetLastWriteTimeUtc(path));
+        Assert.Equal("""{ "accessToken": "one" }""", File.ReadAllText(path));
     }
 
     [Fact]

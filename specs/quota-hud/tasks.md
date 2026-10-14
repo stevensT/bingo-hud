@@ -91,7 +91,8 @@ Highest risk in the project. It goes first, it goes alone, and every task here t
 - [x] 3.4 Test: `expiresAt` in seconds and in milliseconds both normalize correctly, split on the
       `10_000_000_000` boundary. The live credential stores milliseconds — pin that case.
 - [x] 3.5 Test: the watch signature over path, size and mtime changes when the file changes and
-      is stable when it does not.
+      is stable when it does not. Removed 2026-10-13: nothing ever called it,
+      and the credential file is now read on every attempt.
 - [x] 3.6 Test: the two-probe check distinguishes "exists but access refused" from "absent", so
       recovery advice points the right way. (AC-11)
 - [x] 3.7 Fence test, replacing the refresh path cut by 3.1: nothing in Core starts a process.

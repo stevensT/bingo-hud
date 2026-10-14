@@ -41,11 +41,13 @@ public sealed record AlertMessage(string Title, string Body)
     /// <param name="direction">Which way the user reads a percentage (AC-2a).</param>
     /// <param name="now">The current instant, which reset phrases are measured from.</param>
     /// <param name="culture">Whose clock conventions the reset phrases use.</param>
+    /// <param name="zone">The time zone times are shown in, using the offset in force at each instant; null keeps the offset of <paramref name="now"/>.</param>
     public static AlertMessage? Describe(
         IReadOnlyList<Alert> due,
         DisplayDirection direction,
         DateTimeOffset now,
-        CultureInfo? culture = null)
+        CultureInfo? culture = null,
+        TimeZoneInfo? zone = null)
     {
         if (due.Count == 0)
         {
@@ -54,7 +56,7 @@ public sealed record AlertMessage(string Title, string Body)
 
         if (due.Count == 1)
         {
-            return Describe(due[0], direction, now, culture);
+            return Describe(due[0], direction, now, culture, zone);
         }
 
         // The worst of them names the batch. A title calling a critical crossing "running low"
@@ -62,7 +64,7 @@ public sealed record AlertMessage(string Title, string Body)
         var worst = due.Max(a => a.Severity);
 
         var lines = due.Select(a =>
-            $"{WindowName.Short(a.Key.Kind)}: {Line(a, direction, now, culture)}");
+            $"{WindowName.Short(a.Key.Kind)}: {Line(a, direction, now, culture, zone)}");
 
         return new AlertMessage(
             $"{due.Count} windows {Trouble(worst)}",
@@ -76,17 +78,19 @@ public sealed record AlertMessage(string Title, string Body)
     /// <param name="direction">Which way the user reads a percentage (AC-2a).</param>
     /// <param name="now">The current instant, which the reset phrase is measured from.</param>
     /// <param name="culture">Whose clock conventions the reset phrase uses.</param>
+    /// <param name="zone">The time zone times are shown in, using the offset in force at each instant; null keeps the offset of <paramref name="now"/>.</param>
     public static AlertMessage Describe(
         Alert alert,
         DisplayDirection direction,
         DateTimeOffset now,
-        CultureInfo? culture = null)
+        CultureInfo? culture = null,
+        TimeZoneInfo? zone = null)
     {
         var window = WindowName.Short(alert.Key.Kind);
 
         return new AlertMessage(
             $"{window} window {Trouble(alert.Severity)}",
-            Line(alert, direction, now, culture));
+            Line(alert, direction, now, culture, zone));
     }
 
     /// <summary>
@@ -96,7 +100,8 @@ public sealed record AlertMessage(string Title, string Body)
         Alert alert,
         DisplayDirection direction,
         DateTimeOffset now,
-        CultureInfo? culture)
+        CultureInfo? culture,
+        TimeZoneInfo? zone)
     {
         // The reading, not the threshold that was crossed. The line was drawn at 25% remaining;
         // where the account actually stands is the number worth interrupting someone for.
@@ -105,7 +110,7 @@ public sealed record AlertMessage(string Title, string Body)
         // The same phrasing the HUD uses, so a toast and the HUD behind it never describe one
         // reset two ways. An alert always has a reset time: a window without one gets no alert
         // key at all, because "at most once per occurrence" has nothing to mean without one.
-        var reset = ResetFormatter.Describe(alert.Key.ResetsAt, now, culture);
+        var reset = ResetFormatter.Describe(alert.Key.ResetsAt, now, culture, zone);
 
         return $"{percent}, {reset}.";
     }

@@ -18,10 +18,10 @@ namespace BingoHud.Core.Tests;
 /// needs: why, and when asking again will work.
 /// </para>
 /// <para>
-/// These pass on arrival, because the monitor was already built to satisfy them. Verified by
-/// mutation instead. Dropping the server's <c>Retry-After</c> from the schedule failed two of
-/// them; removing the backoff check entirely failed eight, including every manual-refresh case
-/// here.
+/// Most passed on arrival, because the monitor was already built to satisfy them, and were
+/// verified by mutation instead: dropping the server's <c>Retry-After</c> from the schedule, or
+/// removing the refusal check, fails several of them. The later ones on the idle cadence and the
+/// floor's reason were written failing first, when the floor and the cadence were separated.
 /// </para>
 /// </summary>
 public class QuotaMonitorBackoffTests
@@ -205,6 +205,88 @@ public class QuotaMonitorBackoffTests
         clock.Advance(PollPolicy.Floor);
 
         Assert.IsType<RefreshResult.Performed>(await monitor.RefreshAsync(PanelOpen));
+    }
+
+    [Fact]
+    public async Task AnIdleCadenceDoesNotHoldAManualRefreshPastTheFloor()
+    {
+        // The idle cadence is the slowest Bingo chooses, and it is a preference, not a
+        // restraint. Opening the panel five minutes after a quiet poll and pressing refresh was
+        // once refused for the remaining twenty-five, which left the manual refresh unable to
+        // cover the one case it exists for.
+        var clock = new TestClock(Start);
+        var client = new StubUsageClient(call => Success(clock.Now));
+        var monitor = Monitor(client, clock);
+
+        await monitor.RefreshAsync(Idle);
+        clock.Advance(TimeSpan.FromMinutes(5));
+
+        Assert.IsType<RefreshResult.Performed>(await monitor.RefreshAsync(PanelOpen));
+        Assert.Equal(2, client.Fetches);
+    }
+
+    [Fact]
+    public async Task ARefusalInsideTheFloorSaysBingoJustChecked()
+    {
+        // The cadence's own reason would be false here: an idle cadence did not refuse this,
+        // the floor did.
+        var clock = new TestClock(Start);
+        var monitor = Monitor(new StubUsageClient(Success(Start)), clock);
+
+        await monitor.RefreshAsync(Idle);
+        clock.Advance(TimeSpan.FromMinutes(1));
+
+        var refused = Assert.IsType<RefreshResult.Refused>(await monitor.RefreshAsync(PanelOpen));
+        Assert.Equal(PollPolicy.Reasons.JustChecked, refused.Reason);
+        Assert.Equal(Start + PollPolicy.Floor, refused.NextAttemptAt);
+    }
+
+    [Fact]
+    public async Task AFailedAttemptStillHoldsAManualRefreshUntilItsBackoffEnds()
+    {
+        // Only the cadence was loosened. A backoff after a failure is a restraint, and an open
+        // panel does not get past it.
+        var clock = new TestClock(Start);
+        var monitor = Monitor(new StubUsageClient(new FetchOutcome.Unreadable("broken")), clock);
+
+        await monitor.RefreshAsync(Idle);
+        clock.Advance(TimeSpan.FromMinutes(5));
+
+        var refused = Assert.IsType<RefreshResult.Refused>(await monitor.RefreshAsync(PanelOpen));
+        Assert.Equal(PollPolicy.Reasons.LastAttemptFailed, refused.Reason);
+        Assert.Equal(Start + PollPolicy.Ceiling, refused.NextAttemptAt);
+    }
+
+    [Fact]
+    public async Task AnAttemptAtTheCadencesTimeIsNeverRefusedEvenOnAMovingClock()
+    {
+        // The loop waits until NextAttemptAt and then asks. If the floor were measured from a
+        // later reading of the clock than the cadence was, the floor could land a tick past the
+        // cadence when both are two minutes, and the loop would be refused with nothing left to
+        // wait for and go round again at once. A clock that moves on every read makes that
+        // ordering visible.
+        var clock = new TickingClock(Start);
+        var monitor = new QuotaMonitor(
+            StubCredentialProvider.WithToken(), new StubUsageClient(_ => Success(clock.Now)), clock);
+
+        await monitor.RefreshAsync(PanelOpen);
+        clock.Set(monitor.NextAttemptAt!.Value);
+
+        Assert.IsType<RefreshResult.Performed>(await monitor.RefreshAsync(PanelOpen));
+    }
+
+    /// <summary>A clock that moves forward one tick every time it is read.</summary>
+    private sealed class TickingClock(DateTimeOffset start) : Time.IClock
+    {
+        private DateTimeOffset _now = start;
+
+        public DateTimeOffset Now => _now = _now.AddTicks(1);
+
+        /// <summary>The next read returns exactly <paramref name="to"/>.</summary>
+        public void Set(DateTimeOffset to) => _now = to.AddTicks(-1);
+
+        public Task DelayAsync(TimeSpan duration, CancellationToken cancellationToken = default) =>
+            Task.CompletedTask;
     }
 
     [Fact]

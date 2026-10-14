@@ -26,18 +26,20 @@ public static class PanelReadout
     /// <param name="state">The monitor's current state.</param>
     /// <param name="settings">The user's display preferences; the panel reads percentages the same way the HUD does.</param>
     /// <param name="version">The running build, which only the shell can know.</param>
-    /// <param name="now">The moment of rendering, carrying the offset times are shown in.</param>
+    /// <param name="now">The moment of rendering. Its offset is used only when no zone is given.</param>
     /// <param name="culture">Whose clock conventions the times use.</param>
     /// <param name="lastRefresh">
     /// What came of the refresh the user last asked for, or null if they have not asked (AC-28).
     /// </param>
+    /// <param name="zone">The time zone times are shown in, using the offset in force at each instant; null keeps the offset of <paramref name="now"/>.</param>
     public static PanelContent Compose(
         ReadingState state,
         UserSettings settings,
         string version,
         DateTimeOffset now,
         CultureInfo? culture = null,
-        RefreshResult? lastRefresh = null)
+        RefreshResult? lastRefresh = null,
+        TimeZoneInfo? zone = null)
     {
         var snapshot = state.Last;
 
@@ -47,7 +49,8 @@ public static class PanelReadout
             w => WindowName.Short(w.Kind),
             settings,
             now,
-            culture);
+            culture,
+            zone);
 
         var perModel = Rows(
             snapshot,
@@ -57,7 +60,8 @@ public static class PanelReadout
             w => w.Scope ?? UnnamedScope,
             settings,
             now,
-            culture);
+            culture,
+            zone);
 
         return new PanelContent(
             Windows: windows,
@@ -69,7 +73,7 @@ public static class PanelReadout
             // the age appear when something is wrong has no idea what it looks like when things
             // are right.
             Age: snapshot is null ? null : AgeText.Old(state.Age),
-            LastPoll: snapshot is null ? "never" : ResetFormatter.Exact(snapshot.ObservedAt, now, culture),
+            LastPoll: snapshot is null ? "never" : ResetFormatter.Exact(snapshot.ObservedAt, now, culture, zone),
             NextPoll: PollLoop.Stops(state.LastFailure) ? PollingStopped : state.PollReason,
             Version: version,
             Status: StatusMessage.Describe(state),
@@ -119,7 +123,8 @@ public static class PanelReadout
         Func<QuotaWindow, string> label,
         UserSettings settings,
         DateTimeOffset now,
-        CultureInfo? culture)
+        CultureInfo? culture,
+        TimeZoneInfo? zone)
     {
         if (snapshot is null)
         {
@@ -132,7 +137,7 @@ public static class PanelReadout
                 label(w),
                 Percentage.Describe(w.UsedPercent, settings.Direction),
                 w.ResetsAt is { } resetsAt
-                    ? ResetFormatter.Exact(resetsAt, now, culture)
+                    ? ResetFormatter.Exact(resetsAt, now, culture, zone)
                     : NoResetTime))
             .ToList();
     }

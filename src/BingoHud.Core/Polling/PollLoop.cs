@@ -10,8 +10,8 @@ namespace BingoHud.Core.Polling;
 ///
 /// <para>
 /// It deliberately decides almost nothing. <see cref="PollPolicy"/> owns the cadence and
-/// <see cref="QuotaMonitor"/> owns the backoff, so the loop asks the monitor when it will accept
-/// another attempt and waits until then. Recomputing the cadence here would put a second copy of
+/// <see cref="QuotaMonitor"/> owns the backoff, so the loop asks the monitor when the cadence
+/// wants the next attempt and waits until then. Recomputing the cadence here would put a second copy of
 /// the same rule in a second place, and the two would drift.
 /// </para>
 /// <para>
@@ -67,9 +67,13 @@ public sealed class PollLoop(
                 }
 
                 // Null only before a first attempt has been scheduled, which cannot be reached
-                // from here — one has just been made. A non-positive wait means the backoff has
-                // already elapsed, so the next pass simply fetches again.
-                if (monitor.NextAttemptAt - clock.Now is { } wait && wait > TimeSpan.Zero)
+                // from here — one has just been made. A non-positive wait means the time the
+                // cadence chose has already passed, so the next pass simply fetches again.
+                //
+                // Asked again after every wait, because a manual refresh made during one
+                // reschedules the cadence. The monitor refuses an early attempt only inside the
+                // floor or a backoff, so keeping to the cadence is this loop's job.
+                while (monitor.NextAttemptAt - clock.Now is { } wait && wait > TimeSpan.Zero)
                 {
                     await clock.DelayAsync(wait, cancellationToken).ConfigureAwait(false);
                 }
@@ -88,8 +92,7 @@ public sealed class PollLoop(
     /// Run on every completed pass rather than only after a successful fetch. Deduplication in
     /// <see cref="AlertEngine"/> already makes a repeat evaluation cost nothing, so the simpler
     /// rule is also the more complete one: it catches a threshold crossed by a manual refresh,
-    /// whose result the loop never sees and whose backoff will refuse the loop's own next
-    /// attempt.
+    /// whose result the loop never sees and which moves the loop's own next attempt later.
     /// </para>
     /// <para>
     /// Nothing is raised here. The alerts go to whoever is listening — the shell and its toasts

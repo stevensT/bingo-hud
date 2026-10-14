@@ -24,6 +24,10 @@ public static class PollPolicy
     /// is working. Polling harder cannot make a number arrive before the server changes it; it
     /// can only spend the rate limit the user is trying to watch.
     /// </para>
+    /// <para>
+    /// <see cref="Reasons.JustChecked"/> spells this value out in words; a test holds the two
+    /// together.
+    /// </para>
     /// </summary>
     public static TimeSpan Floor { get; } = TimeSpan.FromMinutes(2);
 
@@ -61,6 +65,12 @@ public static class PollPolicy
         public const string UserIsWatching = "the panel is open";
         public const string ClaudeCodeIsWorking = "Claude Code is working";
         public const string NothingIsHappening = "nothing is happening";
+
+        /// <summary>
+        /// Not a cadence. Given only when a manual refresh is refused by <see cref="Floor"/>
+        /// after a successful attempt, which no cadence reason would describe truthfully.
+        /// </summary>
+        public const string JustChecked = "the last check was under two minutes ago";
     }
 
     /// <summary>

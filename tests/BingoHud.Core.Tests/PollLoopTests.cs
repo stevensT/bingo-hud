@@ -60,6 +60,73 @@ public class PollLoopTests
     }
 
     [Fact]
+    public async Task ALoopWhoseWaitWasPushedLaterByAManualRefreshWaitsAgain()
+    {
+        // A manual refresh is no longer held to the cadence, so the monitor would now accept the
+        // loop's attempt at its old wake time. The loop must not take that: the cadence it waits
+        // on was rescheduled from the manual refresh, and polling at the old time would add a
+        // request nobody chose.
+        var clock = new InterruptedClock(Start);
+        var fetchedAt = new List<DateTimeOffset>();
+        var client = new StubUsageClient(_ =>
+        {
+            fetchedAt.Add(clock.Now);
+            return Success(clock.Now);
+        });
+        var monitor = new QuotaMonitor(StubCredentialProvider.WithToken(), client, clock);
+
+        // Twenty minutes into the first thirty-minute idle wait, the user refreshes by hand.
+        clock.OnFirstDelay(TimeSpan.FromMinutes(20), () => monitor.RefreshAsync(new PollSignals()));
+
+        using var cancellation = new CancellationTokenSource();
+        var loop = new PollLoop(monitor, clock, StopAfter(2, cancellation));
+
+        await loop.RunAsync(cancellation.Token);
+
+        Assert.True(clock.Interrupted, "The manual refresh never ran; the first wait was too short.");
+        Assert.Equal(
+            [Start, Start.AddMinutes(20), Start.AddMinutes(50)],
+            fetchedAt);
+    }
+
+    /// <summary>
+    /// A clock that runs one action part-way through the first wait it is asked for, then
+    /// finishes that wait. Stands in for a click landing while the loop is asleep.
+    /// </summary>
+    private sealed class InterruptedClock(DateTimeOffset start) : Time.IClock
+    {
+        private TimeSpan _after;
+        private Func<Task>? _action;
+
+        public DateTimeOffset Now { get; private set; } = start;
+
+        public bool Interrupted { get; private set; }
+
+        public void OnFirstDelay(TimeSpan after, Func<Task> action)
+        {
+            _after = after;
+            _action = action;
+        }
+
+        public async Task DelayAsync(TimeSpan duration, CancellationToken cancellationToken = default)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+
+            if (_action is { } action && duration > _after)
+            {
+                _action = null;
+                Now += _after;
+                await action();
+                Interrupted = true;
+                Now += duration - _after;
+                return;
+            }
+
+            Now += duration;
+        }
+    }
+
+    [Fact]
     public async Task TheLoopKeepsFetchingUntilItIsCancelled()
     {
         var clock = new TestClock(Start);

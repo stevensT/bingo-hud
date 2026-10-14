@@ -122,6 +122,12 @@ public sealed class FileCredentialProvider : ICredentialProvider
     /// null: a token with no known expiry is a state the app already handles, and a wrongly
     /// scaled one is not — read as seconds, a millisecond value lands tens of thousands of
     /// years out, so the token would never appear to expire.
+    ///
+    /// <para>
+    /// A number no date can hold is unreadable too. The conversions throw outside their range,
+    /// and an exception here would escape into the poll loop over a field that is only
+    /// metadata about a token that is still usable.
+    /// </para>
     /// </summary>
     private static DateTimeOffset? ReadExpiresAt(JsonElement element)
     {
@@ -133,9 +139,19 @@ public sealed class FileCredentialProvider : ICredentialProvider
             return null;
         }
 
-        return value >= MillisecondsBoundary
-            ? DateTimeOffset.FromUnixTimeMilliseconds(value)
-            : DateTimeOffset.FromUnixTimeSeconds(value);
+        // Only the far end of each reading can be out of range: everything at or above the
+        // boundary is read as milliseconds, so only its maximum matters, and everything below it
+        // as seconds, so only its minimum does.
+        if (value >= MillisecondsBoundary)
+        {
+            return value <= DateTimeOffset.MaxValue.ToUnixTimeMilliseconds()
+                ? DateTimeOffset.FromUnixTimeMilliseconds(value)
+                : null;
+        }
+
+        return value >= DateTimeOffset.MinValue.ToUnixTimeSeconds()
+            ? DateTimeOffset.FromUnixTimeSeconds(value)
+            : null;
     }
 
     /// <summary>

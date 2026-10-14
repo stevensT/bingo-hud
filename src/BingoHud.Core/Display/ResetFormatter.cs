@@ -38,16 +38,18 @@ public static class ResetFormatter
     /// </para>
     /// </summary>
     /// <param name="instant">The moment to write out.</param>
-    /// <param name="now">The current instant, carrying the offset the phrase is rendered in.</param>
+    /// <param name="now">The current instant. Its offset is used only when no zone is given.</param>
     /// <param name="culture">Whose clock conventions to use.</param>
+    /// <param name="zone">The time zone times are shown in, using the offset in force at each instant; null keeps the offset of <paramref name="now"/>.</param>
     public static string Exact(
         DateTimeOffset instant,
         DateTimeOffset now,
-        CultureInfo? culture = null)
+        CultureInfo? culture = null,
+        TimeZoneInfo? zone = null)
     {
         culture ??= CultureInfo.CurrentCulture;
 
-        var local = instant.ToOffset(now.Offset);
+        var local = InZone(instant, now, zone);
         var day = culture.DateTimeFormat.AbbreviatedDayNames[(int)local.DayOfWeek];
         var month = culture.DateTimeFormat.AbbreviatedMonthNames[local.Month - 1];
         var time = local.ToString(culture.DateTimeFormat.ShortTimePattern, culture);
@@ -108,15 +110,17 @@ public static class ResetFormatter
     /// for it is nothing at all — an invented countdown would be a figure with nothing behind
     /// it.
     /// </param>
-    /// <param name="now">The current instant, carrying the offset the phrase is rendered in.</param>
+    /// <param name="now">The current instant. Its offset is used only when no zone is given.</param>
     /// <param name="culture">
     /// Whose clock conventions to use. Twelve- or twenty-four-hour is a Windows setting, not a
     /// choice for Bingo to make.
     /// </param>
+    /// <param name="zone">The time zone times are shown in, using the offset in force at each instant; null keeps the offset of <paramref name="now"/>.</param>
     public static string? Describe(
         DateTimeOffset? resetsAt,
         DateTimeOffset now,
-        CultureInfo? culture = null)
+        CultureInfo? culture = null,
+        TimeZoneInfo? zone = null)
     {
         if (resetsAt is not { } reset)
         {
@@ -148,12 +152,12 @@ public static class ResetFormatter
             return $"resets in {minutes} min";
         }
 
-        // Rendered in the caller's offset: the endpoint reports UTC, and the whole value of the
-        // line is being readable against the user's own clock.
-        var local = reset.ToOffset(now.Offset);
+        // Rendered in the user's zone: the endpoint reports UTC, and the whole value of the line
+        // is being readable against the user's own clock.
+        var local = InZone(reset, now, zone);
         var time = local.ToString(culture.DateTimeFormat.ShortTimePattern, culture);
 
-        if (local.Date == now.Date)
+        if (local.Date == InZone(now, now, zone).Date)
         {
             return $"resets {time}";
         }
@@ -164,4 +168,20 @@ public static class ResetFormatter
 
         return $"resets {day} {time}";
     }
+
+    /// <summary>
+    /// An instant as the user's clock will show it at that instant.
+    ///
+    /// <para>
+    /// The zone's rules are applied at the instant itself, not now. A weekly window can reset
+    /// after the clocks change, and today's offset would put that reset an hour out — read on
+    /// the day, against a wall clock that has already changed.
+    /// </para>
+    /// <para>
+    /// Without a zone the offset of <paramref name="now"/> is kept, which keeps a test's output
+    /// the same on any machine.
+    /// </para>
+    /// </summary>
+    private static DateTimeOffset InZone(DateTimeOffset instant, DateTimeOffset now, TimeZoneInfo? zone) =>
+        zone is null ? instant.ToOffset(now.Offset) : TimeZoneInfo.ConvertTime(instant, zone);
 }

@@ -16,6 +16,14 @@ namespace BingoHud.Core.Alerts;
 public sealed class AlertEngine(IAlertStateStore store)
 {
     /// <summary>
+    /// Held around all store work in each public method. The poll loop evaluates off the UI thread and
+    /// the tray mutes on it, against the same store, and the store's check, record, and save are
+    /// one sequence: guarding each store call alone would still let a mute land between a check
+    /// and its record, or modify the set while a save is writing it out.
+    /// </summary>
+    private readonly object _gate = new();
+
+    /// <summary>
     /// The alerts this reading is due. Each is recorded as fired before it is returned, so
     /// calling twice with the same reading yields nothing the second time.
     ///
@@ -25,37 +33,43 @@ public sealed class AlertEngine(IAlertStateStore store)
     /// overtaken will never be news again — delivering it afterwards would only say something
     /// milder than what the user was just told.
     /// </para>
+    /// <para>
+    /// Per-model caps are never due; see <see cref="Alerts"/>.
+    /// </para>
     /// </summary>
     public IReadOnlyList<Alert> TakeNewAlerts(QuotaSnapshot snapshot, Thresholds thresholds)
     {
-        var due = new List<Alert>();
-
-        foreach (var window in snapshot.Windows)
+        lock (_gate)
         {
-            var remaining = 100 - window.UsedPercent;
-            var alreadyDue = false;
+            var due = new List<Alert>();
 
-            foreach (var (threshold, severity) in WorstFirst(thresholds))
+            foreach (var window in snapshot.Windows.Where(Alerts))
             {
-                if (remaining > threshold || KeyFor(window, threshold) is not { } key
-                    || store.HasFired(key))
-                {
-                    continue;
-                }
+                var remaining = 100 - window.UsedPercent;
+                var alreadyDue = false;
 
-                store.MarkFired(key);
-
-                // The worse line comes first, so anything after it is the overtaken warning:
-                // recorded above, but not delivered.
-                if (!alreadyDue)
+                foreach (var (threshold, severity) in WorstFirst(thresholds))
                 {
-                    due.Add(new Alert(key, severity, window.UsedPercent));
-                    alreadyDue = true;
+                    if (remaining > threshold || KeyFor(window, threshold) is not { } key
+                        || store.HasFired(key))
+                    {
+                        continue;
+                    }
+
+                    store.MarkFired(key);
+
+                    // The worse line comes first, so anything after it is the overtaken warning:
+                    // recorded above, but not delivered.
+                    if (!alreadyDue)
+                    {
+                        due.Add(new Alert(key, severity, window.UsedPercent));
+                        alreadyDue = true;
+                    }
                 }
             }
-        }
 
-        return due;
+            return due;
+        }
     }
 
     /// <summary>
@@ -69,17 +83,36 @@ public sealed class AlertEngine(IAlertStateStore store)
     /// belong to the key. It is also why a mute cannot be indefinite — a quota tool that can be
     /// silenced permanently will be silent on the day it matters.
     /// </para>
+    /// <para>
+    /// Does nothing for a per-model cap, which never alerts.
+    /// </para>
     /// </summary>
     public void Mute(QuotaWindow window, Thresholds thresholds)
     {
-        foreach (var (threshold, _) in WorstFirst(thresholds))
+        if (!Alerts(window))
         {
-            if (KeyFor(window, threshold) is { } key)
+            return;
+        }
+
+        lock (_gate)
+        {
+            foreach (var (threshold, _) in WorstFirst(thresholds))
             {
-                store.MarkFired(key);
+                if (KeyFor(window, threshold) is { } key)
+                {
+                    store.MarkFired(key);
+                }
             }
         }
     }
+
+    /// <summary>
+    /// Whether a window can raise an alert at all. Per-model caps cannot: like the HUD's
+    /// severity (quota-hud AC-5), notifications cover the two windows the HUD shows, and a per-model cap
+    /// lives in the detail panel (quota-hud AC-23). A toast about one would name a window the HUD has no
+    /// line for.
+    /// </summary>
+    private static bool Alerts(QuotaWindow window) => window.Kind != WindowKind.WeeklyScoped;
 
     /// <summary>
     /// The thresholds, most severe first. Order matters: it is what makes a reading past both
@@ -94,7 +127,12 @@ public sealed class AlertEngine(IAlertStateStore store)
     /// <summary>
     /// The key for a threshold on a window, or null when the window reports no reset time and so
     /// has no occurrence to be once-per.
+    ///
+    /// <para>
+    /// The threshold goes in exactly as the user set it. Rounding it would let two lines that
+    /// round alike share one key, and the second crossing would find the first already fired.
+    /// </para>
     /// </summary>
     private static AlertKey? KeyFor(QuotaWindow window, double threshold) =>
-        AlertKey.For(window, (int)Math.Round(threshold));
+        AlertKey.For(window, threshold);
 }

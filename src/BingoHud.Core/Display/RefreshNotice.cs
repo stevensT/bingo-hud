@@ -47,8 +47,8 @@ public static class RefreshNotice
     /// How far off the next attempt is.
     ///
     /// <para>
-    /// Relative rather than a clock time. A refusal is never more than the ceiling away, and
-    /// over that distance "in 3 min" answers the question a user actually has — whether to wait
+    /// Relative rather than a clock time. A refusal is rarely more than the ceiling away — only
+    /// a server's own wait can be longer — and over that distance "in 3 min" answers the question a user actually has — whether to wait
     /// or go and do something else — in a way that "at 2:33 PM" does not.
     /// </para>
     /// </summary>

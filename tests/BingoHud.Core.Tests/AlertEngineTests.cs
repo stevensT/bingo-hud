@@ -156,4 +156,42 @@ public class AlertEngineTests
         Assert.False(store.HasFired(new AlertKey(WindowKind.Session, 25, Reset)));
         Assert.False(store.HasFired(new AlertKey(WindowKind.Session, 10, Reset)));
     }
+
+    [Fact]
+    public void FractionalThresholdsThatRoundAlikeAreStillTwoAlerts()
+    {
+        // The settings file accepts any number. Both of these once rounded to the same key, so
+        // the warning recorded "10" and the critical crossing that followed found it already
+        // fired and said nothing.
+        var engine = Engine();
+        var thresholds = new Thresholds(WarningAtRemaining: 10.4, CriticalAtRemaining: 10.1);
+
+        var warning = Assert.Single(engine.TakeNewAlerts(Snapshot(Window(usedPercent: 89.7)), thresholds));
+        var critical = Assert.Single(engine.TakeNewAlerts(Snapshot(Window(usedPercent: 90)), thresholds));
+
+        Assert.Equal(Severity.Warning, warning.Severity);
+        Assert.Equal(Severity.Critical, critical.Severity);
+    }
+
+    [Fact]
+    public void APerModelCapPastAThresholdIsDueNothingAndTheReadingStillFormats()
+    {
+        // A per-model cap lives in the panel, as it does for the HUD's severity. It once reached
+        // the alert path and threw there, because a toast has no short name for it; two caps
+        // with the same reset would also have shared one key. The whole path is run here, from
+        // reading to words, so neither half can come back alone.
+        var scoped = new QuotaWindow(
+            WindowKind.WeeklyScoped, UsedPercent: 80, Reset, ServerSeverity.Normal, Scope: "opus");
+
+        var due = Take(Engine(), scoped, Window(usedPercent: 76));
+
+        var alert = Assert.Single(due);
+        Assert.Equal(WindowKind.Session, alert.Key.Kind);
+
+        var message = Display.AlertMessage.Describe(
+            due, Settings.DisplayDirection.Consumed, ObservedAt, System.Globalization.CultureInfo.InvariantCulture);
+
+        Assert.NotNull(message);
+        Assert.StartsWith("5h", message.Title);
+    }
 }

@@ -129,6 +129,42 @@ public class UsageNormalizerFlatFallbackTests
     }
 
     [Fact]
+    public void ALimitsOfNullFallsBackToTheFlatKeys()
+    {
+        // Null is "not reported", the same as absent. Only a limits field of the wrong type is
+        // a broken payload.
+        var snapshot = Parse("""{ "limits": null, "five_hour": { "utilization": 12 } }""");
+
+        Assert.Equal(WindowKind.Session, Assert.Single(snapshot.Windows).Kind);
+    }
+
+    [Theory]
+    [InlineData("session", "seven_day", WindowKind.WeeklyAll)]
+    [InlineData("primary", "seven_day", WindowKind.WeeklyAll)]
+    [InlineData("weekly", "five_hour", WindowKind.Session)]
+    [InlineData("week", "five_hour", WindowKind.Session)]
+    [InlineData("secondary", "five_hour", WindowKind.Session)]
+    public void AGenericAliasThatIsNotAnObjectIsSomethingElseAndIsSkipped(
+        string generic, string other, WindowKind otherKind)
+    {
+        // These names are ordinary words, and a top-level "session" holding an identifier is a
+        // field about something else, not a broken window. Only the names that can mean nothing
+        // but a window are held to the stricter rule. The generic name is the only candidate
+        // for its window here, so it is actually read.
+        var snapshot = Parse($$"""{ "{{generic}}": "abc123", "{{other}}": { "utilization": 12 } }""");
+
+        Assert.Equal(otherKind, Assert.Single(snapshot.Windows).Kind);
+    }
+
+    [Fact]
+    public void ANullAliasYieldsToTheNextOne()
+    {
+        var snapshot = Parse("""{ "five_hour": null, "session": { "utilization": 12 } }""");
+
+        Assert.Equal(12, Assert.Single(snapshot.Windows).UsedPercent);
+    }
+
+    [Fact]
     public void TheFlatKeysAreIgnoredWhenLimitsIsPresent()
     {
         // Both forms are present in every real payload observed so far. Reading both would

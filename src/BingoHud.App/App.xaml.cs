@@ -180,7 +180,8 @@ public partial class App : Application
         var state = _monitor?.Current
             ?? new ReadingState(null, Freshness.Fresh, null, TimeSpan.Zero, "not started");
 
-        return PanelReadout.Compose(state, _settings, Version, _clock.Now, culture: null, _lastRefresh);
+        return PanelReadout.Compose(
+            state, _settings, Version, _clock.Now, culture: null, _lastRefresh, TimeZoneInfo.Local);
     }
 
     /// <summary>
@@ -192,8 +193,8 @@ public partial class App : Application
     /// button that appears to do nothing.
     /// </para>
     /// <para>
-    /// The signals are gathered fresh, exactly as the loop does before its own poll, so a manual
-    /// refresh is judged against the same cadence as everything else rather than a stale one.
+    /// The signals are gathered fresh, exactly as the loop does before its own poll, so the
+    /// cadence scheduled after this refresh reflects the machine as it is now.
     /// </para>
     /// </summary>
     private async Task RefreshNowAsync()
@@ -231,7 +232,7 @@ public partial class App : Application
                 "The HUD asked for a reading before startup wired the monitor.");
         }
 
-        return Readout.Content(_monitor.Current, _settings, _clock.Now);
+        return Readout.Content(_monitor.Current, _settings, _clock.Now, culture: null, TimeZoneInfo.Local);
     }
 
     /// <summary>
@@ -251,7 +252,8 @@ public partial class App : Application
             // that arrive while it is up, so announcing them one by one loses all but the first
             // — and the engine has already recorded every one as fired, so a lost one never
             // comes back. Core decides the wording for one or many alike.
-            if (AlertMessage.Describe(due, _settings.Direction, _clock.Now) is not { } message)
+            if (AlertMessage.Describe(due, _settings.Direction, _clock.Now, culture: null, TimeZoneInfo.Local)
+                is not { } message)
             {
                 return;
             }
@@ -269,7 +271,8 @@ public partial class App : Application
     /// <para>
     /// "The current window" is read as every window on the reading rather than one of them. The
     /// user reaching for mute is saying "not now" about the interruption, not about one of two
-    /// quotas they were not asked to choose between.
+    /// quotas they were not asked to choose between. Per-model caps never alert, so the engine
+    /// passes over them here.
     /// </para>
     /// <para>
     /// This cannot silence Bingo indefinitely, and that is the point: muting records the

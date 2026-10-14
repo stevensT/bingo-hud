@@ -84,6 +84,39 @@ public class AlertStateStoreTests
     }
 
     [Fact]
+    public void AFileWrittenBy030StillMatchesAfterThresholdsBecameExact()
+    {
+        // 0.3.0 wrote whole-number thresholds. An upgrade must not rearm everything it had
+        // already announced in the current window.
+        using var directory = new TempDirectory();
+        var path = directory.WriteFile("alerts.json", """
+            [
+              {
+                "kind": "Session",
+                "thresholdPercent": 25,
+                "resetsAt": "2026-08-31T16:00:00-07:00"
+              }
+            ]
+            """);
+
+        Assert.True(Store(path).HasFired(new AlertKey(WindowKind.Session, 25.0, Reset)));
+    }
+
+    [Fact]
+    public void AFractionalThresholdIsStillTheSameAlertAfterARestart()
+    {
+        // Thresholds are kept exactly as set, so they are written that way too. A key that read
+        // back as anything else would re-announce every hand-edited alert on each start.
+        using var directory = new TempDirectory();
+        var path = directory.PathTo("alerts.json");
+        var key = new AlertKey(WindowKind.Session, 10.4, Reset);
+
+        Store(path).MarkFired(key);
+
+        Assert.True(Store(path).HasFired(key));
+    }
+
+    [Fact]
     public void TheSameInstantInADifferentOffsetIsStillTheSameAlertAfterARestart()
     {
         using var directory = new TempDirectory();
@@ -146,13 +179,29 @@ public class AlertStateStoreTests
     {
         // An unwritable path costs restart-survival, not correctness. Losing a duplicate
         // notification is not worth throwing into the polling path over.
+        // The path names an existing folder, which no file write can replace. A missing folder
+        // no longer serves here: the store now creates it.
         using var directory = new TempDirectory();
-        var unwritable = Path.Combine(directory.PathTo("no-such-directory"), "alerts.json");
+        var unwritable = directory.PathTo("alerts.json");
+        Directory.CreateDirectory(unwritable);
         var store = Store(unwritable);
 
         store.MarkFired(Key());
 
         Assert.True(store.HasFired(Key()));
         Assert.False(File.Exists(unwritable));
+    }
+
+    [Fact]
+    public void AFolderThatDoesNotExistYetIsCreatedOnTheFirstSave()
+    {
+        // On a fresh install nothing has made Bingo's folder until a setting is saved, and
+        // until then every alert and mute would live in memory only.
+        using var directory = new TempDirectory();
+        var path = Path.Combine(directory.PathTo("Bingo"), "alerts.json");
+
+        Store(path).MarkFired(Key());
+
+        Assert.True(Store(path).HasFired(Key()));
     }
 }

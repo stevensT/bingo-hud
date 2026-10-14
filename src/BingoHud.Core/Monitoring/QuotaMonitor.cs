@@ -35,6 +35,13 @@ public sealed class QuotaMonitor
     private string _pollReason = PollPolicy.Reasons.NothingIsHappening;
     private DateTimeOffset? _nextAttemptAt;
 
+    // The earliest a refresh is accepted at all, and why. Distinct from _nextAttemptAt, which
+    // is when the cadence would like the next attempt: the floor and a backoff are restraints
+    // owed to the service, while the cadence is only a preference, and a user asking for a
+    // number now outranks a preference.
+    private DateTimeOffset? _acceptedFrom;
+    private string _refusalReason = PollPolicy.Reasons.NothingIsHappening;
+
     public QuotaMonitor(ICredentialProvider credentials, IUsageClient client, IClock clock)
     {
         _credentials = credentials;
@@ -55,8 +62,9 @@ public sealed class QuotaMonitor
     public static TimeSpan StaleAfter { get; } = PollPolicy.Ceiling + TimeSpan.FromMinutes(15);
 
     /// <summary>
-    /// The earliest instant another attempt will be accepted, or null before the first one has
-    /// been made.
+    /// When the cadence wants the next automatic attempt, or null before the first one has been
+    /// made. Not when a refresh will be accepted: one is refused only inside the floor or a
+    /// backoff, which can end sooner (see <see cref="RefreshAsync"/>).
     ///
     /// <para>
     /// Exposed so the poll loop can wait on it instead of working the cadence out again. The
@@ -98,6 +106,12 @@ public sealed class QuotaMonitor
     /// precedence over refusing: a caller who arrives during a fetch wants the number that fetch
     /// is about to produce, and refusing them would be both unhelpful and untrue.
     /// </para>
+    /// <para>
+    /// What is refused is anything inside the floor, or inside a backoff after a failure or a
+    /// server's wait. The cadence is not enforced here: a manual refresh five minutes into an
+    /// idle half hour is accepted. The loop keeps to the cadence itself, by waiting on
+    /// <see cref="NextAttemptAt"/>.
+    /// </para>
     /// </summary>
     public Task<RefreshResult> RefreshAsync(
         PollSignals signals,
@@ -124,10 +138,10 @@ public sealed class QuotaMonitor
                 return Task.FromResult<RefreshResult>(new RefreshResult.Stopped());
             }
 
-            if (_nextAttemptAt is { } next && _clock.Now < next)
+            if (_acceptedFrom is { } accepted && _clock.Now < accepted)
             {
                 return Task.FromResult<RefreshResult>(
-                    new RefreshResult.Refused(_pollReason, next));
+                    new RefreshResult.Refused(_refusalReason, accepted));
             }
 
             var fetch = FetchAsync(signals, cancellationToken);
@@ -218,8 +232,25 @@ public sealed class QuotaMonitor
 
         var (delay, reason) = PollPolicy.NextDelay(informed);
 
+        // One reading of the clock for both instants. The loop relies on the floor never landing
+        // after the cadence, and two readings could put it a tick past when both are the floor.
+        var now = _clock.Now;
+
         _pollReason = reason;
-        _nextAttemptAt = _clock.Now + delay;
+        _nextAttemptAt = now + delay;
+
+        // A failure or a server's wait is a backoff, and holds every caller to the whole of it.
+        // After a success only the floor does.
+        if (informed.LastAttemptFailed || informed.ServerRetryAfter is not null)
+        {
+            _acceptedFrom = _nextAttemptAt;
+            _refusalReason = reason;
+        }
+        else
+        {
+            _acceptedFrom = now + PollPolicy.Floor;
+            _refusalReason = PollPolicy.Reasons.JustChecked;
+        }
     }
 
     private ReadingState Build()
