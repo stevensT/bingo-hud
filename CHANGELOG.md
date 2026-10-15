@@ -11,6 +11,11 @@ session logs, anything below `1.0.0` should be treated as liable to break when e
 
 ## [Unreleased]
 
+## [0.5.0] - 2026-10-15
+
+Codex usage beside Claude's. A minor release, as every change to how a source is read is: Codex's
+session logs are now the second undocumented source Bingo depends on.
+
 ### Added
 - Codex usage, beside Claude's. Bingo reads the 5-hour and weekly figures Codex records in its
   session logs on this machine, under `.codex` in your user folder or wherever `CODEX_HOME`

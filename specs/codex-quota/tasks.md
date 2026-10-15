@@ -381,9 +381,17 @@ The three units touch separate files and do not depend on each other.
 
 ## Build Verification
 
-- [ ] BV.1 `dotnet clean` then `dotnet build`: 0 warnings, 0 errors.
-- [ ] BV.2 `dotnet test`: full suite, no failures, no unexplained skips.
-- [ ] BV.3 Both publish shapes build per the README's Publishing section, and the setup builds
+- [x] BV.1 `dotnet clean` then `dotnet build`: 0 warnings, 0 errors.
+- [x] BV.2 `dotnet test`: full suite, no failures, no unexplained skips.
+      *1705 pass, 0 fail, 0 skip; no warnings in the unfiltered warning lines.*
+- [x] BV.3 Both publish shapes build per the README's Publishing section, and the setup builds
       from the self-contained one.
-- [ ] BV.4 Final checkpoint: all green, every acceptance criterion met (AC-3b deferred), recorded
+      *Built from `ad67d41` into `artifacts/bv-check/`, apart from the release folders: self-
+      contained 70.9 MB, framework-dependent 0.42 MB (0.4.0's were 70.87 and 0.36), setup 65.97 MB.
+      Both carry 0.4.0+ad67d41, since the version bump is release step 2. Built, not launched.*
+- [~] BV.4 Final checkpoint: all green, every acceptance criterion met (AC-3b deferred), recorded
       in `progress.md`. Release as 0.5.0 by the README's Releasing steps **(Trevor)**.
+      *Checkpoint recorded. The shell wiring 6.3 changed (alert filter, Mute, first-start
+      stand-in) was then checked on screen with the Debug build, a stub endpoint and a made-up
+      Codex record; all four trials passed (details in `progress.md`). Left open: the release
+      itself.*

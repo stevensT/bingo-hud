@@ -1,9 +1,9 @@
 # Codex Quota — Progress
 
 updated: 2026-10-15
-status: Phase 6 complete; Build Verification next
+status: Build Verification done; release 0.5.0 in progress
 blockers: none
-next_session: BV.1 to BV.4. BV.3 builds both publish shapes and the setup; BV.4 is the final checkpoint, then release 0.5.0 (Trevor).
+next_session: release 0.5.0 by the README's Releasing steps (Trevor). Steps 1 to 3 done: version 0.5.0 in the project file, changelog section dated 2026-10-15, clean build 0 warnings, 1705 pass. The 0.5.0 winget manifest folder is written with the setup hash still to fill in after step 6.
 
 ## 2026-10-15: 6.3, the feature review
 
@@ -178,3 +178,21 @@ criteria (Core evidence in the Phase 4 record; shell evidence here):
 - AC-9: met. ClaudeOnlyHudTests against 0.4.0's output; Claude alone seen on screen (5.3).
 - AC-10: met. Codex alerts wired to the shared path (5.5); both product notifications appeared in sequence on screen (5.6).
 issues: none. AC-8b's not-found state was the one gap found at the checkpoint; checked on screen with Trevor the same day.
+
+### CP: Build Verification — 2026-10-15
+tests: 1705 pass / 0 fail / 0 skip
+build: pass, 0 warnings, 0 errors. `dotnet clean` confirmed by the Core dll being gone, then four compile steps in the build log; `dotnet test` warning lines read unfiltered
+publish: both shapes and the setup built from `ad67d41` into `artifacts/bv-check/` (self-contained 70.9 MB, framework-dependent 0.42 MB, setup 65.97 MB); versions read 0.4.0+ad67d41 until the release bump. Built, not launched
+done: BV.1, BV.2, BV.3; BV.4 recorded here
+task marks: every task `[x]` except BV.4
+criteria: as the Phase 5 record, with one qualification. 6.3 changed the shell's alert filter, Mute and first-start stand-in after AC-8a and AC-10 were seen on screen; the rules they call are tested in Core, but the wiring has not been seen running since. AC-3b deferred past 0.5.0.
+issues: none blocking the build; the on-screen check above was then run, below
+
+#### On-screen check of 6.3's shell wiring — 2026-10-15
+Debug build from `ad67d41`, stub endpoint answering 500 (Claude has no reading), a made-up Codex record at five-hour 95% and weekly 40%. Installed 0.4.0 stopped; settings.json and alerts.json backed up to artifacts/settings-backup-bv.
+- Alert filter, Codex off: both Codex crossings recorded in alerts.json, no notification. Measured, not only watched: Windows' last-notification time for the app's tray entry did not move.
+- Alert filter, Codex on, fresh alerts: that time moved to the launch (12:28:28), and the notification was in Trevor's notification centre. A first run of this trial at 12:25 was not seen on screen, though Windows recorded it as posted.
+- Mute: greyed out with Codex off and Claude without a reading; enabled once Codex was ticked. Clicked, it added Codex's two weekly entries to alerts.json. The first click left nothing in the file and a second wrote the entries; most likely the first did not register, but that is not proven.
+- First-start stand-in: question closed with X, then Show bar ticked. The file kept `"showBar": true` and `"products": null`, and the question came back at the next start.
+- Restored: settings.json and alerts.json match the backup by SHA-256; installed 0.4.0 running; stub stopped.
+criteria: AC-8a and AC-10 hold with 6.3's changes in place. All acceptance criteria met except AC-3b, deferred past 0.5.0.
