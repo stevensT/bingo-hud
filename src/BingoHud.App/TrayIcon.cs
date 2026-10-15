@@ -33,6 +33,7 @@ public sealed class TrayIcon : IDisposable
     private readonly Forms.ToolStripMenuItem _remaining;
     private readonly Forms.ToolStripMenuItem _countdown;
     private readonly Forms.ToolStripMenuItem _bar;
+    private readonly Dictionary<Core.Product, Forms.ToolStripMenuItem> _products = [];
 
     /// <param name="settings">The settings as they stand, read whenever the menu opens.</param>
     /// <param name="change">Applies and persists a change the user made from the menu.</param>
@@ -74,6 +75,19 @@ public sealed class TrayIcon : IDisposable
         _bar = new Forms.ToolStripMenuItem("Show bar") { CheckOnClick = true };
         _bar.Click += (_, _) => change(settings() with { ShowBar = _bar.Checked });
 
+        // One check mark per product (codex-quota AC-8c). Not CheckOnClick: the switch is flipped
+        // through ProductSwitches, which refuses to turn off the last product that is on.
+        foreach (var product in new[] { Core.Product.Claude, Core.Product.Codex })
+        {
+            var item = new Forms.ToolStripMenuItem($"Show {Core.Display.WindowName.Product(product)}");
+            item.Click += (_, _) =>
+            {
+                var shown = Shown(settings());
+                change(settings() with { Products = shown.With(product, on: !shown.IsOn(product)) });
+            };
+            _products[product] = item;
+        }
+
         // Muting cannot be indefinite by design: it records every threshold as already fired for
         // the occurrence on screen, so it lifts at the next reset on its own. A quota tool that
         // could be silenced permanently would be silent on the day it mattered.
@@ -81,6 +95,9 @@ public sealed class TrayIcon : IDisposable
 
         var menu = new Forms.ContextMenuStrip();
         menu.Items.Add(new Forms.ToolStripMenuItem("Show details", null, (_, _) => openPanel()));
+        menu.Items.Add(new Forms.ToolStripSeparator());
+        menu.Items.Add(_products[Core.Product.Claude]);
+        menu.Items.Add(_products[Core.Product.Codex]);
         menu.Items.Add(new Forms.ToolStripSeparator());
         menu.Items.Add(_collapse);
         menu.Items.Add(_remaining);
@@ -102,6 +119,15 @@ public sealed class TrayIcon : IDisposable
             _countdown.Checked = current.ResetFormat == Core.Settings.ResetFormat.Countdown;
             _bar.Checked = current.ShowBar;
 
+            // The last product on is shown checked and greyed out, so it visibly cannot be cleared
+            // rather than appearing to work and doing nothing.
+            var shown = Shown(current);
+            foreach (var (product, item) in _products)
+            {
+                item.Checked = shown.IsOn(product);
+                item.Enabled = shown.CanTurnOff(product);
+            }
+
             // Nothing to silence before the first reading, and an item that appears to work and
             // does nothing is worse than one that is visibly unavailable.
             _mute.Enabled = _canMute();
@@ -122,6 +148,13 @@ public sealed class TrayIcon : IDisposable
         // nothing to try.
         _icon.DoubleClick += (_, _) => openPanel();
     }
+
+    /// <summary>
+    /// The products shown. Null only until the first-start question is answered, which startup
+    /// does before the tray exists; Claude alone is the same fallback the HUD uses.
+    /// </summary>
+    private static Core.Settings.ProductSwitches Shown(Core.Settings.UserSettings settings) =>
+        settings.Products ?? new Core.Settings.ProductSwitches(Claude: true, Codex: false);
 
     /// <summary>
     /// The icon, from the assembly rather than from a file beside the exe, so it is present

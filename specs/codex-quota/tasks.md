@@ -227,8 +227,19 @@ The three units touch separate files and do not depend on each other.
       after restoring, closing with the X still brought up the HUD and saved nothing. Found on
       screen: the saved answer carried a derived "anyOn"; a test pinned it red, and it is now
       kept out of the file. Full suite 1667. Real settings restored and unchanged.*
-- [ ] 5.2 Tray: "Show Claude" and "Show Codex" check marks above the display options, the last
+- [x] 5.2 Tray: "Show Claude" and "Show Codex" check marks above the display options, the last
       one on cannot be cleared. Checked on screen. (AC-8, AC-8c)
+      *Done 2026-10-14. Items flip through `ProductSwitches.With`; on opening, each is checked
+      from the settings and the last one on is greyed out. On screen with Trevor: both appear
+      checked above the display options; clicking "Show Claude" unchecks it and greys out "Show
+      Codex"; clicking it again restores both. Saved file checked after each step.
+      Unexplained, from the first run: two clicks changed the in-memory setting, so the menu
+      showed them, but neither reached the file, and nothing said so. Two later runs with a
+      temporary log in `Remember` (since removed) saved every change, including through the
+      first-start path, so it did not reproduce. Likeliest cause is a brief lock on the file,
+      which `Save` swallows by design: the existing `deferred:` note on `Remember` in
+      `App.xaml.cs`. Raised with Trevor rather than fixed here. Also seen: the HUD saved a
+      one-pixel position change on its own, three seconds after a click.*
 - [ ] 5.3 HUD: draw product sections, each with its lines and its mark; the reset-passed line
       without figure or bar. Checked on screen with both products, with each alone, and with
       collapse on. (AC-4, AC-7a, AC-9)

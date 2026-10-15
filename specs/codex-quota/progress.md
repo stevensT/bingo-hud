@@ -1,9 +1,9 @@
 # Codex Quota — Progress
 
 updated: 2026-10-14
-status: Phase 5 in progress; 5.1 done 2026-10-14
+status: Phase 5 in progress; 5.1 and 5.2 done 2026-10-14
 blockers: none
-next_session: task 5.2, the tray's product check marks. Trevor's real settings are backed up in artifacts\settings-backup-5.1 and currently match it; restore from it after each on-screen run.
+next_session: task 5.3, the HUD drawing product sections. Open: Trevor's call on the unexplained silent save failure seen once in 5.2 (see the 5.2 note). Trevor's real settings are backed up in artifacts\settings-backup-5.1 and currently match it; restore from it after each on-screen run.
 
 ## 2026-10-14: the spike closed early
 
