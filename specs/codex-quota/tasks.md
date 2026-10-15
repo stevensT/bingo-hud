@@ -165,12 +165,19 @@ The three units touch separate files and do not depend on each other.
       `ReadoutTests` gained "Claude " and nothing else. Before the question is answered, only
       Claude is shown. Codex's empty phrases are placeholders marked `deferred:` until 4.4. Full
       suite 1610.*
-- [ ] 4.3 Test + implement the Codex section from `CodexState`:
+- [x] 4.3 Test + implement the Codex section from `CodexState`:
       - not found and no reading yet each give a phrase in place of lines (AC-7);
       - a reading always carries its age, "used 12m ago" (AC-3);
       - idle keeps its colours; a failed scan marks "logs unreadable" and drops them (AC-3a);
       - a window whose reset has passed shows its name and "reset, no use since", no figure, no
         bar, normal severity (AC-3, AC-2).
+      *Done 2026-10-14: 13 tests in `CodexSectionTests`; 10 red then green, 3 passing before as
+      guards (4.2's placeholder phrases already differ, and the other window's figure is
+      ordinary behaviour). Marks: "used 12 min ago", "used just now", and with a failed look
+      ", logs unreadable" or ", log format not recognised", worded in `StatusMessage.CodexMark`
+      beside Claude's marks. A reset at exactly now has passed. Collapse counts an ended window
+      as normal and emptiest, so it keeps the other. `ReadoutLine.Percent` is now optional; the
+      whole solution, app included, builds with 0 warnings. Full suite 1623.*
 - [ ] 4.4 Test + implement `StatusMessage` words for the Codex states: headline and advice for
       not found, no reading yet, logs unreadable and unknown shape. Advice says what to do:
       install or open Codex, use it once, or that a Codex update is the likely cause. (AC-7)

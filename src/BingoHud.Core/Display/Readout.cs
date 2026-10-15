@@ -64,6 +64,11 @@ public static class Readout
     /// One product's lines from one reading. Shared by both products, so a Codex line and a Claude
     /// line can never be drawn by different rules (codex-quota AC-4, AC-5).
     /// </summary>
+    /// <param name="ended">
+    /// Which windows have reset since the reading was taken, or null when none is treated so.
+    /// Only Codex passes one: its reading is as old as the last turn, while Claude's is at most a
+    /// poll old and AC-9 keeps its HUD as 0.4.0 drew it.
+    /// </param>
     private static List<ReadoutLine> LinesFor(
         Product product,
         QuotaSnapshot snapshot,
@@ -71,13 +76,25 @@ public static class Readout
         UserSettings settings,
         DateTimeOffset now,
         CultureInfo? culture,
-        TimeZoneInfo? zone)
+        TimeZoneInfo? zone,
+        Func<QuotaWindow, bool>? ended = null)
     {
-        var shown = Shown(snapshot, settings);
+        var isEnded = ended ?? (_ => false);
+        var shown = Shown(snapshot, settings, isEnded);
         var lines = new List<ReadoutLine>(shown.Count);
 
         foreach (var window in shown)
         {
+            if (isEnded(window))
+            {
+                // The figure belongs to an occurrence that has ended, and nothing has been said
+                // about the new one. No number, no bar, no colour (codex-quota AC-3, AC-2).
+                lines.Add(new ReadoutLine(
+                    WindowName.Label(product, window.Kind), Percent: null, EndedPhrase, Severity.Normal, Bar: null));
+
+                continue;
+            }
+
             // A frozen reading takes no colour (AC-13). The overall severity is the worst line,
             // so excluding it here excludes it from the accent bar too.
             var severity = frozen
@@ -178,7 +195,16 @@ public static class Readout
     }
 
     /// <summary>
-    /// Codex's section: its lines, or the phrase that stands in for them.
+    /// Codex's section: its lines and mark, or the phrase that stands in for them
+    /// (codex-quota AC-3, AC-3a, AC-7).
+    ///
+    /// <para>
+    /// A Codex reading is as old as the last Codex turn, so it always carries its age. When the
+    /// logs read cleanly an old figure is still true, and keeps its colours: Codex has simply not
+    /// been used since. When they could not be read, Bingo cannot tell whether Codex has been used
+    /// since, so the reading is drawn the way a frozen Claude reading is, without colour, and the
+    /// mark says why.
+    /// </para>
     /// </summary>
     private static HudContent CodexContent(
         CodexState state,
@@ -195,12 +221,18 @@ public static class Readout
                 state.Presence == CodexPresence.NotFound ? "Codex not found" : "No Codex reading yet");
         }
 
-        var lines = LinesFor(Product.Codex, snapshot, frozen: false, settings, now, culture, zone);
+        var failed = state.Problem is not null;
+        var lines = LinesFor(
+            Product.Codex, snapshot, frozen: failed, settings, now, culture, zone,
+            ended: window => window.ResetsAt is { } resetsAt && resetsAt <= now);
 
         return lines.Count == 0
             ? new HudContent.Empty(StatusMessage.NoWindowToShow)
-            : new HudContent.Reading(lines, Mark: null, Frozen: false);
+            : new HudContent.Reading(lines, StatusMessage.CodexMark(state), Frozen: failed);
     }
+
+    /// <summary>What a Codex window whose reset has passed says in place of its figure.</summary>
+    private const string EndedPhrase = "reset, no use since";
 
     /// <summary>
     /// The reset phrase, led by "limited" when the server is refusing work against the window.
@@ -255,8 +287,13 @@ public static class Readout
     /// A window the server did not report is absent rather than normal, so a reading with one
     /// window collapses to that window rather than to nothing.
     /// </para>
+    /// <para>
+    /// A window that has ended (codex-quota AC-3) needs no attention whatever figure it last
+    /// held, so it counts as normal and as the emptiest window, and collapse keeps the other.
+    /// </para>
     /// </summary>
-    private static IReadOnlyList<QuotaWindow> Shown(QuotaSnapshot snapshot, UserSettings settings)
+    private static IReadOnlyList<QuotaWindow> Shown(
+        QuotaSnapshot snapshot, UserSettings settings, Func<QuotaWindow, bool> isEnded)
     {
         var windows = HudKinds
             .Select(kind => snapshot.Windows.FirstOrDefault(w => w.Kind == kind))
@@ -269,7 +306,7 @@ public static class Readout
         }
 
         var severities = windows
-            .Select(w => SeverityPolicy.Evaluate(w, settings.Thresholds))
+            .Select(w => isEnded(w) ? Severity.Normal : SeverityPolicy.Evaluate(w, settings.Thresholds))
             .ToList();
 
         if (severities.All(s => s != Severity.Normal))
@@ -277,7 +314,9 @@ public static class Readout
             return windows;
         }
 
-        return [Worst(windows, severities)];
+        var fullness = windows.Select(w => isEnded(w) ? -1 : w.UsedPercent).ToList();
+
+        return [Worst(windows, severities, fullness)];
     }
 
     /// <summary>
@@ -291,7 +330,8 @@ public static class Readout
     /// work first.
     /// </para>
     /// </summary>
-    private static QuotaWindow Worst(IReadOnlyList<QuotaWindow> windows, IReadOnlyList<Severity> severities)
+    private static QuotaWindow Worst(
+        IReadOnlyList<QuotaWindow> windows, IReadOnlyList<Severity> severities, IReadOnlyList<double> fullness)
     {
         var worst = 0;
 
@@ -299,7 +339,7 @@ public static class Readout
         {
             var better = Rank(severities[i]) > Rank(severities[worst])
                 || (Rank(severities[i]) == Rank(severities[worst])
-                    && windows[i].UsedPercent > windows[worst].UsedPercent);
+                    && fullness[i] > fullness[worst]);
 
             if (better)
             {

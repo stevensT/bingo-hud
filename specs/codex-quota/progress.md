@@ -1,9 +1,9 @@
 # Codex Quota — Progress
 
 updated: 2026-10-14
-status: Phase 4 in progress; 4.1 and 4.2 done 2026-10-14
+status: Phase 4 in progress; 4.1 to 4.3 done 2026-10-14
 blockers: none
-next_session: task 4.3, the Codex section from CodexState: phrases for not found and no reading, the age mark, idle vs failed, and the reset-passed line.
+next_session: task 4.4, StatusMessage words for the Codex states (headline and advice), replacing 4.2's deferred placeholder phrases.
 
 ## 2026-10-14: the spike closed early
 

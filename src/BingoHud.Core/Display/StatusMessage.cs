@@ -130,6 +130,35 @@ public sealed record StatusMessage(string Headline, string Advice)
     };
 
     /// <summary>
+    /// What sits beside the Codex numbers (codex-quota AC-3, AC-3a), or null without a reading.
+    ///
+    /// <para>
+    /// Always present with a reading, unlike Claude's mark: a Codex figure is as old as the last
+    /// Codex turn, which is routinely hours, so its age is part of what it says. It leads with
+    /// the age, as every mark does. A failed look adds the cause, and the two failures read
+    /// differently because they call for different things: one is the machine refusing access,
+    /// the other is Codex having changed what it writes.
+    /// </para>
+    /// </summary>
+    public static string? CodexMark(Codex.CodexState state)
+    {
+        if (state.Last is null)
+        {
+            return null;
+        }
+
+        var age = state.Age < TimeSpan.FromMinutes(1) ? "used just now" : $"used {AgeText.Span(state.Age)} ago";
+
+        return state.Problem switch
+        {
+            null => age,
+            Codex.CodexProblem.LogsUnreadable => $"{age}, logs unreadable",
+            Codex.CodexProblem.UnknownShape => $"{age}, log format not recognised",
+            _ => throw new ArgumentOutOfRangeException(nameof(state), state.Problem, null),
+        };
+    }
+
+    /// <summary>
     /// The words for one failure: what happened, and what to do about it.
     /// </summary>
     private static (string Headline, string Advice) Words(FetchOutcome failure) => failure switch

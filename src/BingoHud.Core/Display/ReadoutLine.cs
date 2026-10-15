@@ -36,7 +36,7 @@ namespace BingoHud.Core.Display;
 /// </param>
 public sealed record ReadoutLine(
     string Window,
-    string Percent,
+    string? Percent,
     string? Reset,
     Usage.Severity Severity,
     IReadOnlyList<double>? Bar)
