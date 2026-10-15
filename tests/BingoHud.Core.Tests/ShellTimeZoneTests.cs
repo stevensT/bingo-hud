@@ -14,7 +14,7 @@ namespace BingoHud.Core.Tests;
 public class ShellTimeZoneTests
 {
     [Theory]
-    [InlineData("Readout.Content(")]
+    [InlineData("Readout.Compose(")]
     [InlineData("PanelReadout.Compose(")]
     [InlineData("AlertMessage.Describe(")]
     public void EveryShellCallPassesTheLocalZone(string call)

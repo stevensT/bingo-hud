@@ -46,9 +46,19 @@ public partial class HudWindow : Window
     private const double SegmentGap = 2;
     private static readonly Brush Track = new SolidColorBrush(Color.FromArgb(0x40, 0xFF, 0xFF, 0xFF));
 
-    // A live normal bar (display options AC-10). Orange means live, so a frozen bar falls back to
-    // the labels' dimmed white instead (AC-11).
+    // A live normal bar (display options AC-10), in each product's own colour: Claude's orange,
+    // Codex's blue (codex-quota, Decided). Colour means live, so a frozen bar falls back to the
+    // labels' dimmed white instead (AC-11). The severity colours are shared, because they say how
+    // much trouble a window is in, which must read the same whichever product it belongs to.
     private static readonly Brush ClaudeOrange = new SolidColorBrush(Color.FromRgb(0xD9, 0x77, 0x57));
+    private static readonly Brush CodexBlue = new SolidColorBrush(Color.FromRgb(0x4A, 0x90, 0xE2));
+
+    private static Brush LiveBar(Core.Product product) => product switch
+    {
+        Core.Product.Claude => ClaudeOrange,
+        Core.Product.Codex => CodexBlue,
+        _ => throw new ArgumentOutOfRangeException(nameof(product), product, null),
+    };
 
     private static FontWeight SeverityWeight(Severity severity) =>
         severity is Severity.Critical or Severity.RateLimited ? FontWeights.SemiBold : FontWeights.Normal;
@@ -56,12 +66,12 @@ public partial class HudWindow : Window
     private readonly HudPosition? _remembered;
     private readonly Action<HudPosition> _moved;
     private readonly IClock _clock;
-    private readonly Func<HudContent> _readout;
+    private readonly Func<Hud> _readout;
     private readonly Action _openPanel;
     private readonly DwellPolicy _dwell = new();
     private readonly DispatcherTimer _cursorWatch = new() { Interval = TimeSpan.FromMilliseconds(50) };
     private readonly DispatcherTimer _readoutWatch = new() { Interval = TimeSpan.FromSeconds(1) };
-    private HudContent? _shown;
+    private Hud? _shown;
     private IntPtr _hwnd;
     private bool _solid;
 
@@ -69,7 +79,7 @@ public partial class HudWindow : Window
         HudPosition? remembered,
         Action<HudPosition> moved,
         IClock clock,
-        Func<HudContent> readout,
+        Func<Hud> readout,
         Action openPanel)
     {
         InitializeComponent();
@@ -122,12 +132,12 @@ public partial class HudWindow : Window
     /// </summary>
     private void Render()
     {
-        var content = _readout();
+        var hud = _readout();
 
-        // Asked of Core rather than compared here: a record compares its line list by reference,
-        // so the obvious equality check would report every reading as changed and rebuild the
-        // tree every second. Core owns the comparison because Core is what has tests.
-        if (_shown is not null && _shown.SameAs(content))
+        // Asked of Core rather than compared here: a record compares its list members by
+        // reference, so the obvious equality check would report every reading as changed and
+        // rebuild the tree every second. Core owns the comparison because Core is what has tests.
+        if (_shown is not null && _shown.SameAs(hud))
         {
             return;
         }
@@ -135,73 +145,105 @@ public partial class HudWindow : Window
         Lines.Children.Clear();
         Lines.RowDefinitions.Clear();
 
-        if (content is HudContent.Empty empty)
+        // The worst live line across every product (AC-5). Absent while everything is normal, so
+        // the accent appearing is itself the signal.
+        Accent.Background = SeverityBrush(hud.Overall);
+        Accent.Visibility = hud.Overall == Severity.Normal ? Visibility.Collapsed : Visibility.Visible;
+
+        // All sections in one grid, so the figures line up from one product to the next. A small
+        // gap above each section after the first keeps the products apart without a divider.
+        for (var i = 0; i < hud.Sections.Count; i++)
         {
-            // Core words for whichever state left the HUD with nothing to draw: signed out,
-            // unreadable, a response naming no window it shows, or simply not having finished
-            // the first poll (AC-9, AC-10). Never blank.
-            Lines.RowDefinitions.Add(new RowDefinition());
-            Lines.Children.Add(new TextBlock { Text = empty.Phrase, Foreground = Dim });
-            Accent.Visibility = Visibility.Collapsed;
-            _shown = content;
+            DrawSection(hud.Sections[i], gapAbove: i > 0);
+        }
+
+        // Recorded only once drawn. Recorded first, a draw that failed partway would leave the
+        // next tick believing it was already on screen, and it would never be drawn again.
+        _shown = hud;
+    }
+
+    private const double SectionGap = 6;
+
+    /// <summary>One product's rows: its lines and mark, or its label and the phrase in their place.</summary>
+    private void DrawSection(HudSection section, bool gapAbove)
+    {
+        var top = gapAbove ? SectionGap : 0;
+
+        if (section.Content is HudContent.Empty empty)
+        {
+            // Core's words for whichever state left this product with nothing to draw (AC-7,
+            // AC-9, AC-10). Labelled with the product like every other line (codex-quota AC-7a),
+            // so a phrase can never be read as the other product's.
+            var row = NewRow();
+            Place(new TextBlock { Text = WindowName.Product(section.Product), Foreground = Dim, Margin = new Thickness(0, top, 0, 0) }, row, column: 0);
+            var phrase = new TextBlock { Text = empty.Phrase, Foreground = Dim, Margin = new Thickness(10, top, 0, 0) };
+            Place(phrase, row, column: 1);
+            Grid.SetColumnSpan(phrase, 3);
             return;
         }
 
-        var reading = (HudContent.Reading)content;
+        var reading = (HudContent.Reading)section.Content;
 
-        Accent.Background = SeverityBrush(reading.Overall);
-        Accent.Visibility = reading.Overall == Severity.Normal ? Visibility.Collapsed : Visibility.Visible;
-
-        for (var row = 0; row < reading.Lines.Count; row++)
+        for (var i = 0; i < reading.Lines.Count; i++)
         {
-            var line = reading.Lines[row];
-            Lines.RowDefinitions.Add(new RowDefinition());
-            Place(new TextBlock { Text = line.Window, Foreground = Dim }, row, column: 0);
+            var line = reading.Lines[i];
+            var row = NewRow();
+            var lineTop = i == 0 ? top : 0;
+
+            Place(new TextBlock { Text = line.Window, Foreground = Dim, Margin = new Thickness(0, lineTop, 0, 0) }, row, column: 0);
 
             if (line.Bar is { } segments)
             {
-                var normal = reading.Frozen ? Dim : ClaudeOrange;
-                Place(DrawBar(segments, SeverityBrush(line.Severity) ?? normal), row, column: 1);
+                var normal = reading.Frozen ? Dim : LiveBar(section.Product);
+                var bar = DrawBar(segments, SeverityBrush(line.Severity) ?? normal);
+                bar.Margin = new Thickness(10, lineTop, 0, 0);
+                Place(bar, row, column: 1);
             }
 
-            var percent = new TextBlock
+            // No figure for a window whose reset has passed (codex-quota AC-3): its reset column
+            // carries Core's words for that instead.
+            if (line.Percent is { } figure)
             {
-                Text = line.Percent,
-                FontWeight = SeverityWeight(line.Severity),
-                Margin = new Thickness(10, 0, 0, 0),
-            };
+                var percent = new TextBlock
+                {
+                    Text = figure,
+                    FontWeight = SeverityWeight(line.Severity),
+                    Margin = new Thickness(10, lineTop, 0, 0),
+                };
 
-            // Left to the style's white when normal, rather than set to white here, so there is
-            // one place that decides what an unremarkable figure looks like.
-            if (SeverityBrush(line.Severity) is { } brush)
-            {
-                percent.Foreground = brush;
+                // Left to the style's white when normal, rather than set to white here, so there
+                // is one place that decides what an unremarkable figure looks like.
+                if (SeverityBrush(line.Severity) is { } brush)
+                {
+                    percent.Foreground = brush;
+                }
+
+                Place(percent, row, column: 2);
             }
-
-            Place(percent, row, column: 2);
 
             if (line.Reset is { } reset)
             {
-                Place(new TextBlock { Text = reset, Foreground = Dim, Margin = new Thickness(10, 0, 0, 0) }, row, column: 3);
+                Place(new TextBlock { Text = reset, Foreground = Dim, Margin = new Thickness(10, lineTop, 0, 0) }, row, column: 3);
             }
         }
 
         if (reading.Mark is { } mark)
         {
-            // One row under the numbers, spanning them, because the mark qualifies all of them
-            // at once. Not dimmed like the reset times beside it: this is the line that says the
-            // figures above cannot be trusted, which makes it the last thing to fade out.
-            Lines.RowDefinitions.Add(new RowDefinition());
+            // One row under the product's numbers, spanning them, because the mark qualifies all
+            // of them at once. Not dimmed like the reset times beside it: this is the line that
+            // says the figures above cannot be taken as current, which makes it the last thing to
+            // fade out.
+            var row = NewRow();
             var text = new TextBlock { Text = mark, Margin = new Thickness(0, 2, 0, 0) };
-            Grid.SetRow(text, reading.Lines.Count);
-            Grid.SetColumn(text, 0);
+            Place(text, row, column: 0);
             Grid.SetColumnSpan(text, 4);
-            Lines.Children.Add(text);
         }
+    }
 
-        // Recorded only once drawn. Recorded first, a draw that failed partway would leave the
-        // next tick believing it was already on screen, and it would never be drawn again.
-        _shown = content;
+    private int NewRow()
+    {
+        Lines.RowDefinitions.Add(new RowDefinition());
+        return Lines.RowDefinitions.Count - 1;
     }
 
     /// <summary>

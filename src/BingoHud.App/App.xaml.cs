@@ -34,6 +34,8 @@ public partial class App : Application
     private RefreshResult? _lastRefresh;
     private TranscriptActivity? _transcripts;
     private AlertEngine? _alerts;
+    private CodexMonitor? _codex;
+    private Timer? _codexWatch;
 
     protected override void OnStartup(StartupEventArgs e)
     {
@@ -72,6 +74,17 @@ public partial class App : Application
             new FileCredentialProvider(overrides.CredentialPath ?? FileCredentialProvider.DefaultPath),
             new UsageClient(_http, _clock, overrides.Endpoint),
             _clock);
+
+        // Codex is read from its own logs on this machine (codex-quota AC-1). Looked at once now,
+        // so the HUD's first frame has it, then every minute off the UI thread: a look costs a
+        // folder listing when nothing has been written, and a full read when something has.
+        _codex = new CodexMonitor(
+            new CodexLogReader(CodexLogReader.RootFor(
+                Environment.GetFolderPath(Environment.SpecialFolder.UserProfile),
+                Environment.GetEnvironmentVariable(CodexLogReader.HomeVariable))),
+            _clock);
+        _codex.Rescan();
+        _codexWatch = new Timer(_ => _codex.Rescan(), null, CodexRescanInterval, CodexRescanInterval);
 
         _transcripts = new TranscriptActivity(TranscriptActivity.DefaultPath, _clock);
         _alerts = new AlertEngine(new AlertStateStore(AlertStateStore.DefaultPath, _clock));
@@ -126,6 +139,7 @@ public partial class App : Application
     {
         // A fetch in flight is abandoned rather than awaited. Nobody will see its reading.
         _shutdown.Cancel();
+        _codexWatch?.Dispose();
         _tray?.Dispose();
         _http.Dispose();
         base.OnExit(e);
@@ -264,24 +278,30 @@ public partial class App : Application
             .GetCustomAttribute<AssemblyInformationalVersionAttribute>()?.InformationalVersion);
 
     /// <summary>
-    /// What the HUD shows as of this instant. Core decides all of it: which windows get a line,
-    /// how a reading that is no longer current is marked, and what stands in for the lines when
-    /// there are none.
+    /// What the HUD shows as of this instant. Core decides all of it: which products get a
+    /// section, which windows get a line, how a reading that is no longer current is marked, and
+    /// what stands in for the lines when there are none.
     /// </summary>
-    private HudContent HudReadout()
+    private Hud HudReadout()
     {
-        // Unreachable as startup is ordered: the monitor is built before the window that asks.
-        // It throws rather than substituting a phrase, because the field is never reassigned — a
-        // null here means nothing is polling and never will, and "No reading yet" would sit on
+        // Unreachable as startup is ordered: both monitors are built before the window that asks.
+        // It throws rather than substituting a phrase, because the fields are never reassigned —
+        // a null here means nothing is reading and never will, and "No reading yet" would sit on
         // screen forever looking like the ordinary first second of a run.
-        if (_monitor is null)
+        if (_monitor is null || _codex is null)
         {
             throw new InvalidOperationException(
-                "The HUD asked for a reading before startup wired the monitor.");
+                "The HUD asked for a reading before startup wired the monitors.");
         }
 
-        return Readout.Content(_monitor.Current, _settings, _clock.Now, culture: null, TimeZoneInfo.Local);
+        return Readout.Compose(_monitor.Current, _codex.Current, _settings, _clock.Now, culture: null, TimeZoneInfo.Local);
     }
+
+    /// <summary>
+    /// How often the Codex logs are looked at. Codex writes a record at the end of each turn, so
+    /// a minute is the longest a new figure waits; between turns a look costs a folder listing.
+    /// </summary>
+    private static readonly TimeSpan CodexRescanInterval = TimeSpan.FromMinutes(1);
 
     /// <summary>
     /// Raises a desktop notification for each alert the engine says is due (AC-14).

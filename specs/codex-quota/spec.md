@@ -41,6 +41,11 @@ Recorded so they are not reopened:
 - Codex readings from a remote source carry a remote icon; local readings carry none. Claude
   lines never carry it (AC-3b). Deferred past 0.5.0 on 2026-10-14: with the session logs as the
   only source, there are no remote Codex readings to mark.
+- A Codex line's bar, while live and normal, is drawn in Codex's blue rather than Claude's
+  orange, so the two products are told apart at a glance as well as by label. The warning,
+  critical and rate-limited colours are the same for both, because they say how much trouble a
+  window is in. Decided 2026-10-14 by Trevor, on seeing both sections on screen (task 5.3); a
+  narrowing of AC-4's "reads like a Claude line".
 - The Codex source is its session logs (AC-1), settled 2026-10-14 when the spike closed early at
   Trevor's call, with its known gaps accepted (spike Result).
 - Target release 0.5.0. First set at 0.4.0, and moved on 2026-10-13 when the 0.3.0 review fixes

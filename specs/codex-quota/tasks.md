@@ -240,16 +240,37 @@ The three units touch separate files and do not depend on each other.
       which `Save` swallows by design: the existing `deferred:` note on `Remember` in
       `App.xaml.cs`. Raised with Trevor rather than fixed here. Also seen: the HUD saved a
       one-pixel position change on its own, three seconds after a click.*
-- [ ] 5.3 HUD: draw product sections, each with its lines and its mark; the reset-passed line
+- [x] 5.3 HUD: draw product sections, each with its lines and its mark; the reset-passed line
       without figure or bar. Checked on screen with both products, with each alone, and with
       collapse on. (AC-4, AC-7a, AC-9)
+      *Done 2026-10-14. All sections in one grid so figures align across products, with a small
+      gap between products; an empty section is labelled with its product beside its phrase; an
+      ended line draws no figure. Building the Codex monitor and its one-minute rescan, off the
+      UI thread, moved here from 5.5, since Codex cannot be seen without them. The time-zone
+      fence now follows `Readout.Compose`. On screen with Trevor: both sections, Codex figures
+      matching the Codex app; each product alone; collapse within each. At Trevor's request a
+      live normal Codex bar is blue rather than Claude orange, severity colours shared; recorded
+      in the spec's Decided list. Settings restored.*
 - [ ] 5.4 Detail panel: one block per shown product. Checked on screen. (AC-6)
-- [ ] 5.5 App wiring: `CodexMonitor` built with the real root; a 60 s timer calls `Rescan()`;
-      "Refresh now" also rescans; Codex alerts evaluated after each rescan and announced through
+- [ ] 5.5 App wiring: ~~`CodexMonitor` built with the real root; a 60 s timer calls `Rescan()`;~~
+      *(moved into 5.3)* "Refresh now" also rescans; Codex alerts evaluated after each rescan and announced through
       the same path as Claude's. (AC-1, AC-10)
 - [ ] 5.6 On-screen states with Trevor, by pointing `CODEX_HOME` at a test folder for each:
       not found, no reading yet, a reading, logs unreadable, a window whose reset has passed.
       Then with the real logs: the Codex figure against the Codex app. (AC-3, AC-3a, AC-7)
+- [ ] 5.8 A settings save that fails is retried once and then said, not dropped. *Added
+      2026-10-14, Trevor's call, after 5.2's first on-screen run, where two tray clicks never
+      reached the settings file and nothing said so. Lifts the `deferred:` note on `Remember` in
+      `App.xaml.cs`. Placed before the checkpoint because it touches the panel 5.4 draws.* (AC-8)
+      - Test + implement in Core: `SettingsStore.Save` tries once more after a short pause when
+        the file is busy. Tests first: a file held for the whole attempt still returns false,
+        after two tries; a file released during the pause is saved.
+      - Test + implement in Core: the panel carries a settings notice of its own, independent
+        of either product's reading. A failed save sets it, saying the change holds until Bingo
+        closes and naming the file; the next successful save clears it.
+      - Shell: `Remember` reports the result to the notice; the panel draws it. Checked on screen
+        by holding the settings file open from PowerShell while clicking a tray item, with
+        Trevor, then releasing it and clicking again.
 - [C] 5.7 Checkpoint: clean, build, full suite; every acceptance criterion assessed; the trial
       settings restored; record in `progress.md`.
 
