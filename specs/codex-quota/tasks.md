@@ -59,11 +59,11 @@ See the Building section of `README.md`. Every checkpoint runs `dotnet clean` fi
       *Done 2026-10-14: 26 of 26 pass; full suite 1515 pass. Beyond the tests: two windows of
       the same length make the record unreadable, and a null `resets_at` is allowed, as for a
       Claude window, meaning no countdown.*
-- [C] 1.4 Checkpoint: clean, build, full suite; record in `progress.md`.
+- [x] 1.4 Checkpoint: clean, build, full suite; record in `progress.md`. *Passed 2026-10-14.*
 
 ## Phase 2: Reading the logs
 
-- [ ] 2.1 Test `CodexLogReader.Scan()` against temp folders built from the fixtures:
+- [x] 2.1 Test `CodexLogReader.Scan()` against temp folders built from the fixtures:
       - the newest record with figures wins, newest file first, across `sessions\` and
         `archived_sessions\`;
       - a file holding only null records is passed over for the next one;
@@ -76,7 +76,15 @@ See the Building section of `README.md`. Every checkpoint runs `dotnet clean` fi
       - privacy: after scanning a file with decoy lines, no decoy marker string appears in
         anything the scan returns, `RawBody` included.
       Run it red. (AC-1, AC-7)
-- [ ] 2.2 Implement `CodexLogReader` until 2.1 passes.
+      *Done 2026-10-14: 18 tests in `CodexLogReaderTests`, all red on the stub. A line still being
+      written is told by its missing final newline: all 35 real logs end in one (checked by
+      reading each file's last byte only). Added beyond the list: a null record after figures
+      does not hide them; a newest record in an unknown shape is a problem, not a fall-back to an
+      older figure; files elsewhere in the Codex folder are not read.*
+- [x] 2.2 Implement `CodexLogReader` until 2.1 passes.
+      *Done 2026-10-14: 18 of 18 pass; full suite 1533 pass. Logs are opened with read and
+      delete sharing, so Codex can go on writing a session's log while Bingo reads it. The
+      privacy test was strengthened to prove its serialized text reaches the kept record.*
 - [ ] 2.3 Test `CodexMonitor`:
       - `Rescan()` reads the logs only when a log file's last write time has moved since the last
         scan;
