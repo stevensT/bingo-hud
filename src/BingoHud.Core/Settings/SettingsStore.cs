@@ -66,7 +66,30 @@ public sealed class SettingsStore
             Direction: file.Direction ?? UserSettings.Default.Direction,
             Thresholds: thresholds,
             ResetFormat: file.ResetFormat ?? UserSettings.Default.ResetFormat,
-            ShowBar: file.ShowBar ?? UserSettings.Default.ShowBar);
+            ShowBar: file.ShowBar ?? UserSettings.Default.ShowBar,
+            Products: ProductsFrom(file.Products));
+    }
+
+    /// <summary>
+    /// The saved answer to the first-start question, or null when there is none to honour.
+    ///
+    /// <para>
+    /// Absent means the question was never asked, as in every file 0.4.0 wrote. A product the
+    /// answer leaves out is off: the answer was given, and the product it names is what it said.
+    /// An answer with nothing on cannot be shown, so it counts as no answer, and the question is
+    /// asked again rather than the HUD going blank.
+    /// </para>
+    /// </summary>
+    private static ProductSwitches? ProductsFrom(ProductsShape? shape)
+    {
+        if (shape is null)
+        {
+            return null;
+        }
+
+        var switches = new ProductSwitches(shape.Claude ?? false, shape.Codex ?? false);
+
+        return switches.AnyOn ? switches : null;
     }
 
     /// <summary>
@@ -117,7 +140,10 @@ public sealed class SettingsStore
         DisplayDirection? Direction,
         ThresholdsShape? Thresholds,
         ResetFormat? ResetFormat,
-        bool? ShowBar);
+        bool? ShowBar,
+        ProductsShape? Products);
 
     private sealed record ThresholdsShape(double? WarningAtRemaining, double? CriticalAtRemaining);
+
+    private sealed record ProductsShape(bool? Claude, bool? Codex);
 }

@@ -103,30 +103,43 @@ See the Building section of `README.md`. Every checkpoint runs `dotnet clean` fi
       not found, every rescan looks again, because installing Codex creates its folder before
       any log. Its test was written after the code, so it was seen to fail with the rule removed
       before being kept.*
-- [C] 2.5 Checkpoint: clean, build, full suite. Also time one `Scan()` against the real
+- [x] 2.5 Checkpoint: clean, build, full suite. Also time one `Scan()` against the real
       `%USERPROFILE%\.codex`, read-only, and record it; over one second is raised before
-      continuing. Record in `progress.md`.
+      continuing. Record in `progress.md`. *Passed 2026-10-14: first scan 58 ms over 42 logs
+      (30.4 MB).*
 
 ## Phase 3: Products in the model
 
 The three units touch separate files and do not depend on each other.
 
-- [P] 3.1 Test + implement, in `Alerts/`: `Product` (Claude first); `AlertKey` with a product;
+- [x] 3.1 Test + implement, in `Alerts/`: `Product` (Claude first); `AlertKey` with a product;
       a key counts as fired when a fired key for the same product, window and threshold resets
       within ten minutes of it; `AlertEngine` takes the product with the snapshot.
       `AlertStateStore` reads a file in 0.4.0's exact shape, with no product, as Claude, and
       keeps pruning by reset. Tests first: two Codex readings of one window with resets 8 seconds
       apart raise one alert; Claude and Codex alerts for the same kind of window are independent;
       a 0.4.0 file round-trips with its alerts still fired. (AC-10)
-- [P] 3.2 Test + implement, in `Settings/`: `ProductSwitches(Claude, Codex)`;
+      *Done 2026-10-14: 13 tests in `AlertProductTests`; 11 seen red, then green. Two passed
+      before any change and are kept as guards: the product written by name, and a 0.4.0 file
+      read as Claude's (the key's product is last and defaults to Claude, which is also why the
+      39 existing call sites did not change). `Product` lives in Core's root namespace. The test
+      store matches with the same tolerance as the real one. Full suite 1564 pass.*
+- [x] 3.2 Test + implement, in `Settings/`: `ProductSwitches(Claude, Codex)`;
       `UserSettings.Products`, null until answered; `SettingsStore` writes and reads it, and a
       0.4.0 file with no products loads as null, not as a default. Turning off the last product
       that is on is refused. Tests first. (AC-8, AC-8a)
-- [P] 3.3 Test + implement `ProductDetection`: given a user profile folder and an optional
+      *Done 2026-10-14: 11 tests in `ProductSettingsTests`; 7 seen red, then green, and 4 kept as
+      guards that passed before the store read products (no answer by default, no file, a 0.4.0
+      file, and an answer with nothing on, which reads as no answer so the question is asked
+      again). A hand-edited answer naming one product reads the other as off. Full suite 1575.*
+- [x] 3.3 Test + implement `ProductDetection`: given a user profile folder and an optional
       `CODEX_HOME`, which products are found, and the suggested ticks (found ticked, missing
       unticked). Tests first, against temp folders. (AC-8b)
-- [C] 3.4 Checkpoint: clean, build, full suite; record in `progress.md`, saying how the
-      parallel group was run and why.
+      *Done 2026-10-14: 7 tests in `ProductDetectionTests`, all seen red, then green. Codex is
+      looked for with the same root the log reader uses, so the question and the HUD cannot
+      disagree about whether Codex is installed.*
+- [x] 3.4 Checkpoint: clean, build, full suite; record in `progress.md`, saying how the
+      parallel group was run and why. *Passed 2026-10-14.*
 
 ## Phase 4: Display in Core
 

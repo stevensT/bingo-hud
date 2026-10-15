@@ -39,13 +39,19 @@ public sealed record HudPosition(double Left, double Top);
 /// <param name="Thresholds">Where the warning and critical lines sit.</param>
 /// <param name="ResetFormat">Clock time or countdown for each window's reset.</param>
 /// <param name="ShowBar">Whether each window's figure has a ten-segment bar beside it.</param>
+/// <param name="Products">
+/// Which products are shown, or null until the first-start question has been answered
+/// (codex-quota AC-8a). Null is not "Claude only": it is what makes Bingo ask, on a new install
+/// and on the first start after upgrading from a version that had no such question.
+/// </param>
 public sealed record UserSettings(
     HudPosition? Position,
     bool Collapse,
     DisplayDirection Direction,
     Thresholds Thresholds,
     ResetFormat ResetFormat,
-    bool ShowBar)
+    bool ShowBar,
+    ProductSwitches? Products = null)
 {
     /// <summary>
     /// The spec's defaults: not yet placed, both windows shown, consumed, 25 and 10 remaining,

@@ -36,8 +36,16 @@ public sealed class AlertEngine(IAlertStateStore store)
     /// <para>
     /// Per-model caps are never due; see <see cref="Alerts"/>.
     /// </para>
+    /// <para>
+    /// <paramref name="product"/> says whose reading this is, and goes into every key, so the two
+    /// products' alerts never stand in for each other (codex-quota AC-10). It defaults to Claude
+    /// because every caller before Codex was Claude's.
+    /// </para>
     /// </summary>
-    public IReadOnlyList<Alert> TakeNewAlerts(QuotaSnapshot snapshot, Thresholds thresholds)
+    public IReadOnlyList<Alert> TakeNewAlerts(
+        QuotaSnapshot snapshot,
+        Thresholds thresholds,
+        Product product = Product.Claude)
     {
         lock (_gate)
         {
@@ -50,7 +58,7 @@ public sealed class AlertEngine(IAlertStateStore store)
 
                 foreach (var (threshold, severity) in WorstFirst(thresholds))
                 {
-                    if (remaining > threshold || KeyFor(window, threshold) is not { } key
+                    if (remaining > threshold || KeyFor(window, threshold, product) is not { } key
                         || store.HasFired(key))
                     {
                         continue;
@@ -87,7 +95,7 @@ public sealed class AlertEngine(IAlertStateStore store)
     /// Does nothing for a per-model cap, which never alerts.
     /// </para>
     /// </summary>
-    public void Mute(QuotaWindow window, Thresholds thresholds)
+    public void Mute(QuotaWindow window, Thresholds thresholds, Product product = Product.Claude)
     {
         if (!Alerts(window))
         {
@@ -98,7 +106,7 @@ public sealed class AlertEngine(IAlertStateStore store)
         {
             foreach (var (threshold, _) in WorstFirst(thresholds))
             {
-                if (KeyFor(window, threshold) is { } key)
+                if (KeyFor(window, threshold, product) is { } key)
                 {
                     store.MarkFired(key);
                 }
@@ -133,6 +141,6 @@ public sealed class AlertEngine(IAlertStateStore store)
     /// round alike share one key, and the second crossing would find the first already fired.
     /// </para>
     /// </summary>
-    private static AlertKey? KeyFor(QuotaWindow window, double threshold) =>
-        AlertKey.For(window, threshold);
+    private static AlertKey? KeyFor(QuotaWindow window, double threshold, Product product) =>
+        AlertKey.For(window, threshold, product);
 }

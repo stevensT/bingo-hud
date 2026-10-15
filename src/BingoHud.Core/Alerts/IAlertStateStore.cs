@@ -12,7 +12,10 @@ namespace BingoHud.Core.Alerts;
 /// </summary>
 public interface IAlertStateStore
 {
-    /// <summary>Whether this exact alert has already fired.</summary>
+    /// <summary>
+    /// Whether this alert has already fired, matched by <see cref="AlertKey.SameOccurrenceAs"/>
+    /// rather than by equality, so a reset that moved by seconds is still the same alert.
+    /// </summary>
     bool HasFired(AlertKey key);
 
     /// <summary>Records that this alert has fired and must not fire again.</summary>

@@ -54,11 +54,13 @@ public sealed class AlertStateStore : IAlertStateStore
 
     public static string DefaultPath => Path.Combine(AppData.Directory, "alerts.json");
 
-    public bool HasFired(AlertKey key) => _fired.Contains(key);
+    public bool HasFired(AlertKey key) => _fired.Any(fired => fired.SameOccurrenceAs(key));
 
     public void MarkFired(AlertKey key)
     {
-        if (_fired.Add(key))
+        // A key for an occurrence already recorded adds nothing, even when its reset differs by
+        // the few seconds a Codex window's does, so the file holds one entry per alert.
+        if (!HasFired(key) && _fired.Add(key))
         {
             Save();
         }

@@ -10,9 +10,16 @@ internal sealed class InMemoryAlertStateStore : IAlertStateStore
 {
     private readonly HashSet<AlertKey> _fired = [];
 
-    public bool HasFired(AlertKey key) => _fired.Contains(key);
+    // Matched the way the real store matches, so engine tests see the same tolerance.
+    public bool HasFired(AlertKey key) => _fired.Any(fired => fired.SameOccurrenceAs(key));
 
-    public void MarkFired(AlertKey key) => _fired.Add(key);
+    public void MarkFired(AlertKey key)
+    {
+        if (!HasFired(key))
+        {
+            _fired.Add(key);
+        }
+    }
 
     public int Count => _fired.Count;
 }
