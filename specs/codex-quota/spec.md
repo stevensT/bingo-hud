@@ -12,10 +12,9 @@ what Codex itself reports, and drawn under the same honesty rules as the Claude 
 figure traceable to a reading the server produced, carrying its age, and labelled when it is not
 current (constitution principle 6).
 
-Which source that is has not been decided. Work starts with a spike,
-[`spikes/session-log-probe.md`](spikes/session-log-probe.md), which tests whether the rate-limit
-record Codex writes into its own session logs is sound enough to read. No plan is written until
-it closes.
+The source is the rate-limit record Codex writes into its own session logs, settled by the spike
+[`spikes/session-log-probe.md`](spikes/session-log-probe.md), closed early on 2026-10-14. Bingo
+makes no network call for Codex, so "nothing leaves your machine" still holds.
 
 ## User Stories
 
@@ -40,7 +39,10 @@ Recorded so they are not reopened:
 - A Codex reading that stopped because Codex is idle looks different from one that stopped because
   a fetch failed (AC-3a).
 - Codex readings from a remote source carry a remote icon; local readings carry none. Claude
-  lines never carry it (AC-3b).
+  lines never carry it (AC-3b). Deferred past 0.5.0 on 2026-10-14: with the session logs as the
+  only source, there are no remote Codex readings to mark.
+- The Codex source is its session logs (AC-1), settled 2026-10-14 when the spike closed early at
+  Trevor's call, with its known gaps accepted (spike Result).
 - Target release 0.5.0. First set at 0.4.0, and moved on 2026-10-13 when the 0.3.0 review fixes
   took 0.4.0: one of them changes how the usage response is parsed, which the versioning policy
   makes at least MINOR.
@@ -48,8 +50,18 @@ Recorded so they are not reopened:
 ## Acceptance Criteria
 
 ### Source
-- [ ] AC-1: The Codex source is the one the session log spike settles on. This criterion is
-      rewritten once the spike closes, to name the source and what it can and cannot see.
+- [ ] AC-1: Codex windows are read from the rate-limit record Codex writes into its session logs
+      (`sessions\` and `archived_sessions\` under `%USERPROFILE%\.codex`, or under `CODEX_HOME`
+      when it is set). Bingo makes no network call for Codex and does not read Codex's token.
+      - The latest record with figures is the reading, and its own timestamp gives its age. A
+        record whose rate limits are null is no reading, never 0%.
+      - Only the lines that carry the rate-limit record or the session header are parsed, and
+        only their rate-limit fields are kept. The logs hold the user's conversations; none of it
+        is read further, kept, or written anywhere.
+      - A record in a shape Bingo does not recognise is reported as unreadable, never guessed at.
+      - What it cannot see: Codex used elsewhere (the browser, another machine, cloud tasks)
+        writes no log here, so its usage appears only after the next Codex turn on this machine.
+        The detail panel says the reading is as of the last Codex turn on this machine.
 - [ ] AC-2: Every Codex figure on screen comes from a reading Codex's server produced. Nothing is
       estimated, carried across a reset, or filled from a plan limit.
 - [ ] AC-3: A Codex reading carries its age. A reading whose window has reset since it was taken
@@ -58,7 +70,9 @@ Recorded so they are not reopened:
       marked differently from a reading that is stale because a fetch failed. The first is a true
       figure that is simply old; the second is Bingo failing to learn the current one, and the
       reader acts differently on each. Exact wording is settled in the plan.
-- [ ] AC-3b: A reading taken on this machine carries no mark. A reading fetched from a remote
+- [ ] AC-3b: *Deferred past 0.5.0 (2026-10-14). Kept as written for the feature that reads Codex's
+      endpoint, if one follows; not built or tested in 0.5.0.*
+      A reading taken on this machine carries no mark. A reading fetched from a remote
       source carries a remote icon, so the reader can tell a figure from Codex's own logs here
       from one the server reported for the whole account.
       The icon is Codex-only. Bingo can tell where a reading came from, not where the usage
@@ -69,9 +83,8 @@ Recorded so they are not reopened:
       cost: an unmarked line means "this machine's logs" for Codex and "the server" for Claude.
       That is accepted, because what protects the reader from acting on an old figure is the
       staleness marking (AC-3a and the existing Claude marks), not the icon.
-      [Depends on the spike: a remote Codex reading exists only if Codex is also read from its
-      endpoint. If the session logs prove sufficient on their own, Codex has no remote readings
-      and this criterion is dropped.]
+      [A remote Codex reading exists only if Codex is also read from its endpoint. The spike
+      settled on the session logs alone, so 0.5.0 has no remote readings.]
 
 ### Display
 - [ ] AC-4: Each Codex line reads like a Claude line — percentage with its direction word, reset
@@ -123,11 +136,11 @@ Recorded so they are not reopened:
 
 ## Open Questions
 
-- The source, and with it whether "nothing leaves your machine" still holds: settled by the spike.
+None. The source was the last one, settled when the spike closed on 2026-10-14.
 
 ## Dependencies
 
-- The session log spike, which blocks the plan.
-- Codex installed and signed in on a ChatGPT plan.
+- Codex installed and signed in on a ChatGPT plan, and used on this machine: the logs are written
+  only by Codex running here.
 - quota-hud and hud-display-options: the reading model, display settings, and alert rules this
   feature extends rather than duplicates.

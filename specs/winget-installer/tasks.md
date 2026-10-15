@@ -153,7 +153,13 @@ as given in `plan.md` under Interfaces.
       version in winget is 0.4.0 rather than one already superseded.*
       *Opened 2026-10-14 17:07 UTC: https://github.com/microsoft/winget-pkgs/pull/452730, "New
       package: stevensT.Bingo version 0.4.0", adding only the three 0.4.0 manifest files. First
-      label: Needs-CLA.*
+      label: Needs-CLA; Trevor agreed at 17:08, the label came off at 17:09 and `license/cla`
+      passed. `New-Package` added by the validator at 17:10. At 17:56 the validator
+      added `Azure-Pipeline-Passed` (the install on a clean machine passed) and `Policy-Test-1.2`,
+      policy 1.2 being Security; the bot said the pull request needs manual review by a
+      repository admin, and it was assigned to a moderator at 18:01. The validation guide does
+      not list `Policy-Test-1.2` and the pull request gives no reason, so what triggered it is
+      unknown. No author action was asked for.*
 - [ ] 5.5 After the PR merges: on a machine or Windows Sandbox that has never had Bingo,
       `winget install stevensT.Bingo` with no local manifest, then `-Expect Installed`. (AC-15)
       Then, on this machine, `winget list stevensT.Bingo` shows the installed 0.4.0 by its package
