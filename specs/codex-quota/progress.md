@@ -1,9 +1,9 @@
 # Codex Quota — Progress
 
 updated: 2026-10-14
-status: Phase 4 in progress; 4.1 to 4.3 done 2026-10-14
+status: Phase 4 in progress; 4.1 to 4.4 done 2026-10-14
 blockers: none
-next_session: task 4.4, StatusMessage words for the Codex states (headline and advice), replacing 4.2's deferred placeholder phrases.
+next_session: the [P] pair 4.5 (PanelReadout per product) and 4.6 (product-named alert messages and Codex alert evaluation), then checkpoint 4.7.
 
 ## 2026-10-14: the spike closed early
 

@@ -178,9 +178,16 @@ The three units touch separate files and do not depend on each other.
       beside Claude's marks. A reset at exactly now has passed. Collapse counts an ended window
       as normal and emptiest, so it keeps the other. `ReadoutLine.Percent` is now optional; the
       whole solution, app included, builds with 0 warnings. Full suite 1623.*
-- [ ] 4.4 Test + implement `StatusMessage` words for the Codex states: headline and advice for
+- [x] 4.4 Test + implement `StatusMessage` words for the Codex states: headline and advice for
       not found, no reading yet, logs unreadable and unknown shape. Advice says what to do:
       install or open Codex, use it once, or that a Codex update is the likely cause. (AC-7)
+      *Done 2026-10-14: 8 tests in `CodexStatusMessageTests`, all red then green. Headlines:
+      "Looking for Codex" (before the first look), "Codex not found", "No Codex reading yet",
+      "Codex logs unreadable", "Codex log format not recognised". A failed look outranks the
+      rest; a clean reading has nothing to say. Not found offers both ways out, install or
+      switch it off in the tray. Unreadable logs say Bingo will retry; an unrecognised record
+      says a wait will not fix it. The HUD's empty Codex phrase is now the headline, which
+      removed 4.2's `deferred:` placeholder. Full suite 1631.*
 - [P] 4.5 Test + implement `PanelReadout` per product: a block per shown product with exact
       resets and age; the Codex block says the reading is as of the last Codex turn on this
       machine and shows a non-null reached type verbatim. (AC-1, AC-6)

@@ -130,6 +130,50 @@ public sealed record StatusMessage(string Headline, string Advice)
     };
 
     /// <summary>
+    /// The Codex state in words, or null when a reading was read cleanly and there is nothing
+    /// wrong to say (codex-quota AC-7, AC-3a).
+    ///
+    /// <para>
+    /// A failed look outranks the rest, as a failure does for Claude: it is the more specific
+    /// fact. The advice sends the user to different places for each state, and says plainly when
+    /// there is nothing to do, or nothing a wait will fix.
+    /// </para>
+    /// </summary>
+    public static StatusMessage? DescribeCodex(Codex.CodexState state) => (state.Problem, state.Presence, state.Last) switch
+    {
+        (Codex.CodexProblem.LogsUnreadable unreadable, _, _) => new(
+            "Codex logs unreadable",
+            $"{unreadable.Reason} Bingo will try again each minute. Any figure shown is from the "
+            + "last time the logs could be read."),
+
+        // Unlike the case above, waiting does not help: Codex now writes something this version
+        // cannot read. Saying so keeps the user from waiting on a retry that cannot succeed.
+        (Codex.CodexProblem.UnknownShape unknown, _, _) => new(
+            "Codex log format not recognised",
+            $"Codex wrote a usage record Bingo could not read. {unknown.Reason} A Codex update is "
+            + "the likely cause, and it will not fix itself: a Bingo update will be needed."),
+
+        (null, Codex.CodexPresence.NotLookedYet, _) => new(
+            "Looking for Codex",
+            "Bingo has not looked at the Codex logs yet. It does so within a minute of starting."),
+
+        (null, Codex.CodexPresence.NotFound, _) => new(
+            "Codex not found",
+            "Bingo found no Codex folder for this user: .codex in your user folder, or the folder "
+            + "CODEX_HOME points to. Install Codex and run it once, or, if you do not use Codex, "
+            + "switch it off in the tray menu."),
+
+        (null, Codex.CodexPresence.Found, null) => new(
+            "No Codex reading yet",
+            "Codex is installed, but its logs hold no usage figures yet. They appear after your next "
+            + "Codex turn on this machine."),
+
+        (null, Codex.CodexPresence.Found, not null) => null,
+
+        _ => throw new ArgumentOutOfRangeException(nameof(state), state, null),
+    };
+
+    /// <summary>
     /// What sits beside the Codex numbers (codex-quota AC-3, AC-3a), or null without a reading.
     ///
     /// <para>

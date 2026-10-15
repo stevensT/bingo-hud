@@ -215,10 +215,9 @@ public static class Readout
     {
         if (state.Last is not { } snapshot)
         {
-            // deferred: placeholder words until the Codex states get their own in StatusMessage
-            // (task 4.4), with headline and advice like every other state.
-            return new HudContent.Empty(
-                state.Presence == CodexPresence.NotFound ? "Codex not found" : "No Codex reading yet");
+            // Every Codex state without a reading has words of its own; the floor is the same
+            // guard against a blank section as Claude's.
+            return new HudContent.Empty(StatusMessage.DescribeCodex(state)?.Headline ?? StatusMessage.NoWindowToShow);
         }
 
         var failed = state.Problem is not null;
