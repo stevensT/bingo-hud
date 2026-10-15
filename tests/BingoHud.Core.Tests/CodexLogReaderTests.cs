@@ -1,4 +1,5 @@
 using System.Text.Json;
+using System.Text.Json.Nodes;
 using BingoHud.Core.Codex;
 using BingoHud.Core.Usage;
 
@@ -9,8 +10,8 @@ namespace BingoHud.Core.Tests;
 /// (codex-quota AC-1, AC-7).
 ///
 /// <para>
-/// Every test builds a Codex folder from the fixtures in a throwaway directory and backdates its
-/// files, because which record is "newest" is decided by when each file was last written.
+/// Every test builds a Codex folder from fixtures in a throwaway directory. Record timestamps
+/// decide which reading is newest; file times deliberately disagree to prove they are ignored.
 /// </para>
 /// </summary>
 public class CodexLogReaderTests
@@ -31,6 +32,13 @@ public class CodexLogReaderTests
         File.WriteAllText(file, content);
         File.SetLastWriteTimeUtc(file, writtenAt.UtcDateTime);
         return file;
+    }
+
+    private static string AtTime(string record, DateTimeOffset observedAt)
+    {
+        var node = JsonNode.Parse(record)!;
+        node["timestamp"] = observedAt.ToString("O");
+        return node.ToJsonString() + "\n";
     }
 
     private static CodexScan Scan(TempDirectory codex) => new CodexLogReader(codex.Path).Scan();
@@ -56,7 +64,7 @@ public class CodexLogReaderTests
     }
 
     [Fact]
-    public void TheMostRecentlyWrittenLogWins()
+    public void TheNewestRecordWinsEvenWhenItsFileTimeIsOlder()
     {
         // Weekly 30% in the tui record, 12% at the end of the session: the weekly figure says which
         // file the reading came from.
@@ -64,7 +72,7 @@ public class CodexLogReaderTests
         WriteLog(codex, "sessions/2026/10/14/tui.jsonl", Fixture(Fixtures.CodexTuiRecord), Earlier);
         WriteLog(codex, "sessions/2026/10/13/session.jsonl", Fixture(Fixtures.CodexSession), Later);
 
-        Assert.Equal(12.0, Used(ScanExpectingReading(codex), WindowKind.WeeklyAll));
+        Assert.Equal(30.0, Used(ScanExpectingReading(codex), WindowKind.WeeklyAll));
     }
 
     [Fact]
@@ -129,7 +137,8 @@ public class CodexLogReaderTests
         // says Codex has changed what it writes. That change is the news.
         using var codex = new TempDirectory();
         WriteLog(codex, "sessions/2026/10/14/tui.jsonl", Fixture(Fixtures.CodexTuiRecord), Earlier);
-        WriteLog(codex, "sessions/2026/10/14/changed.jsonl", Fixture(Fixtures.CodexWrongType), Later);
+        WriteLog(codex, "sessions/2026/10/14/changed.jsonl",
+            AtTime(Fixture(Fixtures.CodexWrongType), new DateTimeOffset(2026, 10, 16, 0, 0, 0, TimeSpan.Zero)), Later);
 
         var problem = Assert.IsType<CodexScan.Problem>(Scan(codex));
         var cause = Assert.IsType<CodexProblem.UnknownShape>(problem.Cause);
@@ -205,25 +214,6 @@ public class CodexLogReaderTests
         Assert.DoesNotContain(Fixtures.DecoyMarker, everything, StringComparison.Ordinal);
     }
 
-    [Fact]
-    public void TheNewestWriteIsTheLatestAcrossBothLogFolders()
-    {
-        using var codex = new TempDirectory();
-        WriteLog(codex, "sessions/2026/10/14/a.jsonl", Fixture(Fixtures.CodexTuiRecord), Earlier);
-        WriteLog(codex, "archived_sessions/b.jsonl", Fixture(Fixtures.CodexTuiRecord), Later);
-
-        Assert.Equal(Later.UtcDateTime, new CodexLogReader(codex.Path).NewestWrite());
-    }
-
-    [Fact]
-    public void TheNewestWriteIsNullWithNoLogsOrNoFolder()
-    {
-        using var codex = new TempDirectory();
-
-        Assert.Null(new CodexLogReader(codex.Path).NewestWrite());
-        Assert.Null(new CodexLogReader(codex.PathTo(".codex")).NewestWrite());
-    }
-
     [Theory]
     [InlineData(null)]
     [InlineData("")]
@@ -240,5 +230,29 @@ public class CodexLogReaderTests
     {
         // Codex reads CODEX_HOME the same way, so Bingo looks where Codex writes.
         Assert.Equal(@"D:\elsewhere\codex", CodexLogReader.RootFor(@"C:\Users\someone", @"D:\elsewhere\codex"));
+    }
+
+    [Fact]
+    public void AnOlderUnknownRecordDoesNotHideANewerReading()
+    {
+        using var codex = new TempDirectory();
+        WriteLog(codex, "sessions/tui.jsonl", Fixture(Fixtures.CodexTuiRecord), Earlier);
+        WriteLog(codex, "sessions/older-broken.jsonl",
+            AtTime(Fixture(Fixtures.CodexWrongType), Earlier), Later);
+
+        Assert.Equal(30.0, Used(ScanExpectingReading(codex), WindowKind.WeeklyAll));
+    }
+
+    [Fact]
+    public void AnUnreadableRecordWithoutATimestampCannotBeAssumedOlderThanAReading()
+    {
+        using var codex = new TempDirectory();
+        WriteLog(codex, "sessions/tui.jsonl", Fixture(Fixtures.CodexTuiRecord), Later);
+        var broken = JsonNode.Parse(Fixture(Fixtures.CodexWrongType))!;
+        broken["timestamp"] = "not a timestamp";
+        WriteLog(codex, "sessions/untimed.jsonl", broken.ToJsonString() + "\n", Earlier);
+
+        var problem = Assert.IsType<CodexScan.Problem>(Scan(codex));
+        Assert.IsType<CodexProblem.UnknownShape>(problem.Cause);
     }
 }

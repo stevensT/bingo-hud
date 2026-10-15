@@ -16,16 +16,12 @@ namespace BingoHud.Core.Codex;
 /// there is no moment at which it can quietly stop being true.
 /// </para>
 /// <para>
-/// A rescan reads the logs only when one has been written since the last read. Codex writes a
-/// record at the end of each turn, so between turns the answer cannot have changed, and the shell
-/// can ask every minute for the cost of listing two folders. Three cases read regardless: the
-/// first look, a look after a failure (a lock is released without anything being written), and a
-/// look while Codex is not found (installing it creates a folder before it writes any log).
+/// Every requested rescan reads the logs. Windows can leave a live writer's file timestamp
+/// unchanged while it appends records, so file times cannot prove that nothing has changed.
 /// </para>
 /// </summary>
 public sealed class CodexMonitor
 {
-    private readonly Func<DateTime?> _newestWrite;
     private readonly Func<CodexScan> _scan;
     private readonly IClock _clock;
 
@@ -36,23 +32,20 @@ public sealed class CodexMonitor
     private CodexPresence _presence = CodexPresence.NotLookedYet;
     private CodexRecordResult.Figures? _last;
     private CodexProblem? _problem;
-    private DateTime? _readAt;
 
     /// <summary>The monitor over the real logs.</summary>
     public CodexMonitor(CodexLogReader reader, IClock clock)
-        : this(reader.NewestWrite, reader.Scan, clock)
+        : this(reader.Scan, clock)
     {
     }
 
     /// <summary>
     /// The monitor over any source of scans, so a test can count them.
     /// </summary>
-    /// <param name="newestWrite">When any log was last written, or null when there are none.</param>
     /// <param name="scan">One look through the logs.</param>
     /// <param name="clock">The time the age is measured against.</param>
-    public CodexMonitor(Func<DateTime?> newestWrite, Func<CodexScan> scan, IClock clock)
+    public CodexMonitor(Func<CodexScan> scan, IClock clock)
     {
-        _newestWrite = newestWrite;
         _scan = scan;
         _clock = clock;
     }
@@ -81,25 +74,13 @@ public sealed class CodexMonitor
     }
 
     /// <summary>
-    /// Looks at the logs again, if anything could have changed since the last look.
+    /// Looks at the logs again, even when their file timestamps have not changed.
     /// </summary>
     public void Rescan()
     {
         lock (_gate)
         {
-            var newestWrite = _newestWrite();
-
-            var mustRead = _presence != CodexPresence.Found
-                || _problem is not null
-                || newestWrite != _readAt;
-
-            if (!mustRead)
-            {
-                return;
-            }
-
             Record(_scan());
-            _readAt = newestWrite;
         }
     }
 

@@ -1,9 +1,60 @@
 # Codex Quota — Progress
 
-updated: 2026-10-14
-status: Phase 5 in progress; 5.1 to 5.4 done 2026-10-14
-blockers: none
-next_session: task 5.5 (what is left of it: Refresh now also rescans Codex; Codex alerts through CodexAlerts.TakeNew after each rescan, announced like Claude's; mute covering Codex windows with Product.Codex). Then 5.6 (Codex states on screen via CODEX_HOME test folders), 5.8 (settings save retry and notice), checkpoint 5.7, Phase 6.
+updated: 2026-10-15
+status: Stopped for the night; 5.5 and 5.6 complete; 5.8 incomplete after failed on-screen notice check
+blockers: task 5.8 on-screen failure — changing Show bar while the settings file was intended to be locked changed the HUD but showed no settings-save notice
+next_session: resume task 5.8. Re-run the full suite and build, then reproduce the missing settings-save notice with a confirmed exclusive lock and the correct dev instance. Verify notice appearance and clearing before completing 5.8. Then run the clean/build/full-suite checkpoint 5.7, assess acceptance criteria, and continue Phase 6.
+
+## 2026-10-15: resuming Phase 5
+
+- Resume baseline: full build passed with 0 warnings/errors, full suite 1667 pass. The test
+  runner stalled in the restricted environment; the same suite outside it passed. Builds used
+  one worker and no shared compiler.
+- Task 5.5 completed; six delivery tests added, all seen red before implementation. Review
+  findings resolved: overlapping product notifications wait for the current notification to end;
+  mute discards pending crossings. Comment corrections resolved. Trevor later saw both synthetic
+  product notifications appear in sequence, confirming the actual Windows callbacks.
+- Task 5.6 completed with Trevor: not found, no reading, live 52%/35% with blue bars, unreadable
+  logs retaining figures with frozen styling, and an ended 5h window losing only its figure/bar.
+  Native desktop inspection did not expose Bingo's windows, so on-screen evidence is Trevor's
+  direct confirmation.
+- The real comparison found a bug: app 75% remaining versus Bingo 16% used. Newer quota records
+  were in open files with older modification times. Removed both metadata shortcuts: every
+  requested rescan reads, and the newest record timestamp wins across logs. Unreadable records
+  retain their timestamp when available, so an older malformed record does not hide a newer
+  reading; an untimed malformed record is conservative. Five regression cases observed red
+  before the fix. Added the optional reader-level untimed-record guard after review. All review
+  findings resolved. Full real scans measured 115–167 ms. Trevor confirmed both real windows
+  agreed after refreshing the corrected build.
+- The original shared files were restored between runs. The current settings differed from the
+  older 5.1 backup in position, so 5.6 restored its fresh backup instead. A separate fresh backup
+  for the current settings trial is artifacts/settings-backup-5.8.
+- Task 5.8 code complete: SettingsStore retries the first I/O failure once after 100 ms; failure
+  becomes an independent panel notice naming the file and saying changes apply until Bingo
+  closes; the next successful save clears it. Eight tests observed red before implementation,
+  one first-attempt-success guard already passed. Code, failure-handling, test, type, comment and
+  simplification reviews completed with no behavior findings; one stale panel summary corrected.
+  Full suite 1683 pass / 0 fail / 0 skip, build 0 warnings/errors.
+- STOPPING POINT: Trevor reported that unchecking Show bar changed the setting but no notice
+  appeared. Task 5.8 is therefore incomplete despite the passing tests and reviews. No cause has
+  been established. A diagnostic call was interrupted before its results were assessed; do not
+  assume it confirmed the lock, the running instance, or the notice path. The source currently
+  passes the notice from Remember through ComposeAll into the panel, so start by reproducing
+  the actual screen failure rather than guessing at a code change.
+- NEXT REPRO: back up the current shared files afresh before another trial. Close the installed
+  build while testing, launch the new dev build, open its panel, then hold the actual settings
+  file exclusively and independently confirm that a write-open fails. Toggle Show bar; check
+  the save result and panel notice. Release the lock, make a different settings change, verify
+  the notice clears and both changes reach disk. Native inspection did not expose Bingo's
+  windows in this session; Trevor provided the visual checks.
+- CLEANUP COMPLETED: the settings lock was released; dev process 53728 was stopped; settings.json
+  and alerts.json were restored from artifacts/settings-backup-5.8. SHA-256 checks confirmed
+  both files exactly match that backup. The installed 0.4.0 build was restarted. No trial is
+  intentionally left running. Both notification test servers were stopped earlier.
+- VERIFICATION LIMIT: the last full suite was 1683 pass / 0 fail / 0 skip. The last incremental
+  build passed and reported 0 warnings/errors. The mandatory clean checkpoint 5.7 has NOT run;
+  do not treat the warm build as that checkpoint. Phase 6, publish shapes, setup, and release
+  verification have not started. No staging, commits, or pushes were performed.
 
 ## 2026-10-14: where the session stopped
 

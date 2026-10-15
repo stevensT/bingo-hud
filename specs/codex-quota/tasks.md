@@ -64,7 +64,8 @@ See the Building section of `README.md`. Every checkpoint runs `dotnet clean` fi
 ## Phase 2: Reading the logs
 
 - [x] 2.1 Test `CodexLogReader.Scan()` against temp folders built from the fixtures:
-      - the newest record with figures wins, newest file first, across `sessions\` and
+      - the newest record with figures wins, ~~newest file first~~ by record timestamp (corrected
+        at 5.6), across `sessions\` and
         `archived_sessions\`;
       - a file holding only null records is passed over for the next one;
       - the root is `CODEX_HOME` when given, else `%USERPROFILE%\.codex`;
@@ -86,8 +87,8 @@ See the Building section of `README.md`. Every checkpoint runs `dotnet clean` fi
       delete sharing, so Codex can go on writing a session's log while Bingo reads it. The
       privacy test was strengthened to prove its serialized text reaches the kept record.*
 - [x] 2.3 Test `CodexMonitor`:
-      - `Rescan()` reads the logs only when a log file's last write time has moved since the last
-        scan;
+      - ~~`Rescan()` reads the logs only when a log file's last write time has moved since the last
+        scan~~; corrected at 5.6: every requested rescan reads, because Windows file times can lag;
       - a failed scan keeps the last reading and records the problem (AC-3a failed); a clean scan
         with no newer record keeps the reading and clears the problem (AC-3a idle);
       - the reading's age is measured from its `ObservedAt`, not from the scan (AC-3).
@@ -263,13 +264,29 @@ The three units touch separate files and do not depend on each other.
       Decisions; checked on screen. Also seen: the installed 0.4.0, running alongside, rewrote
       the settings file without the products answer, so the question came back; an artefact of
       two versions sharing one file, not a defect.*
-- [ ] 5.5 App wiring: ~~`CodexMonitor` built with the real root; a 60 s timer calls `Rescan()`;~~
+- [x] 5.5 App wiring: ~~`CodexMonitor` built with the real root; a 60 s timer calls `Rescan()`;~~
       *(moved into 5.3)* "Refresh now" also rescans; Codex alerts evaluated after each rescan and announced through
       the same path as Claude's. (AC-1, AC-10)
-- [ ] 5.6 On-screen states with Trevor, by pointing `CODEX_HOME` at a test folder for each:
+      *Done 2026-10-15. Startup, the minute timer and Refresh now share the rescan-and-alert path;
+      initial logs are read before the HUD, alerts taken only after the tray exists. Mute covers
+      both products and is enabled with a Codex-only reading. Review found overlapping product
+      notifications could be dropped: delivery now waits for the current notification to close
+      or be clicked, then combines waiting crossings. Review also found mute must discard pending
+      crossings; fixed. Six delivery tests were seen red before implementation, then green;
+      full suite 1673 pass, build 0 warnings/errors. Code, test, type, comment and simplification
+      reviews completed; both behavior findings and comment corrections resolved, no deferrals.*
+- [x] 5.6 On-screen states with Trevor, by pointing `CODEX_HOME` at a test folder for each:
       not found, no reading yet, a reading, logs unreadable, a window whose reset has passed.
       Then with the real logs: the Codex figure against the Codex app. (AC-3, AC-3a, AC-7)
-- [ ] 5.8 A settings save that fails is retried once and then said, not dropped. *Added
+      *Done 2026-10-15. Trevor confirmed all five synthetic states. Real comparison found
+      a source bug: 75% remaining in the app, 16% used in Bingo. Live log records were newer than
+      their files' modification times. Regressions first, then removed file-time ordering and
+      the monitor's file-time skip; records ordered by their own timestamps, unreadable records
+      retain their timestamp when possible. Full scans 115–167 ms. Full suite 1673 pass, build
+      0 warnings/errors. Review completed, comment corrections resolved; a repeated real comparison
+      agreed for both windows. Both synthetic product notifications appeared in sequence, confirming
+      the delivery callbacks from 5.5. Shared files restored and installed build restarted.*
+- [~] 5.8 A settings save that fails is retried once and then said, not dropped. *Added
       2026-10-14, Trevor's call, after 5.2's first on-screen run, where two tray clicks never
       reached the settings file and nothing said so. Lifts the `deferred:` note on `Remember` in
       `App.xaml.cs`. Placed before the checkpoint because it touches the panel 5.4 draws.* (AC-8)
@@ -282,6 +299,16 @@ The three units touch separate files and do not depend on each other.
       - Shell: `Remember` reports the result to the notice; the panel draws it. Checked on screen
         by holding the settings file open from PowerShell while clicking a tray item, with
         Trevor, then releasing it and clicking again.
+      *Stopped 2026-10-15, still in progress. Retry, notice composition, redraw comparison and
+      shell wiring implemented. Eight new tests seen red before implementation, one success
+      guard passed before it; full suite 1683 pass / 0 fail / 0 skip. Code, failure-handling,
+      test, type, comment and simplification reviews completed; one panel summary corrected.
+      On screen, Trevor changed Show bar but saw no save-failure notice. Cause unresolved;
+      the diagnostic call was interrupted before its results were assessed. Next: reproduce with
+      an independently confirmed exclusive settings lock and correct dev instance, trace the save
+      result through the panel, verify notice appearance and clearing. Trial ended; both shared
+      files restored exactly from artifacts/settings-backup-5.8; installed 0.4.0 restarted.
+      This task is NOT complete, and checkpoint 5.7 has not run.*
 - [C] 5.7 Checkpoint: clean, build, full suite; every acceptance criterion assessed; the trial
       settings restored; record in `progress.md`.
 

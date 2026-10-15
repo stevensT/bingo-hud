@@ -27,8 +27,13 @@ public sealed class SettingsStore
     };
 
     private readonly string _path;
+    private readonly Action _pauseBeforeRetry;
 
-    public SettingsStore(string path) => _path = path;
+    public SettingsStore(string path, Action? pauseBeforeRetry = null)
+    {
+        _path = path;
+        _pauseBeforeRetry = pauseBeforeRetry ?? (() => Thread.Sleep(100));
+    }
 
     public static string DefaultPath => Path.Combine(AppData.Directory, "settings.json");
 
@@ -93,7 +98,8 @@ public sealed class SettingsStore
     }
 
     /// <summary>
-    /// Writes the settings, creating Bingo's folder on first run. Returns false when the file
+    /// Writes the settings, creating Bingo's folder on first run and retrying an I/O failure once
+    /// after a short pause. Returns false when the file
     /// could not be written; the settings still apply for this session, they just will not be
     /// there next time.
     /// </summary>
@@ -106,21 +112,31 @@ public sealed class SettingsStore
             settings = settings with { Position = null };
         }
 
-        try
+        for (var attempt = 0; attempt < 2; attempt++)
         {
-            if (Path.GetDirectoryName(_path) is { Length: > 0 } directory)
+            try
             {
-                Directory.CreateDirectory(directory);
-            }
+                if (Path.GetDirectoryName(_path) is { Length: > 0 } directory)
+                {
+                    Directory.CreateDirectory(directory);
+                }
 
-            File.WriteAllText(_path, JsonSerializer.Serialize(settings, Format));
-            return true;
+                File.WriteAllText(_path, JsonSerializer.Serialize(settings, Format));
+                return true;
+            }
+            catch (IOException) when (attempt == 0)
+            {
+                // A brief lock should not make a setting silently disappear at the next start.
+                _pauseBeforeRetry();
+            }
+            catch (Exception e) when (e is IOException or UnauthorizedAccessException
+                or NotSupportedException or ArgumentException)
+            {
+                return false;
+            }
         }
-        catch (Exception e) when (e is IOException or UnauthorizedAccessException
-            or NotSupportedException or ArgumentException)
-        {
-            return false;
-        }
+
+        return false;
     }
 
     /// <summary>

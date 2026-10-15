@@ -43,6 +43,7 @@ public sealed class TrayIcon : IDisposable
     /// reading yet and so nothing to silence.
     /// </param>
     /// <param name="canMute">Whether there is a reading to silence yet.</param>
+    /// <param name="notificationEnded">Releases waiting alerts when a notification closes or is clicked.</param>
     /// <param name="quit">Ends the application.</param>
     public TrayIcon(
         Func<Core.Settings.UserSettings> settings,
@@ -50,6 +51,7 @@ public sealed class TrayIcon : IDisposable
         Action openPanel,
         Func<bool> mute,
         Func<bool> canMute,
+        Action notificationEnded,
         Action quit)
     {
         _canMute = canMute;
@@ -147,6 +149,8 @@ public sealed class TrayIcon : IDisposable
         // Double-click is the conventional way to open a tray app's window, and costs a user
         // nothing to try.
         _icon.DoubleClick += (_, _) => openPanel();
+        _icon.BalloonTipClosed += (_, _) => notificationEnded();
+        _icon.BalloonTipClicked += (_, _) => notificationEnded();
     }
 
     /// <summary>
@@ -183,7 +187,7 @@ public sealed class TrayIcon : IDisposable
     /// <para>
     /// Windows shows one of these at a time and will drop a second that arrives while the first
     /// is up. Two windows can cross a threshold on the same reading, so this is a real loss —
-    /// see the deferred note at the call site.
+    /// the caller holds new crossings until this notification ends.
     /// </para>
     /// </summary>
     public void Notify(string title, string body, bool critical)

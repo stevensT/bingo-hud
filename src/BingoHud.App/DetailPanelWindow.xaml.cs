@@ -18,7 +18,7 @@ namespace BingoHud.App;
 /// that "what do I do about this" has an answer somewhere in the app.
 /// </para>
 /// <para>
-/// Every word here is <see cref="PanelReadout"/>'s. This file places strings and composes none.
+/// Every word here is composed in Core. This file places strings and composes none.
 /// </para>
 /// </summary>
 public partial class DetailPanelWindow : Window
@@ -98,6 +98,7 @@ public partial class DetailPanelWindow : Window
         ShowOrHide(WindowsEmptyState, content.WindowsEmptyState);
         ShowOrHide(PerModelCapsEmptyState, content.PerModelCapsEmptyState);
         ShowOrHide(RefreshNotice, content.RefreshNotice);
+        ShowOrHide(SettingsNotice, content.SettingsNotice);
 
         Facts.Children.Clear();
         Facts.RowDefinitions.Clear();

@@ -32,8 +32,10 @@ public partial class App : Application
     private DateTimeOffset? _panelOpenedAt;
     private TrayIcon? _tray;
     private RefreshResult? _lastRefresh;
+    private string? _settingsNotice;
     private TranscriptActivity? _transcripts;
     private AlertEngine? _alerts;
+    private readonly AlertDelivery _delivery = new();
     private CodexMonitor? _codex;
     private Timer? _codexWatch;
 
@@ -75,16 +77,15 @@ public partial class App : Application
             new UsageClient(_http, _clock, overrides.Endpoint),
             _clock);
 
-        // Codex is read from its own logs on this machine (codex-quota AC-1). Looked at once now,
-        // so the HUD's first frame has it, then every minute off the UI thread: a look costs a
-        // folder listing when nothing has been written, and a full read when something has.
+        // Codex is read from its own logs on this machine (codex-quota AC-1). Looked at once now
+        // for the first HUD frame, then every minute off the UI thread. Each scan checks every
+        // log: a live writer can append records without advancing its file timestamp.
         _codex = new CodexMonitor(
             new CodexLogReader(CodexLogReader.RootFor(
                 Environment.GetFolderPath(Environment.SpecialFolder.UserProfile),
                 Environment.GetEnvironmentVariable(CodexLogReader.HomeVariable))),
             _clock);
         _codex.Rescan();
-        _codexWatch = new Timer(_ => _codex.Rescan(), null, CodexRescanInterval, CodexRescanInterval);
 
         _transcripts = new TranscriptActivity(TranscriptActivity.DefaultPath, _clock);
         _alerts = new AlertEngine(new AlertStateStore(AlertStateStore.DefaultPath, _clock));
@@ -116,8 +117,12 @@ public partial class App : Application
             change: Remember,
             openPanel: OpenPanel,
             mute: Mute,
-            canMute: () => _monitor?.Current.Last is not null,
+            canMute: () => _monitor?.Current.Last is not null || _codex?.Current.Last is not null,
+            notificationEnded: () => ShowAlerts(_delivery.Closed()),
             quit: Shutdown);
+
+        RescanCodex();
+        _codexWatch = new Timer(_ => RescanCodex(), null, CodexRescanInterval, CodexRescanInterval);
 
         // Started last, once there is somewhere for an alert to go. The first poll happens
         // immediately, and an account already past a threshold would raise an alert from it; a
@@ -245,7 +250,8 @@ public partial class App : Application
             ?? new CodexState(CodexPresence.NotLookedYet, null, null, TimeSpan.Zero, null, []);
 
         return PanelReadout.ComposeAll(
-            state, codex, _settings, Version, _clock.Now, culture: null, _lastRefresh, TimeZoneInfo.Local);
+            state, codex, _settings, Version, _clock.Now, culture: null, _lastRefresh, TimeZoneInfo.Local,
+            settingsNotice: _settingsNotice);
     }
 
     /// <summary>
@@ -263,6 +269,8 @@ public partial class App : Application
     /// </summary>
     private async Task RefreshNowAsync()
     {
+        await Task.Run(RescanCodex, _shutdown.Token);
+
         if (_monitor is null)
         {
             return;
@@ -300,13 +308,28 @@ public partial class App : Application
     }
 
     /// <summary>
-    /// How often the Codex logs are looked at. Codex writes a record at the end of each turn, so
-    /// a minute is the longest a new figure waits; between turns a look costs a folder listing.
+    /// How often Codex scans are requested. File times cannot safely skip a scan.
     /// </summary>
     private static readonly TimeSpan CodexRescanInterval = TimeSpan.FromMinutes(1);
 
     /// <summary>
-    /// Raises a desktop notification for each alert the engine says is due (AC-14).
+    /// Looks for a Codex turn and hands its alerts to the same notification path as Claude's.
+    /// Startup calls this only once the tray exists, so no alert is recorded without a way to
+    /// announce it. The timer and manual refresh both use it thereafter.
+    /// </summary>
+    private void RescanCodex()
+    {
+        if (_codex is null || _alerts is null)
+        {
+            return;
+        }
+
+        _codex.Rescan();
+        Announce(CodexAlerts.TakeNew(_alerts, _codex.Current, _settings.Thresholds, _clock.Now));
+    }
+
+    /// <summary>
+    /// Queues due alerts for desktop notification, grouping waiting crossings into one message (AC-14).
     ///
     /// <para>
     /// The loop runs off the UI thread, and the notification area may only be touched from the
@@ -316,23 +339,21 @@ public partial class App : Application
     /// </summary>
     private void Announce(IReadOnlyList<Alert> due)
     {
-        Dispatcher.InvokeAsync(() =>
-        {
-            // One notification for the whole batch. Windows shows one at a time and drops any
-            // that arrive while it is up, so announcing them one by one loses all but the first
-            // — and the engine has already recorded every one as fired, so a lost one never
-            // comes back. Core decides the wording for one or many alike.
-            if (AlertMessage.Describe(due, _settings.Direction, _clock.Now, culture: null, TimeZoneInfo.Local)
-                is not { } message)
-            {
-                return;
-            }
+        Dispatcher.InvokeAsync(() => ShowAlerts(_delivery.Add(due)));
+    }
 
-            _tray?.Notify(
-                message.Title,
-                message.Body,
-                critical: due.Any(a => a.Severity == Severity.Critical));
-        });
+    private void ShowAlerts(IReadOnlyList<Alert> due)
+    {
+        if (AlertMessage.Describe(due, _settings.Direction, _clock.Now, culture: null, TimeZoneInfo.Local)
+            is not { } message)
+        {
+            return;
+        }
+
+        _tray?.Notify(
+            message.Title,
+            message.Body,
+            critical: due.Any(a => a.Severity == Severity.Critical));
     }
 
     /// <summary>
@@ -352,31 +373,35 @@ public partial class App : Application
     /// </summary>
     private bool Mute()
     {
-        if (_alerts is null || _monitor?.Current.Last is not { } snapshot)
+        if (_alerts is null)
         {
             return false;
         }
 
-        foreach (var window in snapshot.Windows)
+        var claude = _monitor?.Current.Last;
+        var codex = _codex?.Current.Last;
+
+        foreach (var window in claude?.Windows ?? [])
         {
             _alerts.Mute(window, _settings.Thresholds);
         }
 
-        return true;
+        foreach (var window in codex?.Windows ?? [])
+        {
+            _alerts.Mute(window, _settings.Thresholds, Product.Codex);
+        }
+
+        _delivery.Clear();
+        return claude is not null || codex is not null;
     }
 
     /// <summary>
     /// Applies a settings change and writes it down (AC-22). The HUD and panel both re-read
     /// once a second, so a change made from the tray shows up without anything being told.
     /// </summary>
-    // deferred: a failed save is dropped on the floor here, so a locked settings file means the
-    // user drags the HUD, sees it move, and finds it back where it was next launch with nothing
-    // saying why. The panel can carry the news now that it has a status area; what is missing is
-    // a state for it, since the panel status is composed from the reading and a settings failure
-    // is not part of one. An independent notice slot on the panel is what would lift this.
     private void Remember(UserSettings changed)
     {
         _settings = changed;
-        _settingsStore.Save(changed);
+        _settingsNotice = SettingsNotice.Describe(_settingsStore.Save(changed), SettingsStore.DefaultPath);
     }
 }

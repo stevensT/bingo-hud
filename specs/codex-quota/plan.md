@@ -11,25 +11,32 @@ reading per product. The Claude path — credential file, usage endpoint, `Quota
 %USERPROFILE%\.codex\archived_sessions\  ─┤  (or under CODEX_HOME)
                                           ▼
                      CodexLogReader  — finds the newest record with figures
-                          │            (newest file first; text prefilter, then parse)
+                          │            (record timestamps; text prefilter, then parse)
                           ▼
                      CodexRecord.Parse — one line → QuotaSnapshot, null record, or unreadable
                           │
                           ▼
                      CodexMonitor — holds the last reading and the last problem;
-                          │         rescans on a 60 s timer when a log has been written
+                          │         rescans on a 60 s timer and on manual refresh
                           ▼
   QuotaMonitor ──► Readout / PanelReadout / AlertEngine, now per product ──► HUD, panel, toasts
 ```
 
 **Reading the logs.** A rate-limit record is a line whose `type` is `event_msg` and whose
-`payload.type` is `token_count`. The reader lists the log files, newest write first, and reads
-each one line by line. A line is parsed only if it contains the literal text `"rate_limits"`, and
-only `timestamp` and `payload.rate_limits` are taken from it; nothing else in the line is kept. The
-first record with figures, scanning each file from its end, is the reading. A file whose records
-are all null is passed over and the next is read, which is how the burst of null logs written when
-the Codex app starts is skipped (spike result). Only the newest few files are ever read in
-practice, because the newest file with any session in it holds a recent record.
+`payload.type` is `token_count`. Every session log is inspected. A line is parsed only if it
+contains the literal text `"rate_limits"`, and only its timestamp and rate-limit fields are
+kept. Each log contributes its last complete record with figures or an unknown shape; null
+records contribute nothing. Across logs, the newest record timestamp wins. An unreadable record
+keeps its timestamp when available, so an older unknown shape cannot hide a newer valid reading;
+without a readable timestamp, a broken record is conservatively reported as a problem.
+
+Changed 2026-10-15 during task 5.6. The original shortcut ordered files by modification time and
+stopped at the first reading, and the monitor skipped rescans when the newest file time stayed
+unchanged. On Windows a live writer can append records without advancing that metadata. The
+on-screen comparison selected 16% used while the account showed 25% used; the newer record was
+in a file whose modification time looked older. The shortcut was removed rather than replaced
+with another metadata guess. Full scans of the real logs took 115 to 167 ms, below the one-second
+bar. The source is still local session logs, with the same accepted limits.
 
 **Mapping the record.** `primary` and `secondary` are mapped by `window_minutes`, not by name:
 300 becomes `WindowKind.Session` and 10080 `WindowKind.WeeklyAll`. Any other window length is
@@ -77,11 +84,11 @@ least one stays on: the last ticked product's check mark cannot be cleared (AC-8
 
 | Decision | Choice | Rationale |
 |----------|--------|-----------|
-| How Codex is read | Local session logs, newest file first, text prefilter on `"rate_limits"` before any parse | Settled by the spike. The prefilter is the privacy line in AC-1: conversation lines are never parsed, let alone kept. |
+| How Codex is read | All local session logs; newest record timestamp wins; text prefilter before parsing | File modification times can lag a live writer. Corrected at task 5.6 on 2026-10-15; the prefilter remains the privacy line in AC-1. |
 | Codex model | Reuse `QuotaSnapshot` and `QuotaWindow`; `RawBody` holds only the `rate_limits` object's text | The windows are the same shape as Claude's, so severity, bars, reset phrases and alerts apply unchanged. Principle 5: no Codex-specific window type until one is needed. |
 | Codex monitor | A new, small `CodexMonitor`, not a second `QuotaMonitor` | `QuotaMonitor` is about credentials, HTTP outcomes, backoff and single-flight requests; none apply to reading a local file. Bending it to fit would put Codex cases into every one of its branches. |
 | Abstraction over the two sources | None. Two concrete monitors, combined where the display is composed | Principle 5: two sources is not yet a pattern. The spec's non-goals rule out a general provider system. |
-| Codex scan cadence | Every 60 s, and only re-read when a log file's last write time has moved | Local, no rate limit to respect, and cheap when nothing changed. A file watcher is more moving parts for a figure that changes once per turn. |
+| Codex scan cadence | Every 60 s and on Refresh now; every requested scan reads | Unchanged file times do not prove unchanged records on Windows. Full scans measured 115–167 ms at task 5.6. |
 | Window mapping | By `window_minutes` (300, 10080), not by `primary` and `secondary` | The names say nothing about length; the minutes do. A renamed or reordered window still lands right, and an unknown length is ignored rather than guessed into a slot. |
 | Age of a Codex reading | The record's own timestamp | The figure is true as of the last turn, not as of Bingo reading it. Using the read time would make an hours-old figure look current. |
 | A Codex window whose reset has passed | No figure, phrase "reset, no use since", no severity, no alert | AC-3 and principle 6: the old figure is the last occurrence's, and the server sent nothing for the new one. |
@@ -137,7 +144,7 @@ PanelContent + one block per shown product: rows, exact resets, age, status; Cod
 - **Fixtures**: `tests/fixtures/codex/`, dated JSONL files cut from real logs and scrubbed to the
   record lines plus a few decoy conversation lines with invented text, so the prefilter is tested
   against what it must skip. A README there records where each came from, as the usage fixtures do.
-- **`CodexLogReader`**: `CodexScan Scan()` over a root folder, returning the newest record with
+- **`CodexLogReader`**: `CodexScan Scan()` over a root folder, returning the newest record by its own timestamp with
   figures, a null-only result, not found, or a problem. Takes the root, so tests run against a
   temp folder.
 - **`CodexMonitor`**: `CodexState Current`, `void Rescan()`; driven by a 60 s timer in the shell
@@ -151,7 +158,7 @@ PanelContent + one block per shown product: rows, exact resets, age, status; Cod
 
 1. **Fixtures and the record parser** — scrub fixtures from the real logs; `CodexRecord.Parse`
    test-first against them: figures, null, unknown shape, unknown window length, missing fields.
-2. **Reading the logs** — `CodexLogReader` (newest-first, null files passed over, prefilter, I/O
+2. **Reading the logs** — `CodexLogReader` (record timestamps, null records passed over, prefilter, I/O
    failures as problems) and `CodexMonitor` (rescan only on change, idle vs failed), against temp
    folders built from the fixtures.
 3. **Products in the model** — `Product`; `AlertKey` with product and the ten-minute match;
@@ -170,7 +177,7 @@ PanelContent + one block per shown product: rows, exact resets, age, status; Cod
 | Risk | Impact | Mitigation |
 |------|--------|------------|
 | A Codex update changes the record or where logs live | The Codex line goes unreadable | It says so (AC-3a failed state) and shows no guessed figure; the fixtures pin the shape known today, so a fix starts from a failing test. |
-| Large logs make each scan slow | Bingo uses noticeable disk and CPU every minute | Rescan only when a write time moved; read newest files first and stop at the first record; measure a scan against today's 35 logs in the phase 2 checkpoint. |
+| Large logs make each scan slow | Bingo uses noticeable disk and CPU every minute | Full scans measured 115–167 ms against the real logs at task 5.6. Keep the 60 s cadence; remeasure as logs grow before adding an optimization. |
 | Codex used elsewhere is invisible | The Codex figure is lower than the truth until the next turn here | Accepted in the spike result. The panel says the reading is as of the last Codex turn on this machine (AC-1), and the mark always gives its age. |
 | The one-point gap after a turn | The Codex figure can trail Codex's own by a point | Accepted in the spike result. The age mark tells the user when the figure is from. |
 | `alerts.json` from 0.4.0 misread | Old alerts fire again after the upgrade, or the file is dropped | Old entries read as Claude, tested against a file in 0.4.0's exact shape. |

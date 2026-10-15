@@ -26,18 +26,16 @@ public class CodexMonitorTests
         new CodexScan.Problem(new CodexProblem.LogsUnreadable("A Codex session log could not be opened."));
 
     /// <summary>
-    /// A log source whose next scan and newest write time a test sets, and which counts how often
+    /// A log source whose next scan a test sets, and which counts how often
     /// it was read.
     /// </summary>
     private sealed class FakeLogs
     {
-        public DateTime? NewestWrite { get; set; } = new DateTime(2026, 10, 14, 6, 32, 6, DateTimeKind.Utc);
-
         public CodexScan Next { get; set; } = new CodexScan.NoReading();
 
         public int Scans { get; private set; }
 
-        public CodexMonitor Monitor(TestClock clock) => new(() => NewestWrite, () =>
+        public CodexMonitor Monitor(TestClock clock) => new(() =>
         {
             Scans++;
             return Next;
@@ -98,7 +96,7 @@ public class CodexMonitorTests
     }
 
     [Fact]
-    public void TheLogsAreNotReadAgainWhenNothingHasBeenWritten()
+    public void EveryRequestedRescanReadsBecauseLiveFileTimesCanStayUnchanged()
     {
         var logs = new FakeLogs { Next = Last };
         var monitor = logs.Monitor(new TestClock(Now));
@@ -107,7 +105,7 @@ public class CodexMonitorTests
         monitor.Rescan();
         monitor.Rescan();
 
-        Assert.Equal(1, logs.Scans);
+        Assert.Equal(3, logs.Scans);
     }
 
     [Fact]
@@ -117,7 +115,6 @@ public class CodexMonitorTests
         var monitor = logs.Monitor(new TestClock(Now));
         monitor.Rescan();
 
-        logs.NewestWrite = logs.NewestWrite!.Value.AddMinutes(1);
         logs.Next = Last;
         monitor.Rescan();
 
@@ -150,7 +147,6 @@ public class CodexMonitorTests
         var monitor = logs.Monitor(new TestClock(Now));
         monitor.Rescan();
 
-        logs.NewestWrite = logs.NewestWrite!.Value.AddMinutes(1);
         logs.Next = Locked;
         monitor.Rescan();
         var state = monitor.Current;
@@ -166,7 +162,6 @@ public class CodexMonitorTests
         var monitor = logs.Monitor(new TestClock(Now));
         monitor.Rescan();
 
-        logs.NewestWrite = logs.NewestWrite!.Value.AddMinutes(1);
         logs.Next = new CodexScan.Problem(new CodexProblem.UnknownShape("The primary window had no percentage."));
         monitor.Rescan();
         var state = monitor.Current;
@@ -183,7 +178,6 @@ public class CodexMonitorTests
         var monitor = logs.Monitor(new TestClock(Now));
         monitor.Rescan();
         logs.Next = Locked;
-        logs.NewestWrite = logs.NewestWrite!.Value.AddMinutes(1);
         monitor.Rescan();
 
         logs.Next = Last;
@@ -203,7 +197,6 @@ public class CodexMonitorTests
         var monitor = logs.Monitor(new TestClock(Now));
         monitor.Rescan();
 
-        logs.NewestWrite = logs.NewestWrite!.Value.AddMinutes(1);
         logs.Next = new CodexScan.NoReading();
         monitor.Rescan();
         var state = monitor.Current;
@@ -235,7 +228,6 @@ public class CodexMonitorTests
         var monitor = logs.Monitor(new TestClock(Now));
         monitor.Rescan();
 
-        logs.NewestWrite = null;
         logs.Next = new CodexScan.NotFound();
         monitor.Rescan();
         var state = monitor.Current;
@@ -250,7 +242,7 @@ public class CodexMonitorTests
         // Installing Codex creates its folder before it writes any log, so the newest write time
         // stays empty across the change. Waiting for it to move would leave "not found" on screen
         // until the first Codex turn.
-        var logs = new FakeLogs { NewestWrite = null, Next = new CodexScan.NotFound() };
+        var logs = new FakeLogs { Next = new CodexScan.NotFound() };
         var monitor = logs.Monitor(new TestClock(Now));
         monitor.Rescan();
 
@@ -279,7 +271,7 @@ public class CodexMonitorTests
     }
 
     [Fact]
-    public void OverRealLogsANewTurnIsPickedUpOnTheNextRescan()
+    public void AnAppendedTurnIsPickedUpEvenWhenTheFileTimeHasNotMoved()
     {
         // The whole path on disk: a log written, read, then a newer record appended, as Codex
         // does at the end of a turn.
@@ -294,7 +286,8 @@ public class CodexMonitorTests
         Assert.Equal(44.0, SessionUsed(monitor.Current));
 
         File.AppendAllText(log, Session[8] + "\n");
-        File.SetLastWriteTimeUtc(log, new DateTime(2026, 10, 14, 6, 33, 0, DateTimeKind.Utc));
+        // Windows may keep the original file time while Codex holds its writer open.
+        File.SetLastWriteTimeUtc(log, new DateTime(2026, 10, 14, 2, 30, 0, DateTimeKind.Utc));
         monitor.Rescan();
 
         Assert.Equal(24.0, SessionUsed(monitor.Current));

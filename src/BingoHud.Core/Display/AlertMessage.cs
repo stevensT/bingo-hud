@@ -25,16 +25,15 @@ namespace BingoHud.Core.Display;
 public sealed record AlertMessage(string Title, string Body)
 {
     /// <summary>
-    /// One notification for everything that crossed on the same reading, or null when nothing
-    /// did.
+    /// One notification for a batch of due alerts, or null when the batch is empty.
     ///
     /// <para>
     /// Deliberately one notification rather than several. Windows shows one at a time and
     /// silently drops any that arrive while it is up — observed, with both windows crossing on a
     /// single reading and only the first announced — while the engine records every crossing as
     /// fired whether or not anyone saw it. The dropped one is therefore gone until the window
-    /// resets, which is precisely the failure AC-14 exists to prevent. Combining them is the
-    /// only shape that cannot lose one.
+    /// resets, which is precisely the failure AC-14 exists to prevent. Combining waiting alerts
+    /// limits interruptions; the caller also waits until the visible notification ends.
     /// </para>
     /// </summary>
     /// <param name="due">The alerts the engine says are due, in the order it produced them.</param>

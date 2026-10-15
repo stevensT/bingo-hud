@@ -164,6 +164,8 @@
             </Grid.ColumnDefinitions>
         </Grid>
 
+        <TextBlock x:Name="SettingsNotice" TextWrapping="Wrap" Margin="0,10,0,0" />
+
         <!-- A manual refresh, held to the same floor as an automatic poll (AC-28). The button
              cannot make Bingo poll faster; when it is refused it says so, and says when asking
              again will work. -->

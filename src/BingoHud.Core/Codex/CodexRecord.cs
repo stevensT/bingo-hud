@@ -61,10 +61,12 @@ public static class CodexRecord
                 return new CodexRecordResult.NotARecord();
             }
 
+            DateTimeOffset? observedAt = TryReadTimestamp(root, out var timestamp) ? timestamp : null;
+
             if (!payload.TryGetProperty(RateLimitsKey, out var rateLimits))
             {
                 return new CodexRecordResult.Unreadable(
-                    "A token count record carried no rate_limits field.");
+                    "A token count record carried no rate_limits field.", observedAt);
             }
 
             if (rateLimits.ValueKind == JsonValueKind.Null)
@@ -74,16 +76,19 @@ public static class CodexRecord
 
             if (rateLimits.ValueKind != JsonValueKind.Object)
             {
-                return new CodexRecordResult.Unreadable("The rate_limits field was not an object.");
+                return new CodexRecordResult.Unreadable("The rate_limits field was not an object.", observedAt);
             }
 
-            if (!TryReadTimestamp(root, out var observedAt))
+            if (observedAt is null)
             {
                 return new CodexRecordResult.Unreadable(
                     "The record had no timestamp Bingo could read, so its age is unknown.");
             }
 
-            return ReadWindows(rateLimits, observedAt);
+            var result = ReadWindows(rateLimits, observedAt.Value);
+            return result is CodexRecordResult.Unreadable unreadable
+                ? unreadable with { ObservedAt = observedAt }
+                : result;
         }
     }
 

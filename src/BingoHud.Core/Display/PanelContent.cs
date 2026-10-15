@@ -53,6 +53,7 @@ public sealed record PanelRow(string Label, string Percent, string Reset);
 /// succeeded (AC-28). A refusal is a normal outcome and has to say why and when the next attempt
 /// is possible; a success needs no words, because the age resetting is the feedback.
 /// </param>
+/// <param name="SettingsNotice">An unsaved settings change, independent of either product, or null.</param>
 public sealed record PanelContent(
     IReadOnlyList<PanelRow> Windows,
     string? WindowsEmptyState,
@@ -65,7 +66,8 @@ public sealed record PanelContent(
     StatusMessage? Status,
     string? RefreshNotice,
     bool ShowClaude = true,
-    CodexPanel? Codex = null)
+    CodexPanel? Codex = null,
+    string? SettingsNotice = null)
 {
     /// <summary>
     /// Whether this would draw the same panel as <paramref name="other"/>, so a redraw can be
@@ -90,6 +92,7 @@ public sealed record PanelContent(
         && Version == other.Version
         && Status == other.Status
         && RefreshNotice == other.RefreshNotice
+        && SettingsNotice == other.SettingsNotice
         && ShowClaude == other.ShowClaude
         && (Codex is null ? other.Codex is null : other.Codex is not null && Codex.SameAs(other.Codex));
 }

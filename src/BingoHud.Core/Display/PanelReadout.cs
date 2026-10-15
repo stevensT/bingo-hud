@@ -96,13 +96,15 @@ public static class PanelReadout
         DateTimeOffset now,
         CultureInfo? culture = null,
         RefreshResult? lastRefresh = null,
-        TimeZoneInfo? zone = null)
+        TimeZoneInfo? zone = null,
+        string? settingsNotice = null)
     {
         var shown = settings.Products ?? new ProductSwitches(Claude: true, Codex: false);
 
         return Compose(claude, settings, version, now, culture, lastRefresh, zone) with
         {
             ShowClaude = shown.Claude,
+            SettingsNotice = settingsNotice,
             Codex = shown.Codex ? ComposeCodex(codex, settings, now, culture, zone) : null,
         };
     }

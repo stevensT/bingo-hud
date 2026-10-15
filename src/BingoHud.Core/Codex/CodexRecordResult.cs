@@ -48,5 +48,6 @@ public abstract record CodexRecordResult
     /// JSON, or a record with a field missing or of the wrong type.
     /// </summary>
     /// <param name="Reason">What was wrong, as a whole sentence, for the detail panel.</param>
-    public sealed record Unreadable(string Reason) : CodexRecordResult;
+    /// <param name="ObservedAt">The record timestamp, when readable, for ordering across logs.</param>
+    public sealed record Unreadable(string Reason, DateTimeOffset? ObservedAt = null) : CodexRecordResult;
 }

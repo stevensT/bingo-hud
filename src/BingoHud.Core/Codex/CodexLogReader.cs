@@ -5,11 +5,9 @@ namespace BingoHud.Core.Codex;
 ///
 /// <para>
 /// Codex writes one JSONL log per session under <c>sessions\</c>, and moves old ones to
-/// <c>archived_sessions\</c>. The reader takes the most recently written log first and walks it
-/// from the end, so the first record with figures it meets is the newest one. A log holding only
-/// null records, as the Codex app writes in a burst when it starts, yields nothing and the next
-/// log is read. In practice that is one or two files: the newest log with any turn in it holds a
-/// recent record.
+/// <c>archived_sessions\</c>. Every log is checked and the newest record timestamp wins.
+/// File modification times cannot order records: Windows may not update a live log's time until
+/// Codex closes its writer. Logs holding only null records contribute no reading.
 /// </para>
 /// <para>
 /// The logs are the user's conversations. Only lines containing the text <c>"rate_limits"</c>
@@ -49,33 +47,6 @@ public sealed class CodexLogReader(string root)
     public static string RootFor(string userProfile, string? codexHome) =>
         string.IsNullOrWhiteSpace(codexHome) ? Path.Combine(userProfile, ".codex") : codexHome;
 
-    /// <summary>
-    /// When any session log was last written, or null when there are none or they cannot be
-    /// listed. Reads no file, so it is cheap enough to ask every minute.
-    /// </summary>
-    public DateTime? NewestWrite()
-    {
-        if (!Directory.Exists(Root))
-        {
-            return null;
-        }
-
-        try
-        {
-            return LogFolders
-                .Select(folder => Path.Combine(Root, folder))
-                .Where(Directory.Exists)
-                .SelectMany(folder => new DirectoryInfo(folder).EnumerateFiles(LogPattern, Enumeration))
-                .Max(file => (DateTime?)file.LastWriteTimeUtc);
-        }
-        catch (Exception e) when (e is IOException or UnauthorizedAccessException)
-        {
-            // The scan that follows reports the folder as unreadable; this only decides whether
-            // a scan is worth making.
-            return null;
-        }
-    }
-
     public CodexScan Scan()
     {
         if (!Directory.Exists(Root))
@@ -87,12 +58,15 @@ public sealed class CodexLogReader(string root)
 
         try
         {
-            logs = NewestFirst();
+            logs = LogFiles().ToList();
         }
         catch (Exception e) when (e is IOException or UnauthorizedAccessException)
         {
             return Unreadable("The Codex log folders could not be listed.");
         }
+
+        CodexRecordResult? newest = null;
+        DateTimeOffset? newestAt = null;
 
         foreach (var log in logs)
         {
@@ -108,21 +82,45 @@ public sealed class CodexLogReader(string root)
                     "A Codex session log could not be opened, possibly because another program is holding it.");
             }
 
-            if (NewestRecordIn(content) is { } found)
+            if (NewestRecordIn(content) is not { } found)
             {
-                return found;
+                continue;
+            }
+
+            var observedAt = found switch
+            {
+                CodexRecordResult.Figures figures => figures.Snapshot.ObservedAt,
+                CodexRecordResult.Unreadable unreadable => unreadable.ObservedAt,
+                _ => null,
+            };
+
+            // Without a timestamp the broken record cannot safely be placed before a reading.
+            if (observedAt is null)
+            {
+                return new CodexScan.Problem(new CodexProblem.UnknownShape(
+                    ((CodexRecordResult.Unreadable)found).Reason));
+            }
+
+            if (newestAt is null || observedAt > newestAt)
+            {
+                newest = found;
+                newestAt = observedAt;
             }
         }
 
-        return new CodexScan.NoReading();
+        return newest switch
+        {
+            CodexRecordResult.Figures figures => new CodexScan.Reading(figures),
+            CodexRecordResult.Unreadable unreadable =>
+                new CodexScan.Problem(new CodexProblem.UnknownShape(unreadable.Reason)),
+            _ => new CodexScan.NoReading(),
+        };
     }
 
-    private List<FileInfo> NewestFirst() => LogFolders
+    private IEnumerable<FileInfo> LogFiles() => LogFolders
         .Select(folder => Path.Combine(Root, folder))
         .Where(Directory.Exists)
-        .SelectMany(folder => new DirectoryInfo(folder).EnumerateFiles(LogPattern, Enumeration))
-        .OrderByDescending(file => file.LastWriteTimeUtc)
-        .ToList();
+        .SelectMany(folder => new DirectoryInfo(folder).EnumerateFiles(LogPattern, Enumeration));
 
     /// <summary>
     /// The whole log, opened so that Codex can go on writing it while it is read. Codex appends
@@ -141,7 +139,7 @@ public sealed class CodexLogReader(string root)
     /// The newest record with figures in one log, a problem if the newest record cannot be read,
     /// or null when the log holds no record with figures.
     /// </summary>
-    private static CodexScan? NewestRecordIn(string content)
+    private static CodexRecordResult? NewestRecordIn(string content)
     {
         var lines = content.Split('\n');
 
@@ -157,12 +155,12 @@ public sealed class CodexLogReader(string root)
             switch (CodexRecord.Parse(lines[i]))
             {
                 case CodexRecordResult.Figures figures:
-                    return new CodexScan.Reading(figures);
+                    return figures;
 
                 // The newest record says Codex has changed what it writes. An older figure must
                 // not stand in for it as though it were current.
                 case CodexRecordResult.Unreadable unreadable:
-                    return new CodexScan.Problem(new CodexProblem.UnknownShape(unreadable.Reason));
+                    return unreadable;
 
                 // A null record, or a conversation line that mentions rate limits: keep looking.
                 default:

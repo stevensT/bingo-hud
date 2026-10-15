@@ -243,4 +243,16 @@ public class CodexRecordTests
         Assert.Equal(plain.ObservedAt, crlf.ObservedAt);
         Assert.Equal(plain.Windows, crlf.Windows);
     }
+
+    [Fact]
+    public void AnUnreadableRecordKeepsItsTimestampForOrderingAcrossLogs()
+    {
+        var line = File.ReadAllText(Fixtures.CodexPath(Fixtures.CodexWrongType));
+        using var json = System.Text.Json.JsonDocument.Parse(line);
+        var expected = json.RootElement.GetProperty("timestamp").GetDateTimeOffset();
+
+        var unreadable = Assert.IsType<CodexRecordResult.Unreadable>(CodexRecord.Parse(line));
+
+        Assert.Equal(expected, unreadable.ObservedAt);
+    }
 }
