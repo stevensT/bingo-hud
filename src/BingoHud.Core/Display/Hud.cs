@@ -1,5 +1,3 @@
-using BingoHud.Core.Usage;
-
 namespace BingoHud.Core.Display;
 
 /// <summary>
@@ -16,15 +14,9 @@ public sealed record HudSection(Product Product, HudContent Content);
 /// <param name="Sections">One per product switched on, Claude first. Never empty.</param>
 public sealed record Hud(IReadOnlyList<HudSection> Sections)
 {
-    /// <summary>
-    /// The worst line across every section, which the shell draws as the accent bar: one glance
-    /// says whether anything is in trouble. A frozen reading's lines are already normal, so a
-    /// reading that can no longer update cannot own it.
-    /// </summary>
-    public Severity Overall => Sections
-        .Select(section => section.Content is HudContent.Reading reading ? reading.Overall : Severity.Normal)
-        .DefaultIfEmpty(Severity.Normal)
-        .MaxBy(Readout.Rank);
+    // No accent for the HUD as a whole. Each product's section carries its own, its worst line
+    // (HudContent.Reading.Overall), drawn beside that product's lines only: one accent down the
+    // whole HUD read as both products being in trouble when only one was (task 5.4).
 
     /// <summary>
     /// Whether this would draw the same HUD as <paramref name="other"/>, so a repaint can be

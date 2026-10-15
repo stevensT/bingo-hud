@@ -143,31 +143,42 @@ public class HudCompositionTests
     }
 
     // --- The accent bar
+    //
+    // One per product, beside that product's lines only. A single accent for the whole HUD ran
+    // down beside both products and read as both being in trouble when only one was; changed on
+    // seeing it on screen (task 5.4).
+
+    private static Severity Accent(HudSection section) =>
+        Assert.IsType<HudContent.Reading>(section.Content).Overall;
 
     [Fact]
-    public void TheAccentIsTheWorstLineAcrossProducts()
+    public void EachProductsAccentIsItsOwnWorstLine()
     {
         var hud = Compose(Claude(session: 12), Codex(session: 95), Showing(claude: true, codex: true));
 
-        Assert.Equal(Severity.Critical, hud.Overall);
+        Assert.Equal(Severity.Normal, Accent(hud.Sections[0]));
+        Assert.Equal(Severity.Critical, Accent(hud.Sections[1]));
     }
 
     [Fact]
-    public void AFrozenReadingCannotOwnTheAccent()
+    public void ProductInTroubleDoesNotColourTheOther()
+    {
+        // The case seen on screen: Claude's five-hour window at its limit, Codex comfortable.
+        var hud = Compose(Claude(session: 100), Codex(session: 10, weekly: 10), Showing(claude: true, codex: true));
+
+        Assert.Equal(Severity.Critical, Accent(hud.Sections[0]));
+        Assert.Equal(Severity.Normal, Accent(hud.Sections[1]));
+    }
+
+    [Fact]
+    public void AFrozenReadingHasNoAccent()
     {
         // Claude's 95% is frozen, so drawn without colour; Codex's 80% is live.
         var hud = Compose(Claude(session: 95, freshness: Freshness.Frozen), Codex(session: 80),
             Showing(claude: true, codex: true));
 
-        Assert.Equal(Severity.Warning, hud.Overall);
-    }
-
-    [Fact]
-    public void NothingToShowAnywhereIsNormal()
-    {
-        var nothing = new ReadingState(null, Freshness.Fresh, null, TimeSpan.Zero, "test");
-
-        Assert.Equal(Severity.Normal, Compose(nothing, CodexNotFound, Showing(claude: true, codex: true)).Overall);
+        Assert.Equal(Severity.Normal, Accent(hud.Sections[0]));
+        Assert.Equal(Severity.Warning, Accent(hud.Sections[1]));
     }
 
     // --- Repainting

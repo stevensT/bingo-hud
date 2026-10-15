@@ -171,10 +171,9 @@ public class CodexSectionTests
     [Fact]
     public void AWindowWhoseResetHasPassedCannotOwnTheAccent()
     {
-        var hud = Readout.Compose(NoClaude, Found(Snapshot(session: 95, weekly: 20, sessionResetInMinutes: -20)),
-            UserSettings.Default with { Products = new ProductSwitches(false, true) }, Now, TwelveHour);
+        var reading = Reading(Found(Snapshot(session: 95, weekly: 20, sessionResetInMinutes: -20)));
 
-        Assert.Equal(Severity.Normal, hud.Overall);
+        Assert.Equal(Severity.Normal, reading.Overall);
     }
 
     [Fact]

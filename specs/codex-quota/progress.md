@@ -1,9 +1,16 @@
 # Codex Quota — Progress
 
 updated: 2026-10-14
-status: Phase 5 in progress; 5.1 to 5.3 done 2026-10-14
+status: Phase 5 in progress; 5.1 to 5.4 done 2026-10-14
 blockers: none
-next_session: task 5.4, the detail panel's product blocks. Task 5.8 added 2026-10-14 (Trevor's call) for the silent save failure seen once in 5.2; it runs after 5.6, before the checkpoint. Trevor's real settings are backed up in artifacts\settings-backup-5.1 and currently match it; restore from it after each on-screen run.
+next_session: task 5.5 (what is left of it: Refresh now also rescans Codex; Codex alerts through CodexAlerts.TakeNew after each rescan, announced like Claude's; mute covering Codex windows with Product.Codex). Then 5.6 (Codex states on screen via CODEX_HOME test folders), 5.8 (settings save retry and notice), checkpoint 5.7, Phase 6.
+
+## 2026-10-14: where the session stopped
+
+- Everything through 5.4 is committed by Trevor except the last chunk (5.4 and the per-product accent), for which a commit message was proposed.
+- Trevor's real settings are backed up in `artifacts\settings-backup-5.1` (the 0.4.0 file, no products answer) and were restored from it at the end of the session; restore from it after every on-screen run. The dev build is started with `dotnet run --project src\BingoHud.App\BingoHud.App.csproj` and asks the first-start question while the file has no answer.
+- Running the dev build beside the installed 0.4.0: both share `%LOCALAPPDATA%\Bingo\settings.json`, and 0.4.0 drops the products answer when it saves its HUD position. Expect the question to return after touching the 0.4.0 HUD.
+- The winget pull request for 0.4.0, microsoft/winget-pkgs#452730, was waiting on a moderator for its `Policy-Test-1.2` (Security) flag; see the installer feature's 5.4 note. The watcher that polled it ran in this session only. Task 5.8 added 2026-10-14 (Trevor's call) for the silent save failure seen once in 5.2; it runs after 5.6, before the checkpoint. Trevor's real settings are backed up in artifacts\settings-backup-5.1 and currently match it; restore from it after each on-screen run.
 
 ## 2026-10-14: the spike closed early
 

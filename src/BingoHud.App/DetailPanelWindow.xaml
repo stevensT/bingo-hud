@@ -26,6 +26,14 @@
             <Setter Property="FontSize" Value="11" />
             <Setter Property="Margin" Value="0,0,0,6" />
         </Style>
+        <!-- A product's name above its block: stronger than a section heading, so the two
+             products' blocks read as two. -->
+        <Style x:Key="Product" TargetType="TextBlock">
+            <Setter Property="Foreground" Value="White" />
+            <Setter Property="FontSize" Value="12" />
+            <Setter Property="FontWeight" Value="SemiBold" />
+            <Setter Property="Margin" Value="0,0,0,10" />
+        </Style>
         <!-- The stock button is a light control, which on this panel reads as a piece of another
              window. Templated rather than merely recoloured because a WPF button keeps its own
              chrome on hover and press otherwise, and the light chrome is the part that shows. -->
@@ -63,45 +71,93 @@
         </Style>
     </Window.Resources>
     <StackPanel Margin="16,14,16,16">
-        <!-- The state Bingo is in, and what to do about it (AC-9, AC-10, AC-11). Above the
-             numbers rather than below them, because when it is showing at all it qualifies
-             everything under it: a reading can be on screen and out of date at the same time,
-             and the order these are read in is what says so. Hidden entirely when a current
-             reading has nothing wrong with it. -->
-        <Border x:Name="StatusArea" Background="#33FFFFFF" CornerRadius="4" Padding="10,8"
-                Margin="0,0,0,14">
-            <StackPanel>
-                <TextBlock x:Name="StatusHeadline" FontWeight="SemiBold" TextWrapping="Wrap" />
-                <TextBlock x:Name="StatusAdvice" Foreground="#CCFFFFFF" TextWrapping="Wrap"
-                           Margin="0,4,0,0" />
-            </StackPanel>
-        </Border>
+        <!-- One block per product shown (codex-quota AC-6), Claude first, then what belongs to
+             the app as a whole. A product switched off has no block. -->
+        <StackPanel x:Name="ClaudeBlock">
+            <TextBlock Text="CLAUDE" Style="{StaticResource Product}" />
 
-        <TextBlock Text="WINDOWS" Style="{StaticResource Heading}" />
-        <!-- Rows are built in code from what Core decided. Nothing here composes a string. The
-             columns are shared within each grid so the figures line up down the panel. -->
-        <Grid x:Name="Windows">
-            <Grid.ColumnDefinitions>
-                <ColumnDefinition Width="Auto" />
-                <ColumnDefinition Width="Auto" />
-                <ColumnDefinition Width="*" />
-            </Grid.ColumnDefinitions>
-        </Grid>
-        <TextBlock x:Name="WindowsEmptyState" Foreground="#99FFFFFF" TextWrapping="Wrap" />
+            <!-- The state Bingo is in, and what to do about it (AC-9, AC-10, AC-11). Above the
+                 numbers rather than below them, because when it is showing at all it qualifies
+                 everything under it: a reading can be on screen and out of date at the same
+                 time, and the order these are read in is what says so. Hidden entirely when a
+                 current reading has nothing wrong with it. -->
+            <Border x:Name="StatusArea" Background="#33FFFFFF" CornerRadius="4" Padding="10,8"
+                    Margin="0,0,0,14">
+                <StackPanel>
+                    <TextBlock x:Name="StatusHeadline" FontWeight="SemiBold" TextWrapping="Wrap" />
+                    <TextBlock x:Name="StatusAdvice" Foreground="#CCFFFFFF" TextWrapping="Wrap"
+                               Margin="0,4,0,0" />
+                </StackPanel>
+            </Border>
 
-        <TextBlock Text="PER-MODEL WEEKLY CAPS" Style="{StaticResource Heading}" Margin="0,18,0,6" />
-        <Grid x:Name="PerModelCaps">
-            <Grid.ColumnDefinitions>
-                <ColumnDefinition Width="Auto" />
-                <ColumnDefinition Width="Auto" />
-                <ColumnDefinition Width="*" />
-            </Grid.ColumnDefinitions>
-        </Grid>
-        <TextBlock x:Name="PerModelCapsEmptyState" Foreground="#99FFFFFF" TextWrapping="Wrap" />
+            <TextBlock Text="WINDOWS" Style="{StaticResource Heading}" />
+            <!-- Rows are built in code from what Core decided. Nothing here composes a string.
+                 The columns are shared within each grid so the figures line up down the panel. -->
+            <Grid x:Name="Windows">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto" />
+                    <ColumnDefinition Width="Auto" />
+                    <ColumnDefinition Width="*" />
+                </Grid.ColumnDefinitions>
+            </Grid>
+            <TextBlock x:Name="WindowsEmptyState" Foreground="#99FFFFFF" TextWrapping="Wrap" />
+
+            <TextBlock Text="PER-MODEL WEEKLY CAPS" Style="{StaticResource Heading}" Margin="0,18,0,6" />
+            <Grid x:Name="PerModelCaps">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto" />
+                    <ColumnDefinition Width="Auto" />
+                    <ColumnDefinition Width="*" />
+                </Grid.ColumnDefinitions>
+            </Grid>
+            <TextBlock x:Name="PerModelCapsEmptyState" Foreground="#99FFFFFF" TextWrapping="Wrap" />
+
+            <Grid x:Name="Facts" Margin="0,14,0,0">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto" />
+                    <ColumnDefinition Width="*" />
+                </Grid.ColumnDefinitions>
+            </Grid>
+        </StackPanel>
+
+        <StackPanel x:Name="CodexBlock">
+            <Border x:Name="CodexDivider" Background="#33FFFFFF" Height="1" Margin="0,18,0,14" />
+            <TextBlock Text="CODEX" Style="{StaticResource Product}" />
+
+            <Border x:Name="CodexStatusArea" Background="#33FFFFFF" CornerRadius="4" Padding="10,8"
+                    Margin="0,0,0,14">
+                <StackPanel>
+                    <TextBlock x:Name="CodexStatusHeadline" FontWeight="SemiBold" TextWrapping="Wrap" />
+                    <TextBlock x:Name="CodexStatusAdvice" Foreground="#CCFFFFFF" TextWrapping="Wrap"
+                               Margin="0,4,0,0" />
+                </StackPanel>
+            </Border>
+
+            <TextBlock Text="WINDOWS" Style="{StaticResource Heading}" />
+            <Grid x:Name="CodexWindows">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto" />
+                    <ColumnDefinition Width="Auto" />
+                    <ColumnDefinition Width="*" />
+                </Grid.ColumnDefinitions>
+            </Grid>
+            <TextBlock x:Name="CodexWindowsEmptyState" Foreground="#99FFFFFF" TextWrapping="Wrap" />
+
+            <Grid x:Name="CodexFacts" Margin="0,14,0,0">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto" />
+                    <ColumnDefinition Width="*" />
+                </Grid.ColumnDefinitions>
+            </Grid>
+
+            <!-- Where every Codex figure comes from and what it cannot see (codex-quota AC-1).
+                 Always shown, because it is the limit every Codex figure carries. -->
+            <TextBlock x:Name="CodexSource" Foreground="#99FFFFFF" TextWrapping="Wrap" Margin="0,10,0,0" />
+        </StackPanel>
 
         <Border Background="#33FFFFFF" Height="1" Margin="0,18,0,14" />
 
-        <Grid x:Name="Facts">
+        <Grid x:Name="AppFacts">
             <Grid.ColumnDefinitions>
                 <ColumnDefinition Width="Auto" />
                 <ColumnDefinition Width="*" />

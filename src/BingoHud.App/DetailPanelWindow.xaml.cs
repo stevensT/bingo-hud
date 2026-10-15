@@ -85,29 +85,19 @@ public partial class DetailPanelWindow : Window
             return;
         }
 
-        // The advice is the half AC-11 turns on, and this is the only surface with room for it.
-        StatusArea.Visibility = content.Status is null ? Visibility.Collapsed : Visibility.Visible;
+        // A product switched off has no block (codex-quota AC-8). Claude's part is composed
+        // either way, so its block is simply hidden.
+        ClaudeBlock.Visibility = content.ShowClaude ? Visibility.Visible : Visibility.Collapsed;
 
-        if (content.Status is { } status)
-        {
-            StatusHeadline.Text = status.Headline;
-            StatusAdvice.Text = status.Advice;
-        }
+        // The advice is the half AC-11 turns on, and this is the only surface with room for it.
+        ShowStatus(StatusArea, StatusHeadline, StatusAdvice, content.Status);
 
         Fill(Windows, content.Windows);
         Fill(PerModelCaps, content.PerModelCaps);
 
-        WindowsEmptyState.Text = content.WindowsEmptyState ?? string.Empty;
-        WindowsEmptyState.Visibility =
-            content.WindowsEmptyState is null ? Visibility.Collapsed : Visibility.Visible;
-
-        PerModelCapsEmptyState.Text = content.PerModelCapsEmptyState ?? string.Empty;
-        PerModelCapsEmptyState.Visibility =
-            content.PerModelCapsEmptyState is null ? Visibility.Collapsed : Visibility.Visible;
-
-        RefreshNotice.Text = content.RefreshNotice ?? string.Empty;
-        RefreshNotice.Visibility =
-            content.RefreshNotice is null ? Visibility.Collapsed : Visibility.Visible;
+        ShowOrHide(WindowsEmptyState, content.WindowsEmptyState);
+        ShowOrHide(PerModelCapsEmptyState, content.PerModelCapsEmptyState);
+        ShowOrHide(RefreshNotice, content.RefreshNotice);
 
         Facts.Children.Clear();
         Facts.RowDefinitions.Clear();
@@ -116,12 +106,17 @@ public partial class DetailPanelWindow : Window
         // first reading, when there is no age to give and the rows above are empty anyway.
         if (content.Age is { } age)
         {
-            Fact("Reading", age);
+            Fact(Facts, "Reading", age);
         }
 
-        Fact("Last poll", content.LastPoll);
-        Fact("Next poll", content.NextPoll);
-        Fact("Version", content.Version);
+        Fact(Facts, "Last poll", content.LastPoll);
+        Fact(Facts, "Next poll", content.NextPoll);
+
+        DrawCodex(content.Codex, dividerAbove: content.ShowClaude);
+
+        AppFacts.Children.Clear();
+        AppFacts.RowDefinitions.Clear();
+        Fact(AppFacts, "Version", content.Version);
 
         // Recorded only once drawn. Recorded first, a draw that failed partway would leave the
         // next tick believing it was already on screen, and it would never be drawn again.
@@ -142,12 +137,72 @@ public partial class DetailPanelWindow : Window
         }
     }
 
-    private void Fact(string label, string value)
+    /// <summary>
+    /// The Codex block (codex-quota AC-1, AC-6), or nothing when Codex is switched off. Every
+    /// word is <see cref="PanelReadout.ComposeCodex"/>'s.
+    /// </summary>
+    private void DrawCodex(CodexPanel? codex, bool dividerAbove)
     {
-        var row = Facts.RowDefinitions.Count;
-        Facts.RowDefinitions.Add(new RowDefinition());
-        Place(Facts, new TextBlock { Text = label, Foreground = Dim }, row, column: 0);
-        Place(Facts, new TextBlock { Text = value, Margin = new Thickness(12, 0, 0, 0) }, row, column: 1);
+        CodexBlock.Visibility = codex is null ? Visibility.Collapsed : Visibility.Visible;
+
+        if (codex is null)
+        {
+            return;
+        }
+
+        CodexDivider.Visibility = dividerAbove ? Visibility.Visible : Visibility.Collapsed;
+
+        ShowStatus(CodexStatusArea, CodexStatusHeadline, CodexStatusAdvice, codex.Status);
+        Fill(CodexWindows, codex.Windows);
+        ShowOrHide(CodexWindowsEmptyState, codex.WindowsEmptyState);
+
+        CodexFacts.Children.Clear();
+        CodexFacts.RowDefinitions.Clear();
+
+        if (codex.Age is { } age)
+        {
+            Fact(CodexFacts, "Reading", age);
+        }
+
+        Fact(CodexFacts, "Last turn", codex.LastTurn);
+
+        // Shown only when present. Never seen filled, so it is shown exactly as Codex wrote it.
+        if (codex.ReachedType is { } reached)
+        {
+            Fact(CodexFacts, "Limit reached", reached);
+        }
+
+        if (codex.IgnoredWindows.Count > 0)
+        {
+            Fact(CodexFacts, "Not shown", string.Join(", ", codex.IgnoredWindows));
+        }
+
+        CodexSource.Text = codex.Source;
+    }
+
+    private static void ShowStatus(Border area, TextBlock headline, TextBlock advice, StatusMessage? status)
+    {
+        area.Visibility = status is null ? Visibility.Collapsed : Visibility.Visible;
+
+        if (status is not null)
+        {
+            headline.Text = status.Headline;
+            advice.Text = status.Advice;
+        }
+    }
+
+    private static void ShowOrHide(TextBlock text, string? value)
+    {
+        text.Text = value ?? string.Empty;
+        text.Visibility = value is null ? Visibility.Collapsed : Visibility.Visible;
+    }
+
+    private void Fact(Grid facts, string label, string value)
+    {
+        var row = facts.RowDefinitions.Count;
+        facts.RowDefinitions.Add(new RowDefinition());
+        Place(facts, new TextBlock { Text = label, Foreground = Dim }, row, column: 0);
+        Place(facts, new TextBlock { Text = value, Margin = new Thickness(12, 0, 0, 0), TextWrapping = TextWrapping.Wrap }, row, column: 1);
     }
 
     private static void Place(Grid grid, TextBlock text, int row, int column)

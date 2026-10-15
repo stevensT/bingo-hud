@@ -241,9 +241,11 @@ public partial class App : Application
     {
         var state = _monitor?.Current
             ?? new ReadingState(null, Freshness.Fresh, null, TimeSpan.Zero, "not started");
+        var codex = _codex?.Current
+            ?? new CodexState(CodexPresence.NotLookedYet, null, null, TimeSpan.Zero, null, []);
 
-        return PanelReadout.Compose(
-            state, _settings, Version, _clock.Now, culture: null, _lastRefresh, TimeZoneInfo.Local);
+        return PanelReadout.ComposeAll(
+            state, codex, _settings, Version, _clock.Now, culture: null, _lastRefresh, TimeZoneInfo.Local);
     }
 
     /// <summary>

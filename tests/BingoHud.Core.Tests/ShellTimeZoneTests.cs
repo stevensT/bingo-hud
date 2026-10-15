@@ -15,7 +15,7 @@ public class ShellTimeZoneTests
 {
     [Theory]
     [InlineData("Readout.Compose(")]
-    [InlineData("PanelReadout.Compose(")]
+    [InlineData("PanelReadout.ComposeAll(")]
     [InlineData("AlertMessage.Describe(")]
     public void EveryShellCallPassesTheLocalZone(string call)
     {

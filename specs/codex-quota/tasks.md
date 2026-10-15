@@ -251,7 +251,18 @@ The three units touch separate files and do not depend on each other.
       matching the Codex app; each product alone; collapse within each. At Trevor's request a
       live normal Codex bar is blue rather than Claude orange, severity colours shared; recorded
       in the spec's Decided list. Settings restored.*
-- [ ] 5.4 Detail panel: one block per shown product. Checked on screen. (AC-6)
+- [x] 5.4 Detail panel: one block per shown product. Checked on screen. (AC-6)
+      *Done 2026-10-14. A CLAUDE block (status, windows, per-model caps, its own facts) hidden
+      when Claude is off; a CODEX block (status, windows, Reading, Last turn, limit reached and
+      unknown windows when present, the source note); Version and Refresh now below both. The
+      app calls `PanelReadout.ComposeAll`, and the time-zone fence follows it. On screen with
+      Trevor: both blocks; Claude off shows Codex alone with no divider; Codex off shows Claude
+      alone. Found on screen, with Claude's five-hour window at its limit: the single HUD accent
+      ran down beside Codex too. Changed to one accent per product, beside that product's lines
+      only; `Hud.Overall` removed and its tests rewritten per section; recorded in the plan's Key
+      Decisions; checked on screen. Also seen: the installed 0.4.0, running alongside, rewrote
+      the settings file without the products answer, so the question came back; an artefact of
+      two versions sharing one file, not a defect.*
 - [ ] 5.5 App wiring: ~~`CodexMonitor` built with the real root; a 60 s timer calls `Rescan()`;~~
       *(moved into 5.3)* "Refresh now" also rescans; Codex alerts evaluated after each rescan and announced through
       the same path as Claude's. (AC-1, AC-10)

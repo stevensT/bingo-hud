@@ -145,11 +145,6 @@ public partial class HudWindow : Window
         Lines.Children.Clear();
         Lines.RowDefinitions.Clear();
 
-        // The worst live line across every product (AC-5). Absent while everything is normal, so
-        // the accent appearing is itself the signal.
-        Accent.Background = SeverityBrush(hud.Overall);
-        Accent.Visibility = hud.Overall == Severity.Normal ? Visibility.Collapsed : Visibility.Visible;
-
         // All sections in one grid, so the figures line up from one product to the next. A small
         // gap above each section after the first keeps the products apart without a divider.
         for (var i = 0; i < hud.Sections.Count; i++)
@@ -164,6 +159,13 @@ public partial class HudWindow : Window
 
     private const double SectionGap = 6;
 
+    // The grid's columns: the accent, then the line itself.
+    private const int AccentColumn = 0;
+    private const int LabelColumn = 1;
+    private const int BarColumn = 2;
+    private const int PercentColumn = 3;
+    private const int ResetColumn = 4;
+
     /// <summary>One product's rows: its lines and mark, or its label and the phrase in their place.</summary>
     private void DrawSection(HudSection section, bool gapAbove)
     {
@@ -175,14 +177,15 @@ public partial class HudWindow : Window
             // AC-9, AC-10). Labelled with the product like every other line (codex-quota AC-7a),
             // so a phrase can never be read as the other product's.
             var row = NewRow();
-            Place(new TextBlock { Text = WindowName.Product(section.Product), Foreground = Dim, Margin = new Thickness(0, top, 0, 0) }, row, column: 0);
+            Place(new TextBlock { Text = WindowName.Product(section.Product), Foreground = Dim, Margin = new Thickness(0, top, 0, 0) }, row, LabelColumn);
             var phrase = new TextBlock { Text = empty.Phrase, Foreground = Dim, Margin = new Thickness(10, top, 0, 0) };
-            Place(phrase, row, column: 1);
+            Place(phrase, row, BarColumn);
             Grid.SetColumnSpan(phrase, 3);
             return;
         }
 
         var reading = (HudContent.Reading)section.Content;
+        var firstRow = Lines.RowDefinitions.Count;
 
         for (var i = 0; i < reading.Lines.Count; i++)
         {
@@ -190,14 +193,14 @@ public partial class HudWindow : Window
             var row = NewRow();
             var lineTop = i == 0 ? top : 0;
 
-            Place(new TextBlock { Text = line.Window, Foreground = Dim, Margin = new Thickness(0, lineTop, 0, 0) }, row, column: 0);
+            Place(new TextBlock { Text = line.Window, Foreground = Dim, Margin = new Thickness(0, lineTop, 0, 0) }, row, LabelColumn);
 
             if (line.Bar is { } segments)
             {
                 var normal = reading.Frozen ? Dim : LiveBar(section.Product);
                 var bar = DrawBar(segments, SeverityBrush(line.Severity) ?? normal);
                 bar.Margin = new Thickness(10, lineTop, 0, 0);
-                Place(bar, row, column: 1);
+                Place(bar, row, BarColumn);
             }
 
             // No figure for a window whose reset has passed (codex-quota AC-3): its reset column
@@ -218,14 +221,18 @@ public partial class HudWindow : Window
                     percent.Foreground = brush;
                 }
 
-                Place(percent, row, column: 2);
+                Place(percent, row, PercentColumn);
             }
 
             if (line.Reset is { } reset)
             {
-                Place(new TextBlock { Text = reset, Foreground = Dim, Margin = new Thickness(10, lineTop, 0, 0) }, row, column: 3);
+                Place(new TextBlock { Text = reset, Foreground = Dim, Margin = new Thickness(10, lineTop, 0, 0) }, row, ResetColumn);
             }
         }
+
+        // The accent spans the lines only, not the mark below them, so it sits beside the
+        // figures it is about.
+        DrawAccent(reading.Overall, firstRow, reading.Lines.Count, top);
 
         if (reading.Mark is { } mark)
         {
@@ -235,9 +242,34 @@ public partial class HudWindow : Window
             // fade out.
             var row = NewRow();
             var text = new TextBlock { Text = mark, Margin = new Thickness(0, 2, 0, 0) };
-            Place(text, row, column: 0);
+            Place(text, row, LabelColumn);
             Grid.SetColumnSpan(text, 4);
         }
+    }
+
+    /// <summary>
+    /// A product's accent (AC-5): its worst line, beside that product's lines and no others.
+    /// Absent while all of them are normal, so the accent appearing is itself the signal.
+    /// </summary>
+    private void DrawAccent(Severity worst, int firstRow, int rows, double top)
+    {
+        if (SeverityBrush(worst) is not { } brush || rows == 0)
+        {
+            return;
+        }
+
+        var accent = new Border
+        {
+            Width = 3,
+            CornerRadius = new CornerRadius(1.5),
+            Background = brush,
+            // Pulled into the HUD's left padding, as the single accent was, so the lines do not
+            // move far when one appears.
+            Margin = new Thickness(-6, top, 8, 0),
+        };
+
+        Place(accent, firstRow, AccentColumn);
+        Grid.SetRowSpan(accent, rows);
     }
 
     private int NewRow()

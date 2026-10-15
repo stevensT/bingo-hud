@@ -20,23 +20,22 @@
     </Window.Resources>
     <Border x:Name="Panel" Background="#DD1E1E1E" BorderBrush="Transparent" BorderThickness="1"
             CornerRadius="6" Padding="12,6">
-        <!-- One row per readout line: window, bar, percent with its direction, reset. The
-             columns are shared so the figures line up whatever the window names are. The bar
-             column is empty, and so takes no width, while the bar is off. Rows are built in code
-             from what Core decided; nothing here composes a string. -->
-        <DockPanel>
-            <!-- The overall severity (AC-5), seen without reading which line. Absent while
-                 everything is normal, so the accent bar appearing is itself the signal. -->
-            <Border x:Name="Accent" DockPanel.Dock="Left" Width="3" CornerRadius="1.5"
-                    Margin="-6,0,8,0" Visibility="Collapsed" />
-            <Grid x:Name="Lines">
-                <Grid.ColumnDefinitions>
-                    <ColumnDefinition Width="Auto" />
-                    <ColumnDefinition Width="Auto" />
-                    <ColumnDefinition Width="Auto" />
-                    <ColumnDefinition Width="Auto" />
-                </Grid.ColumnDefinitions>
-            </Grid>
-        </DockPanel>
+        <!-- One row per readout line: accent, window, bar, percent with its direction, reset.
+             The columns are shared so the figures line up whatever the window names are, across
+             both products. The accent and bar columns are empty, and so take no width, while
+             nothing is in trouble and the bar is off. Rows are built in code from what Core
+             decided; nothing here composes a string.
+
+             The accent is per product (AC-5, codex-quota task 5.4): a bar beside each product's
+             lines only, showing that product's worst line, absent while all of them are normal. -->
+        <Grid x:Name="Lines">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="Auto" />
+                <ColumnDefinition Width="Auto" />
+                <ColumnDefinition Width="Auto" />
+                <ColumnDefinition Width="Auto" />
+                <ColumnDefinition Width="Auto" />
+            </Grid.ColumnDefinitions>
+        </Grid>
     </Border>
 </Window>
