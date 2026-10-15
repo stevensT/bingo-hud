@@ -6,10 +6,43 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 Versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 Bingo stays on `0.x` until the app has run reliably through real daily use. Because it reads
-an undocumented upstream endpoint whose payload has drifted before, anything below `1.0.0` should
-be treated as liable to break when that endpoint changes.
+two undocumented sources, Claude's usage endpoint, whose payload has drifted before, and Codex's
+session logs, anything below `1.0.0` should be treated as liable to break when either changes.
 
 ## [Unreleased]
+
+### Added
+- Codex usage, beside Claude's. Bingo reads the 5-hour and weekly figures Codex records in its
+  session logs on this machine, under `.codex` in your user folder or wherever `CODEX_HOME`
+  points, and checks them once a minute and on "Refresh now". It makes no network call for
+  Codex, does not read Codex's sign-in, and keeps nothing from the logs but the usage figures.
+  Codex used in the browser, on another computer or by cloud tasks shows up only after your
+  next Codex turn on this machine, and the detail panel says so.
+- A Codex reading that is old because Codex has not been used since keeps its colors and says
+  when Codex was last used; one Bingo could not read loses its colors and says why. A window
+  whose reset has passed shows no figure until Codex records the new one.
+- A question on first start, including the first start after upgrading, asking which products
+  to show. Products found on the machine start ticked; one not found is marked so but can still
+  be ticked.
+- "Show Claude" and "Show Codex" in the tray menu, to change that answer later. At least one
+  stays on.
+- A Codex block in the detail panel, with exact reset times, the age of the reading, the time of
+  the last Codex turn, and where the figures come from.
+- Codex alerts, on the same thresholds and once-per-window rule as Claude's, and independent of
+  them.
+- A notice in the detail panel when a settings change could not be saved, naming the file. The
+  change still applies until Bingo closes, and the notice clears at the next successful save.
+
+### Changed
+- Every HUD line now names its product, as in "Claude 5h" or "Codex Week", Claude's included,
+  and the HUD is drawn as one section per product.
+- A Codex bar is blue within normal limits, where Claude's is orange. Warning and critical
+  colors are the same for both.
+- The colored stripe on the HUD's left edge is drawn per product, beside that product's lines,
+  rather than once beside them all.
+- Every alert notification names its product.
+- A settings save that fails because the file is briefly in use is tried once more before
+  giving up.
 
 ### Fixed
 - Upgrading through winget while Bingo is running now closes Bingo, installs, and starts it

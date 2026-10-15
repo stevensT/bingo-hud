@@ -198,13 +198,13 @@ control comes from Windows Forms. Trimming is not available — WPF does not sup
 ## Versioning
 
 Semantic versioning. Bingo stays on `0.x` until it has proven itself in daily use; because it
-depends on an undocumented endpoint, anything below `1.0.0` should be treated as liable to break
-when that endpoint changes.
+depends on two undocumented sources, Claude's usage endpoint and Codex's session logs, anything
+below `1.0.0` should be treated as liable to break when either of them changes.
 
 - **PATCH** — bug fixes, no behavior change a user would notice.
-- **MINOR** — new behavior, new settings, or any change to how the upstream response is parsed.
-  Endpoint-handling changes are always at least MINOR, because that is the axis along which this
-  app breaks.
+- **MINOR** — new behavior, new settings, or any change to how the endpoint response or the Codex
+  log records are parsed. Source-handling changes are always at least MINOR, because that is the
+  axis along which this app breaks.
 - **MAJOR** — reserved for 1.0.0 and beyond.
 
 Three things move together on every release, and a release is not done until all three agree:

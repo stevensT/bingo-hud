@@ -334,8 +334,12 @@ The three units touch separate files and do not depend on each other.
       so no real account figures are published. Shared files restored exactly from
       artifacts/settings-backup-6.1; 0.4.0 restarted. Raised, not changed: whether the
       Versioning section's at-least-MINOR rule covers the Codex log format.*
-- [ ] 6.2 CHANGELOG `[Unreleased]`: the Codex readout, the first-start question, the product
+- [x] 6.2 CHANGELOG `[Unreleased]`: the Codex readout, the first-start question, the product
       check marks, and product names in notifications.
+      *Done 2026-10-15. Beyond the four named: the per-product bar color and stripe, product
+      labels on every HUD line, and 5.8's save retry and notice, all user-visible. The opening
+      paragraph now names both undocumented sources, as the README's Versioning section does
+      (Trevor's call: Codex log parsing changes are at least MINOR).*
 - [ ] 6.3 Run the review on the feature's changes and resolve or defer each finding, recording
       deferrals here.
 

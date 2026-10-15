@@ -1,9 +1,14 @@
 # Codex Quota — Progress
 
 updated: 2026-10-15
-status: Phase 5 complete; 6.1 done
+status: Phase 5 complete; 6.1 and 6.2 done
 blockers: none
-next_session: Phase 6, starting at 6.2. Open question for Trevor: whether the README's Versioning rule covers the Codex log format.
+next_session: 6.3, the review of the feature's changes.
+
+## 2026-10-15: 6.2, the changelog
+
+- `[Unreleased]` gained Added and Changed sections for the Codex readout, the first-start question, the tray switches, product-named lines and notifications, the per-product bar color and stripe, and the settings-save retry and notice.
+- Trevor settled the open 6.1 question: changes to how Codex log records are parsed are at least MINOR, like endpoint changes. README Versioning and the changelog's opening paragraph now both name the two sources.
 
 ## 2026-10-15: 6.1, the README
 
