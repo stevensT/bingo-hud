@@ -286,7 +286,7 @@ The three units touch separate files and do not depend on each other.
       0 warnings/errors. Review completed, comment corrections resolved; a repeated real comparison
       agreed for both windows. Both synthetic product notifications appeared in sequence, confirming
       the delivery callbacks from 5.5. Shared files restored and installed build restarted.*
-- [~] 5.8 A settings save that fails is retried once and then said, not dropped. *Added
+- [x] 5.8 A settings save that fails is retried once and then said, not dropped. *Added
       2026-10-14, Trevor's call, after 5.2's first on-screen run, where two tray clicks never
       reached the settings file and nothing said so. Lifts the `deferred:` note on `Remember` in
       `App.xaml.cs`. Placed before the checkpoint because it touches the panel 5.4 draws.* (AC-8)
@@ -307,17 +307,33 @@ The three units touch separate files and do not depend on each other.
       the diagnostic call was interrupted before its results were assessed. Next: reproduce with
       an independently confirmed exclusive settings lock and correct dev instance, trace the save
       result through the panel, verify notice appearance and clearing. Trial ended; both shared
-      files restored exactly from artifacts/settings-backup-5.8; installed 0.4.0 restarted.
-      This task is NOT complete, and checkpoint 5.7 has not run.*
-- [C] 5.7 Checkpoint: clean, build, full suite; every acceptance criterion assessed; the trial
-      settings restored; record in `progress.md`.
+      files restored exactly from artifacts/settings-backup-5.8; installed 0.4.0 restarted.*
+      *Done 2026-10-15. No code change. Repeated with the installed 0.4.0 stopped, so only the
+      dev build's tray icon existed, and with the lock held by a separate process and confirmed
+      by a refused write-open. Trevor saw the notice naming the file after a tray change. The
+      lock was released, the next change saved, and the notice cleared; the file then held the
+      products answer given while locked, so held changes reached disk. The first run's missing
+      notice is put down to the trial, most likely a click on 0.4.0's identical tray icon, which
+      has no notice. Shared files restored exactly from artifacts/settings-backup-5.8b; 0.4.0
+      restarted.*
+- [x] 5.7 Checkpoint: clean, build, full suite; every acceptance criterion assessed; the trial
+      settings restored; record in `progress.md`. *Passed 2026-10-15. The one gap, AC-8b's "not
+      found" mark, was then checked on screen with Trevor.*
 
 ## Phase 6: Docs and review
 
-- [ ] 6.1 README: rewritten as a readout for AI coding quotas with Claude and Codex as peers
+- [x] 6.1 README: rewritten as a readout for AI coding quotas with Claude and Codex as peers
       (spec Decided). "How it works" covers the Codex source, what it cannot see, and that
       nothing leaves the machine for Codex; Requirements, Privacy and Removing updated;
       screenshots retaken **(Trevor takes them)**.
+      *Done 2026-10-15. Rewritten as above; Privacy is the "Nothing leaves your machine"
+      paragraph, there being no separate section. Requirements name a ChatGPT plan for Codex,
+      matching `plan_type` in the fixtures. Screenshots taken by script rather than by Trevor,
+      as at the display-options spike: a Debug build against the stand-in usage server restored
+      from history to a scratch folder, a fake credential, and `CODEX_HOME` at a made-up record,
+      so no real account figures are published. Shared files restored exactly from
+      artifacts/settings-backup-6.1; 0.4.0 restarted. Raised, not changed: whether the
+      Versioning section's at-least-MINOR rule covers the Codex log format.*
 - [ ] 6.2 CHANGELOG `[Unreleased]`: the Codex readout, the first-start question, the product
       check marks, and product names in notifications.
 - [ ] 6.3 Run the review on the feature's changes and resolve or defer each finding, recording

@@ -1,64 +1,91 @@
 # Bingo
 
-A small always-on-top readout for Windows showing how much of your Claude subscription usage
-window is left, and when it resets.
+A small always-on-top readout for Windows showing how much of your AI coding quotas is left, and
+when each resets. It reads Claude Code and Codex, side by side.
 
-Claude Code on a Max or Pro plan is governed by rolling usage windows rather than per-token cost.
-The thing that actually interrupts you is running out of window mid-task, and the only way to
-check is to stop and run `/usage` in a session — which is the interruption you were trying to
-avoid. Bingo keeps the answer in peripheral vision so it arrives before it matters.
+Claude Code on a Claude Max or Pro plan and Codex on a ChatGPT plan are both governed by rolling
+usage windows rather than per-token cost. The thing that actually interrupts you is running out
+of window mid-task, and the only way to check is to stop what you are doing and ask — which is
+the interruption you were trying to avoid. Bingo keeps the answer in peripheral vision so it
+arrives before it matters.
 
-**Status:** in daily use, and still versioned 0.x while the endpoint it reads stays undocumented.
+**Status:** in daily use, and still versioned 0.x while the sources it reads stay undocumented.
 Download the latest version from the [Releases page](https://github.com/stevensT/bingo-hud/releases);
 [`CHANGELOG.md`](CHANGELOG.md) lists what each version adds.
 
 ## What it shows
 
-A frameless, draggable, always-on-top window with the percentage used and the reset time for
-both the 5-hour and weekly windows, one line each:
+A frameless, draggable, always-on-top window with a section for each product. Each line is one
+usage window, the 5-hour or the weekly, with the percentage used and the reset time. Every line
+is labelled with its product, as in "Claude 5h" or "Codex Week", so a figure can never be read as
+the other product's:
 
-![The HUD showing 46% used on the 5-hour window and 23% on the weekly, each with its reset time](docs/images/hud.png)
+![The HUD with a Claude section and a Codex section, each showing its 5-hour and weekly windows with the percentage used and the reset time](docs/images/hud.png)
 
-Two settings in the tray menu change how a line reads. A countdown shows the reset as time left
-at every distance, and a bar of ten segments sits beside each figure, filled to it: Claude
-orange within normal limits.
+The first time Bingo starts, it asks which products to show, with the ones it finds on the
+machine already ticked. After that, **Show Claude** and **Show Codex** in the tray menu turn each
+one on or off; at least one stays on.
 
-![The same HUD with the bar and countdown on: orange bars beside each figure, resets shown as 2.3h and 4.5d](docs/images/hud-options.png)
+Two more settings in the tray menu change how a line reads, for both products at once. A
+countdown shows the reset as time left at every distance, and a bar of ten segments sits beside
+each figure, filled to it: Claude orange or Codex blue within normal limits.
 
-As a window runs low, its figure and bar turn amber at 25% left and red at 10%, and a stripe on
-the left edge shows the worst of them:
+![The same HUD with the bar and countdown on: orange bars beside the Claude figures, blue beside the Codex figures, resets shown as time left](docs/images/hud-options.png)
 
-![The 5-hour window at 82% used, its figure and bar in amber with an amber stripe on the left](docs/images/hud-warning.png)
+As a window runs low, its figure and bar turn amber at 25% left and red at 10%, the same for
+both products, and a stripe beside each product's lines shows the worst of its windows:
 
-Percentages read as consumed by default, matching `/usage`. You can switch them to show what
-is left instead; either way the figure says which it is, so it can never be read backwards.
+![A Claude 5-hour window at 80% used, its figure and bar in amber with an amber stripe beside the Claude lines only](docs/images/hud-warning.png)
 
-Clicking it opens a detail panel with per-model weekly caps, exact reset times, current status,
-and the running version. Threshold alerts raise a desktop notification once per window.
+Percentages read as consumed by default, matching Claude Code's `/usage`. You can switch them to
+show what is left instead; either way the figure says which it is, so it can never be read
+backwards.
+
+Clicking it opens a detail panel with a block for each product shown: exact reset times and the
+age of the reading for both, Claude's per-model weekly caps and status, and when Codex was last
+used on this machine. Threshold alerts raise a desktop notification once per window, and each
+notification names its product.
 
 ## How it works
 
-Bingo reads your quota from the same endpoint Claude Code's own `/usage` command uses,
-authenticating with the OAuth token Claude Code already maintains on your machine. It does not
-ask for an API key, and no plan limits are hardcoded anywhere in the codebase — the percentages
-come from the server, not from a guess about your plan.
+No plan limits are hardcoded anywhere in the codebase. Every percentage on screen is one the
+product's own server reported, not a guess about your plan, and Bingo never estimates or fills
+in a number it was not given. When it cannot recognize what it read, it says so. The last
+reading it did receive stays on screen, marked with its age and with why it stopped updating, so
+it can't be mistaken for a current one. A readout you trust at a glance is worse than useless if
+it can quietly lie.
 
-Two consequences worth stating plainly:
+**Claude.** Bingo reads your quota from the same endpoint Claude Code's own `/usage` command
+uses, authenticating with the OAuth token Claude Code already maintains on your machine. It does
+not ask for an API key. That endpoint is undocumented, and its payload has changed shape more
+than once, so Bingo parses it tolerantly.
 
-- **That endpoint is undocumented.** Its payload has changed shape more than once. Bingo parses
-  it tolerantly and, when it can't recognize what came back, says so. It never estimates or fills
-  in a number the server didn't send. The last reading it did receive stays on screen, marked
-  with its age and with why it stopped updating, so it can't be mistaken for a current one. A
-  readout you trust at a glance is worse than useless if it can quietly lie.
-- **Nothing leaves your machine.** The only network call is to the quota endpoint. Your token is
-  never logged, copied, or transmitted anywhere else, and there is no telemetry.
+**Codex.** Codex writes the figures its server sends into the session logs it keeps on your
+machine, under `.codex` in your user folder, or under the folder `CODEX_HOME` points to if you
+have set it. Bingo checks those logs once a minute and shows the newest figures, aged by the time
+Codex recorded them. It makes no network call for Codex and does not read Codex's sign-in. The
+log format is undocumented too; a record in a shape Bingo does not recognize is reported as
+unreadable rather than guessed at.
+
+That source has one limit worth knowing. Codex used anywhere else, in the browser, on another
+computer, or by cloud tasks, writes no log here, so that usage only shows up after your next
+Codex turn on this machine. The detail panel says so, and gives the age of the reading. A Codex
+reading that is simply old, because you have not used Codex since, keeps its colours and says
+when Codex was last used; one Bingo could not read loses its colours and says why.
+
+**Nothing leaves your machine.** The only network call is Claude's, to the quota endpoint. Your
+Claude token is never logged, copied, or transmitted anywhere else. Codex's logs hold your
+conversations: Bingo picks out only the lines carrying usage figures, keeps only those figures,
+and reads, stores, or sends nothing else from them. There is no telemetry.
 
 ## Requirements
 
 - Windows 10 or 11, 64-bit (tested on Windows 11)
-- An active Claude Max or Pro subscription
-- Claude Code installed and signed in — Bingo reads its credentials and delegates token refresh
-  to it
+- At least one of:
+  - **Claude:** an active Claude Max or Pro subscription, with Claude Code installed and signed
+    in. Bingo reads its credentials and delegates token refresh to it.
+  - **Codex:** Codex installed, signed in with a ChatGPT plan, and used on this machine. Codex
+    paid for by API key has no usage windows, so there is nothing for Bingo to show.
 
 ## Removing Bingo
 
@@ -74,13 +101,17 @@ Remove-Item "$env:LOCALAPPDATA\Bingo" -Recurse
 If you run the standalone exe instead, quit Bingo from its tray icon, then delete the exe, that
 same folder, and any shortcut to it you put in your Startup folder (Win+R, `shell:startup`).
 
+Either way, Claude Code and Codex are left as they were. Bingo only reads their files and writes
+nothing outside its own folder.
+
 ## Repository layout
 
 | Path | Contents |
 |---|---|
 | `src/` | Application source — `BingoHud.Core` and `BingoHud.App`, described under Architecture |
-| `tests/` | The test project, and the recorded endpoint responses it runs against |
+| `tests/` | The test project, and the recorded endpoint responses and log records it runs against |
 | `tests/fixtures/usage/` | Dated, scrubbed captures of the quota endpoint, with their own README |
+| `tests/fixtures/codex/` | Dated Codex session-log records, scrubbed or made by hand, with their own README |
 | `scripts/` | The endpoint capture script and the icon generator, run by hand rather than by the app |
 | `installer/` | The setup script, and the check script that verifies an install, upgrade, or uninstall on this machine |
 | `packaging/winget/` | The winget manifests, one folder per version, copied into `microsoft/winget-pkgs` to submit |
@@ -92,7 +123,8 @@ same folder, and any shortcut to it you put in your Startup folder (Win+R, `shel
 
 Two projects with one rule between them: `BingoHud.Core` decides, `BingoHud.App` draws.
 
-- **`BingoHud.Core`** — polling, response parsing, threshold state, reset countdowns. No UI
+- **`BingoHud.Core`** — polling, response parsing, reading the Codex logs, threshold state,
+  reset countdowns, and what each product's lines say. No UI
   dependency, so the logic most likely to harbor bugs is the part under test.
 - **`BingoHud.App`** — WPF shell. HUD window, detail panel, tray, notifications. Renders what
   Core says and holds no logic of its own.

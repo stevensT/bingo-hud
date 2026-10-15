@@ -1,9 +1,24 @@
 # Codex Quota — Progress
 
 updated: 2026-10-15
-status: Stopped for the night; 5.5 and 5.6 complete; 5.8 incomplete after failed on-screen notice check
-blockers: task 5.8 on-screen failure — changing Show bar while the settings file was intended to be locked changed the HUD but showed no settings-save notice
-next_session: resume task 5.8. Re-run the full suite and build, then reproduce the missing settings-save notice with a confirmed exclusive lock and the correct dev instance. Verify notice appearance and clearing before completing 5.8. Then run the clean/build/full-suite checkpoint 5.7, assess acceptance criteria, and continue Phase 6.
+status: Phase 5 complete; 6.1 done
+blockers: none
+next_session: Phase 6, starting at 6.2. Open question for Trevor: whether the README's Versioning rule covers the Codex log format.
+
+## 2026-10-15: 6.1, the README
+
+- README rewritten with Claude and Codex as peers: what it shows, how each is read, what the Codex source cannot see, privacy, requirements, removal, layout and architecture.
+- Screenshots retaken by script: the stand-in usage server restored from history to the scratch folder, a fake credential, and `CODEX_HOME` at a made-up record, so no real figures are published. Found the HUD by enumerating the process's visible windows, since it has no taskbar entry and so no main window handle.
+- Installed 0.4.0 stopped for the run; shared files restored and SHA-256 confirmed against artifacts/settings-backup-6.1; 0.4.0 restarted.
+
+## 2026-10-15: 5.8 closed
+
+- Resume baseline: build 0 warnings/errors, full suite 1683 pass / 0 fail / 0 skip.
+- The code path from `Remember` to the panel was re-read and found sound; the notice sits at the panel's top level, outside either product block.
+- Trial repeated: fresh backup in artifacts/settings-backup-5.8b; installed 0.4.0 stopped so the dev build was the only Bingo; settings.json held exclusively by a separate process, and a separate write-open was refused before Trevor clicked.
+- Trevor saw "Settings could not be saved to C:\Users\Trevor\AppData\Local\Bingo\settings.json. Your changes apply until Bingo closes." After the lock was released, the next change saved and the notice cleared; the file then held the products answer given during the lock.
+- No code change. The first run's missing notice is put down to the trial; the most likely cause is a click on the installed 0.4.0's identical tray icon. Lesson for on-screen trials: stop the installed build first.
+- Cleanup: dev build stopped, both shared files restored and SHA-256 confirmed against artifacts/settings-backup-5.8b, installed 0.4.0 restarted.
 
 ## 2026-10-15: resuming Phase 5
 
@@ -126,3 +141,27 @@ criteria, Core side (each still needs the shell in Phase 5 before it is met in f
 - AC-9: pinned by ClaudeOnlyHudTests against 0.4.0's recorded output; confirmed on screen in 5.3.
 - AC-10: Codex alerts, product-named toasts, ended windows skipped (3.1, 4.6); wiring in 5.5.
 issues: none
+
+### CP: Phase 5 The shell — 2026-10-15
+tests: 1683 pass / 0 fail / 0 skip
+build: pass, 0 warnings, 0 errors (`dotnet clean`, `dotnet build`, `dotnet test --no-build`)
+done: 5.1, 5.2, 5.3, 5.4, 5.5, 5.6, 5.8
+rework: none; 5.8 needed no code change once its trial was repeated with only the dev build running
+trial settings: restored; settings.json and alerts.json match artifacts/settings-backup-5.8b by SHA-256; installed 0.4.0 running
+criteria (Core evidence in the Phase 4 record; shell evidence here):
+- AC-1: met. Logs read on screen and compared against the Codex app for both windows after the 5.6 fix; the panel states the source and what it cannot see (5.4).
+- AC-2: met. No figure from a null or unrecognised record; an ended window drew no figure or bar on screen (5.6).
+- AC-3: met. Age on every Codex reading in HUD and panel; the reset-passed state seen on screen (5.6).
+- AC-3a: met. Unreadable logs kept the figures with frozen styling, a live reading kept its colours (5.6).
+- AC-3b: deferred past 0.5.0.
+- AC-4, AC-5: met. Codex lines drawn by the same builder as Claude's, seen on screen with labels and bars (5.3); the Show bar change in 5.8 applied to both products.
+- AC-6: met. Codex panel block with exact resets, Reading and Last turn (5.4).
+- AC-7: met. Not found and no reading yet each seen on screen with a phrase and no figure (5.6).
+- AC-7a: met. Every HUD line and both product notifications named their product on screen (5.3, 5.6).
+- AC-8: met. Tray switches, the last one on greyed out (5.2); saves persist, and a failed save is retried and then said (5.8).
+- AC-8a: met. First-start question before the HUD, answer saved and used, closing without an answer handled (5.1).
+- AC-8b: met. Both-found seen in 5.1. Not-found seen after the checkpoint with `CODEX_HOME` pointed at a folder that does not exist (detection asks only whether the folder exists, so an empty one would count as found): Claude ticked, Codex unticked and marked "not found", and Codex could still be ticked. Installed 0.4.0 stopped for the run; shared files restored and SHA-256 confirmed against artifacts/settings-backup-5.7; 0.4.0 restarted.
+- AC-8c: met (5.2).
+- AC-9: met. ClaudeOnlyHudTests against 0.4.0's output; Claude alone seen on screen (5.3).
+- AC-10: met. Codex alerts wired to the shared path (5.5); both product notifications appeared in sequence on screen (5.6).
+issues: none. AC-8b's not-found state was the one gap found at the checkpoint; checked on screen with Trevor the same day.
