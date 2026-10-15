@@ -1,9 +1,9 @@
 # Codex Quota — Progress
 
 updated: 2026-10-14
-status: Phase 2 (spec) settled; session log spike closed early 2026-10-14; plan not started
+status: Phase 1 in progress; 1.1 done 2026-10-14
 blockers: none
-next_session: write plan.md (Phase 3), then tasks.md. The first tasks are scrubbed fixtures taken from real session log records, and the reader's tests built on them.
+next_session: task 1.2, the record parser's tests, run red against the fixtures in tests/fixtures/codex.
 
 ## 2026-10-14: the spike closed early
 
