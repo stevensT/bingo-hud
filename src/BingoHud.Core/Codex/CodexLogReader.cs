@@ -16,8 +16,14 @@ namespace BingoHud.Core.Codex;
 /// </para>
 /// </summary>
 /// <param name="root">The Codex folder: <c>CODEX_HOME</c>, or <c>.codex</c> in the user profile.</param>
-public sealed class CodexLogReader(string root)
+/// <param name="readLog">
+/// How one log is read; <see cref="ReadShared"/> unless a test needs a file to change between
+/// being listed and being opened, which cannot otherwise be timed.
+/// </param>
+public sealed class CodexLogReader(string root, Func<string, string>? readLog = null)
 {
+    private readonly Func<string, string> _readLog = readLog ?? ReadShared;
+
     private const string LogPattern = "*.jsonl";
 
     // The two folders Codex keeps session logs in. Nothing outside them is read.
@@ -74,7 +80,13 @@ public sealed class CodexLogReader(string root)
 
             try
             {
-                content = ReadShared(log.FullName);
+                content = _readLog(log.FullName);
+            }
+            catch (Exception e) when (e is FileNotFoundException or DirectoryNotFoundException)
+            {
+                // Moved or deleted since it was listed: Codex moves finished sessions to
+                // archived_sessions. Not a log Bingo was refused, so the rest are still read.
+                continue;
             }
             catch (Exception e) when (e is IOException or UnauthorizedAccessException)
             {
@@ -126,7 +138,7 @@ public sealed class CodexLogReader(string root)
     /// The whole log, opened so that Codex can go on writing it while it is read. Codex appends
     /// to the log of a running session, and a reader that locked it out would break Codex.
     /// </summary>
-    private static string ReadShared(string path)
+    public static string ReadShared(string path)
     {
         using var stream = new FileStream(
             path, FileMode.Open, FileAccess.Read, FileShare.ReadWrite | FileShare.Delete);
@@ -162,7 +174,8 @@ public sealed class CodexLogReader(string root)
                 case CodexRecordResult.Unreadable unreadable:
                     return unreadable;
 
-                // A null record, or a conversation line that mentions rate limits: keep looking.
+                // A null record, a damaged line that cannot be dated, or a conversation line that
+                // mentions rate limits: keep looking.
                 default:
                     continue;
             }

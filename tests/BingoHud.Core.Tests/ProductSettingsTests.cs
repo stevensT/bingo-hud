@@ -128,6 +128,7 @@ public class ProductSettingsTests
         var products = document.RootElement.GetProperty("products");
 
         Assert.Equal(["claude", "codex"], products.EnumerateObject().Select(p => p.Name));
+        Assert.False(document.RootElement.TryGetProperty("shown", out _));
     }
 
     [Fact]

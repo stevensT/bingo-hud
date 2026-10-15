@@ -33,11 +33,19 @@ public partial class App : Application
     private TrayIcon? _tray;
     private RefreshResult? _lastRefresh;
     private string? _settingsNotice;
+    private ProductSwitches? _productsStandIn;
     private TranscriptActivity? _transcripts;
     private AlertEngine? _alerts;
-    private readonly AlertDelivery _delivery = new();
+    private readonly AlertDelivery _delivery;
     private CodexMonitor? _codex;
     private Timer? _codexWatch;
+
+    // Set here rather than beside its declaration: a field initializer cannot use another
+    // instance field, and the delivery needs the clock.
+    public App()
+    {
+        _delivery = new AlertDelivery(_clock);
+    }
 
     protected override void OnStartup(StartupEventArgs e)
     {
@@ -78,8 +86,9 @@ public partial class App : Application
             _clock);
 
         // Codex is read from its own logs on this machine (codex-quota AC-1). Looked at once now
-        // for the first HUD frame, then every minute off the UI thread. Each scan checks every
-        // log: a live writer can append records without advancing its file timestamp.
+        // for the first HUD frame, its alerts taken once the tray exists, then looked at every
+        // minute off the UI thread and on "Refresh now". Each scan checks every log: a live
+        // writer can append records without advancing its file timestamp.
         _codex = new CodexMonitor(
             new CodexLogReader(CodexLogReader.RootFor(
                 Environment.GetFolderPath(Environment.SpecialFolder.UserProfile),
@@ -117,11 +126,11 @@ public partial class App : Application
             change: Remember,
             openPanel: OpenPanel,
             mute: Mute,
-            canMute: () => _monitor?.Current.Last is not null || _codex?.Current.Last is not null,
+            canMute: () => MuteTargets().Count > 0,
             notificationEnded: () => ShowAlerts(_delivery.Closed()),
             quit: Shutdown);
 
-        RescanCodex();
+        AnnounceCodex();
         _codexWatch = new Timer(_ => RescanCodex(), null, CodexRescanInterval, CodexRescanInterval);
 
         // Started last, once there is somewhere for an alert to go. The first poll happens
@@ -195,7 +204,8 @@ public partial class App : Application
         }
         else
         {
-            _settings = _settings with { Products = FirstStartContent.WhenClosed(found) };
+            _productsStandIn = FirstStartContent.WhenClosed(found);
+            _settings = _settings with { Products = _productsStandIn };
         }
     }
 
@@ -313,18 +323,26 @@ public partial class App : Application
     private static readonly TimeSpan CodexRescanInterval = TimeSpan.FromMinutes(1);
 
     /// <summary>
-    /// Looks for a Codex turn and hands its alerts to the same notification path as Claude's.
-    /// Startup calls this only once the tray exists, so no alert is recorded without a way to
-    /// announce it. The timer and manual refresh both use it thereafter.
+    /// Looks for a Codex turn and announces its alerts. The timer and manual refresh use it.
     /// </summary>
     private void RescanCodex()
+    {
+        _codex?.Rescan();
+        AnnounceCodex();
+    }
+
+    /// <summary>
+    /// Hands the current Codex reading's new alerts to the same notification path as Claude's.
+    /// Startup calls this only once the tray exists, so no alert is recorded without a way to
+    /// announce it.
+    /// </summary>
+    private void AnnounceCodex()
     {
         if (_codex is null || _alerts is null)
         {
             return;
         }
 
-        _codex.Rescan();
         Announce(CodexAlerts.TakeNew(_alerts, _codex.Current, _settings.Thresholds, _clock.Now));
     }
 
@@ -344,7 +362,11 @@ public partial class App : Application
 
     private void ShowAlerts(IReadOnlyList<Alert> due)
     {
-        if (AlertMessage.Describe(due, _settings.Direction, _clock.Now, culture: null, TimeZoneInfo.Local)
+        // Filtered here, at the last step, so a product switched off while its alert waited for
+        // the visible notification is not announced either.
+        var shown = ProductAlerts.Shown(due, _settings.Shown);
+
+        if (AlertMessage.Describe(shown, _settings.Direction, _clock.Now, culture: null, TimeZoneInfo.Local)
             is not { } message)
         {
             return;
@@ -353,7 +375,7 @@ public partial class App : Application
         _tray?.Notify(
             message.Title,
             message.Body,
-            critical: due.Any(a => a.Severity == Severity.Critical));
+            critical: shown.Any(a => a.Severity == Severity.Critical));
     }
 
     /// <summary>
@@ -378,22 +400,23 @@ public partial class App : Application
             return false;
         }
 
-        var claude = _monitor?.Current.Last;
-        var codex = _codex?.Current.Last;
+        var targets = MuteTargets();
 
-        foreach (var window in claude?.Windows ?? [])
+        foreach (var (product, snapshot) in targets)
         {
-            _alerts.Mute(window, _settings.Thresholds);
-        }
-
-        foreach (var window in codex?.Windows ?? [])
-        {
-            _alerts.Mute(window, _settings.Thresholds, Product.Codex);
+            foreach (var window in snapshot.Windows)
+            {
+                _alerts.Mute(window, _settings.Thresholds, product);
+            }
         }
 
         _delivery.Clear();
-        return claude is not null || codex is not null;
+        return targets.Count > 0;
     }
+
+    /// <summary>The readings Mute acts on: shown products only (codex-quota spec, Decided).</summary>
+    private IReadOnlyList<(Product Product, QuotaSnapshot Snapshot)> MuteTargets() =>
+        ProductAlerts.Mutable(_settings.Shown, _monitor?.Current.Last, _codex?.Current.Last);
 
     /// <summary>
     /// Applies a settings change and writes it down (AC-22). The HUD and panel both re-read
@@ -402,6 +425,7 @@ public partial class App : Application
     private void Remember(UserSettings changed)
     {
         _settings = changed;
-        _settingsNotice = SettingsNotice.Describe(_settingsStore.Save(changed), SettingsStore.DefaultPath);
+        _settingsNotice = SettingsNotice.Describe(
+            _settingsStore.Save(FirstStartContent.ToSave(changed, _productsStandIn)), SettingsStore.DefaultPath);
     }
 }

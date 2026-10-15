@@ -204,17 +204,32 @@ public class CodexRecordTests
     [InlineData("""{"timestamp":"2026-10-14T02:29:33.252Z","type":"event_msg","payload":{"type":"token_count","rate_limits":42}}""")]
     [InlineData("""{"timestamp":"2026-10-14T02:29:33.252Z","type":"event_msg","payload":{"type":"token_count","rate_limits":{"primary":"full"}}}""")]
     [InlineData("""{"timestamp":"2026-10-14T02:29:33.252Z","type":"event_msg","payload":{"type":"token_count","rate_limits":{"primary":{"used_percent":7.0,"window_minutes":300,"resets_at":"soon"}}}}""")]
+    // Two windows of one length: keeping either would drop the other's figure without a word.
+    [InlineData("""{"timestamp":"2026-10-14T02:29:33.252Z","type":"event_msg","payload":{"type":"token_count","rate_limits":{"primary":{"used_percent":7.0,"window_minutes":300,"resets_at":1792536462},"secondary":{"used_percent":9.0,"window_minutes":300,"resets_at":1792536462}}}}""")]
     public void ARateLimitsValueOfTheWrongShapeIsUnreadable(string line)
     {
         ParseExpectingUnreadable(line);
     }
 
     [Fact]
-    public void ALineCutOffMidWriteIsUnreadableNotAnException()
+    public void AWindowWithNoResetTimeIsStillAFigure()
     {
-        // Whether a cut-off last line is worth reporting is the reader's decision, because only
-        // the reader knows it was the last line. The parser says only that it could not be read.
-        ParseExpectingUnreadable(Fixtures.CodexLines(Fixtures.CodexTruncatedTail)[1]);
+        var figures = ParseExpectingFigures(
+            """{"timestamp":"2026-10-14T02:29:33.252Z","type":"event_msg","payload":{"type":"token_count","rate_limits":{"primary":{"used_percent":7.0,"window_minutes":300,"resets_at":null}}}}""");
+
+        var window = Assert.Single(figures.Snapshot.Windows);
+        Assert.Equal(7.0, window.UsedPercent);
+        Assert.Null(window.ResetsAt);
+    }
+
+    [Fact]
+    public void ALineCutOffMidWriteIsDamagedNotAnException()
+    {
+        // Not valid JSON is damage, such as a write cut short, not Codex changing its format
+        // (codex-quota spec, Decided, 2026-10-15). It has no readable timestamp, so the reader
+        // cannot place it, and passes over it.
+        Assert.IsType<CodexRecordResult.Damaged>(
+            CodexRecord.Parse(Fixtures.CodexLines(Fixtures.CodexTruncatedTail)[1]));
     }
 
     [Fact]

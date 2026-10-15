@@ -65,4 +65,12 @@ public sealed record UserSettings(
         Thresholds: Thresholds.Default,
         ResetFormat: ResetFormat.ClockTime,
         ShowBar: false);
+
+    /// <summary>
+    /// The products actually shown: the answer when there is a usable one, else Claude alone, as
+    /// 0.4.0 showed it. An answer with nothing on is refused when the file is read, but a value
+    /// built in code is not read from a file, and a HUD with nothing on looks like a crash.
+    /// </summary>
+    [System.Text.Json.Serialization.JsonIgnore]
+    public ProductSwitches Shown => Products is { AnyOn: true } answered ? answered : ProductSwitches.ClaudeOnly;
 }

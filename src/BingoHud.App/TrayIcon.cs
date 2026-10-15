@@ -84,7 +84,7 @@ public sealed class TrayIcon : IDisposable
             var item = new Forms.ToolStripMenuItem($"Show {Core.Display.WindowName.Product(product)}");
             item.Click += (_, _) =>
             {
-                var shown = Shown(settings());
+                var shown = settings().Shown;
                 change(settings() with { Products = shown.With(product, on: !shown.IsOn(product)) });
             };
             _products[product] = item;
@@ -123,7 +123,7 @@ public sealed class TrayIcon : IDisposable
 
             // The last product on is shown checked and greyed out, so it visibly cannot be cleared
             // rather than appearing to work and doing nothing.
-            var shown = Shown(current);
+            var shown = current.Shown;
             foreach (var (product, item) in _products)
             {
                 item.Checked = shown.IsOn(product);
@@ -152,13 +152,6 @@ public sealed class TrayIcon : IDisposable
         _icon.BalloonTipClosed += (_, _) => notificationEnded();
         _icon.BalloonTipClicked += (_, _) => notificationEnded();
     }
-
-    /// <summary>
-    /// The products shown. Null only until the first-start question is answered, which startup
-    /// does before the tray exists; Claude alone is the same fallback the HUD uses.
-    /// </summary>
-    private static Core.Settings.ProductSwitches Shown(Core.Settings.UserSettings settings) =>
-        settings.Products ?? new Core.Settings.ProductSwitches(Claude: true, Codex: false);
 
     /// <summary>
     /// The icon, from the assembly rather than from a file beside the exe, so it is present

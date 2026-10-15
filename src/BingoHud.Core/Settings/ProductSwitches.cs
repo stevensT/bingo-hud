@@ -13,6 +13,12 @@ namespace BingoHud.Core.Settings;
 /// <param name="Codex">Whether Codex's windows are shown.</param>
 public sealed record ProductSwitches(bool Claude, bool Codex)
 {
+    /// <summary>
+    /// Claude alone, as every version before the first-start question showed: the fallback
+    /// wherever there is no usable answer.
+    /// </summary>
+    public static ProductSwitches ClaudeOnly { get; } = new(Claude: true, Codex: false);
+
     /// <summary>Whether a product is switched on.</summary>
     public bool IsOn(Product product) => product switch
     {

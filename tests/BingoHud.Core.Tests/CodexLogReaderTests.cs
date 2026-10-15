@@ -120,6 +120,53 @@ public class CodexLogReaderTests
     }
 
     [Fact]
+    public void ADamagedLineThatWasFinishedIsPassedOverForTheRecordBeforeIt()
+    {
+        // A crash mid-write, then a resumed session appending its next line, leaves the cut-off
+        // record finished by a newline. It is damage, not a format change, so the record before
+        // it is the reading.
+        using var codex = new TempDirectory();
+        WriteLog(codex, "sessions/2026/10/14/resumed.jsonl", Fixture(Fixtures.CodexTruncatedTail) + "\n", Later);
+
+        Assert.Equal(24.0, Used(ScanExpectingReading(codex), WindowKind.Session));
+    }
+
+    [Fact]
+    public void ADamagedLineInAnOldLogDoesNotHideANewerReading()
+    {
+        // Found at the feature review: one such line in an archived log stopped every scan with
+        // "format not recognised" for good.
+        using var codex = new TempDirectory();
+        WriteLog(codex, "archived_sessions/old.jsonl", Fixture(Fixtures.CodexTruncatedTail) + "\n", Earlier);
+        WriteLog(codex, "sessions/tui.jsonl", AtTime(Fixture(Fixtures.CodexTuiRecord), Later.AddDays(1)), Later);
+
+        Assert.Equal(30.0, Used(ScanExpectingReading(codex), WindowKind.WeeklyAll));
+    }
+
+    [Fact]
+    public void ALogMovedAwayBetweenListingAndOpeningIsPassedOver()
+    {
+        // Codex moves a finished session from sessions to archived_sessions. If that happens mid
+        // scan, the file listed is gone when it is opened, which is not the logs being unreadable.
+        using var codex = new TempDirectory();
+        WriteLog(codex, "sessions/tui.jsonl", Fixture(Fixtures.CodexTuiRecord), Later);
+        var moving = WriteLog(codex, "sessions/moving.jsonl", Fixture(Fixtures.CodexSession), Earlier);
+
+        var reader = new CodexLogReader(codex.Path, readLog: path =>
+        {
+            if (path == moving)
+            {
+                File.Delete(moving);
+            }
+
+            return CodexLogReader.ReadShared(path);
+        });
+
+        var reading = Assert.IsType<CodexScan.Reading>(reader.Scan());
+        Assert.Equal(30.0, Used(reading.Figures.Snapshot, WindowKind.WeeklyAll));
+    }
+
+    [Fact]
     public void CarriageReturnLineEndingsReadTheSame()
     {
         // Git may check the fixtures out this way, and a log copied between machines could be too.

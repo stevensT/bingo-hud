@@ -153,6 +153,40 @@ public class CodexSectionTests
     }
 
     [Fact]
+    public void WhileTheLogsCannotBeReadAnEndedWindowSaysOnlyThatItReset()
+    {
+        // "No use since" is a claim about the logs, and they could not be read (AC-3a).
+        var reading = Reading(Found(Snapshot(sessionResetInMinutes: -20), problem: Locked));
+
+        Assert.Equal(
+            new ReadoutLine("Codex 5h", Percent: null, "reset", Severity.Normal, Bar: null),
+            reading.Lines[0]);
+    }
+
+    [Fact]
+    public void WhenBothWindowsHaveEndedEachSaysSoAndNeitherOwnsTheAccent()
+    {
+        var reading = Reading(Found(Snapshot(session: 95, weekly: 90, sessionResetInMinutes: -20, weeklyResetInMinutes: -20)));
+
+        Assert.Equal(["Codex 5h", "Codex Week"], reading.Lines.Select(l => l.Window));
+        Assert.All(reading.Lines, line => Assert.Null(line.Percent));
+        Assert.Equal(Severity.Normal, reading.Overall);
+    }
+
+    [Fact]
+    public void AWindowWithNoResetTimeKeepsItsFigureRatherThanBeingTakenAsEnded()
+    {
+        var snapshot = new QuotaSnapshot(
+            [new QuotaWindow(WindowKind.Session, 40, ResetsAt: null, ServerSeverity.Unknown)],
+            Now,
+            "{}");
+
+        var reading = Reading(Found(snapshot));
+
+        Assert.Equal("40% used", Assert.Single(reading.Lines).Percent);
+    }
+
+    [Fact]
     public void AResetAtExactlyNowHasPassed()
     {
         var reading = Reading(Found(Snapshot(sessionResetInMinutes: 0)));

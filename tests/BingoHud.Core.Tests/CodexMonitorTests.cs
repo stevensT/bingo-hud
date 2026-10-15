@@ -125,8 +125,8 @@ public class CodexMonitorTests
     [Fact]
     public void AfterAFailedScanTheLogsAreReadAgainEvenWithNothingWritten()
     {
-        // A log held open by another program is let go of without being written to. Waiting for
-        // a write would leave the failure on screen until the next Codex turn.
+        // A log held open by another program is let go of without being written to. The next
+        // rescan reads it again, so the failure clears without waiting for a Codex turn.
         var logs = new FakeLogs { Next = Locked };
         var monitor = logs.Monitor(new TestClock(Now));
         monitor.Rescan();
@@ -239,9 +239,8 @@ public class CodexMonitorTests
     [Fact]
     public void WhileCodexIsNotFoundEveryRescanLooksAgain()
     {
-        // Installing Codex creates its folder before it writes any log, so the newest write time
-        // stays empty across the change. Waiting for it to move would leave "not found" on screen
-        // until the first Codex turn.
+        // Installing Codex creates its folder before it writes any log. Every rescan looks again,
+        // so "not found" clears at the next scan rather than waiting for the first Codex turn.
         var logs = new FakeLogs { Next = new CodexScan.NotFound() };
         var monitor = logs.Monitor(new TestClock(Now));
         monitor.Rescan();
@@ -291,5 +290,64 @@ public class CodexMonitorTests
         monitor.Rescan();
 
         Assert.Equal(24.0, SessionUsed(monitor.Current));
+    }
+
+    [Fact]
+    public void AScanThatThrowsIsRecordedAsAProblemBesideTheLastReading()
+    {
+        // The rescan runs on a timer thread, where an escaped exception ends the whole app, the
+        // Claude readout with it. Whatever the reader did not expect becomes a failed look instead.
+        var failing = new CodexMonitor(() => throw new InvalidOperationException("odd escape"), new TestClock(Now));
+        failing.Rescan();
+        var state = failing.Current;
+
+        Assert.IsType<CodexProblem.LogsUnreadable>(state.Problem);
+        Assert.Contains("odd escape", ((CodexProblem.LogsUnreadable)state.Problem!).Reason);
+
+        var withReading = new ScriptedLogs(Last, new InvalidOperationException("odd escape")).Monitor(new TestClock(Now));
+        withReading.Rescan();
+        withReading.Rescan();
+
+        Assert.Equal(24.0, SessionUsed(withReading.Current));
+        Assert.IsType<CodexProblem.LogsUnreadable>(withReading.Current.Problem);
+    }
+
+    [Fact]
+    public async Task TheCurrentStateCanBeReadWhileAScanIsRunning()
+    {
+        // The display reads Current every second on the UI thread. A scan reads every log, which
+        // takes longer as the logs grow, and the display must not wait for it.
+        using var started = new ManualResetEventSlim();
+        using var release = new ManualResetEventSlim();
+        var monitor = new CodexMonitor(() =>
+        {
+            started.Set();
+            release.Wait(TimeSpan.FromSeconds(10));
+            return Last;
+        }, new TestClock(Now));
+
+        var scan = Task.Run(monitor.Rescan);
+        Assert.True(started.Wait(TimeSpan.FromSeconds(5)));
+
+        var read = Task.Run(() => monitor.Current);
+        var answered = await Task.WhenAny(read, Task.Delay(TimeSpan.FromSeconds(2))) == read;
+        release.Set();
+        await scan.WaitAsync(TimeSpan.FromSeconds(5));
+
+        Assert.True(answered, "Current waited for the scan to finish.");
+        Assert.Equal(24.0, SessionUsed(monitor.Current));
+    }
+
+    /// <summary>A log source that gives each of its outcomes in turn; an exception is thrown.</summary>
+    private sealed class ScriptedLogs(params object[] outcomes)
+    {
+        private int _next;
+
+        public CodexMonitor Monitor(TestClock clock) => new(() => outcomes[_next++] switch
+        {
+            CodexScan scan => scan,
+            Exception e => throw e,
+            var other => throw new ArgumentException($"Not an outcome: {other}"),
+        }, clock);
     }
 }

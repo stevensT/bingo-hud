@@ -17,13 +17,13 @@ public class AlertDeliveryTests
     {
         var alert = For(Product.Claude);
 
-        Assert.Equal([alert], new AlertDelivery().Add([alert]));
+        Assert.Equal([alert], new AlertDelivery(new TestClock(Now)).Add([alert]));
     }
 
     [Fact]
     public void AnotherProductWaitsUntilTheVisibleNotificationEnds()
     {
-        var delivery = new AlertDelivery();
+        var delivery = new AlertDelivery(new TestClock(Now));
         var claude = For(Product.Claude);
         var codex = For(Product.Codex);
 
@@ -36,7 +36,7 @@ public class AlertDeliveryTests
     [Fact]
     public void WaitingCrossingsShareTheNextNotificationAndKeepTheirProductNames()
     {
-        var delivery = new AlertDelivery();
+        var delivery = new AlertDelivery(new TestClock(Now));
         delivery.Add([For(Product.Claude)]);
         var codex = For(Product.Codex);
         var weekly = For(Product.Claude, WindowKind.WeeklyAll);
@@ -56,7 +56,7 @@ public class AlertDeliveryTests
     [Fact]
     public void AnEmptyBatchDoesNotBlockTheNextNotification()
     {
-        var delivery = new AlertDelivery();
+        var delivery = new AlertDelivery(new TestClock(Now));
         var alert = For(Product.Codex);
 
         Assert.Empty(delivery.Add([]));
@@ -67,7 +67,7 @@ public class AlertDeliveryTests
     [Fact]
     public void AfterTheLastNotificationEndsANewBatchIsReadyImmediately()
     {
-        var delivery = new AlertDelivery();
+        var delivery = new AlertDelivery(new TestClock(Now));
         delivery.Add([For(Product.Claude)]);
         Assert.Empty(delivery.Closed());
         var next = For(Product.Codex);
@@ -77,7 +77,7 @@ public class AlertDeliveryTests
     [Fact]
     public void MutingDiscardsWaitingCrossingsWithoutBlockingTheNextOccurrence()
     {
-        var delivery = new AlertDelivery();
+        var delivery = new AlertDelivery(new TestClock(Now));
         delivery.Add([For(Product.Claude)]);
         delivery.Add([For(Product.Codex)]);
 
@@ -89,5 +89,38 @@ public class AlertDeliveryTests
             Key = new AlertKey(WindowKind.Session, 25, Now.AddHours(6), Product.Codex),
         };
         Assert.Equal([nextOccurrence], delivery.Add([nextOccurrence]));
+    }
+
+    [Fact]
+    public void ANotificationThatNeverReportsEndingStopsHoldingTheQueueAfterTheLimit()
+    {
+        // Windows does not promise to say when a notification ends: one that was suppressed, or
+        // went straight to the notification centre, may never report closing. Without a limit,
+        // every later alert would wait for the rest of the session.
+        var clock = new TestClock(Now);
+        var delivery = new AlertDelivery(clock);
+        delivery.Add([For(Product.Claude)]);
+        var codex = For(Product.Codex);
+
+        clock.Advance(AlertDelivery.ShowingLimit - TimeSpan.FromSeconds(1));
+        Assert.Empty(delivery.Add([codex]));
+
+        clock.Advance(TimeSpan.FromSeconds(1));
+        Assert.Equal([codex], delivery.Add([]));
+    }
+
+    [Fact]
+    public void TheLimitStartsAgainWithEachNotificationShown()
+    {
+        var clock = new TestClock(Now);
+        var delivery = new AlertDelivery(clock);
+        delivery.Add([For(Product.Claude)]);
+        clock.Advance(AlertDelivery.ShowingLimit);
+        delivery.Add([For(Product.Codex)]);
+        var weekly = For(Product.Claude, WindowKind.WeeklyAll);
+
+        clock.Advance(AlertDelivery.ShowingLimit - TimeSpan.FromSeconds(1));
+
+        Assert.Empty(delivery.Add([weekly]));
     }
 }

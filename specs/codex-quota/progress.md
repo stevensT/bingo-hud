@@ -1,9 +1,17 @@
 # Codex Quota — Progress
 
 updated: 2026-10-15
-status: Phase 5 complete; 6.1 and 6.2 done
+status: Phase 6 complete; Build Verification next
 blockers: none
-next_session: 6.3, the review of the feature's changes.
+next_session: BV.1 to BV.4. BV.3 builds both publish shapes and the setup; BV.4 is the final checkpoint, then release 0.5.0 (Trevor).
+
+## 2026-10-15: 6.3, the feature review
+
+- Five reviews in parallel over `47185a7..HEAD` (code, failure handling, tests, comments, types), each finding checked against the code before acting. Subagents were used because the diff was 69 files and the five angles are independent.
+- Fixed test-first: a scan exception on the timer thread ending the app; alerts stuck behind a notification Windows never reports ending; the first-start stand-in saved by a later drag; a scan blocking the UI thread's once-a-second read; a log moved mid-scan failing the scan; "no use since" claimed while the logs were unreadable.
+- Trevor decided two gaps the spec had left open, now in its Decided list: switched-off products raise no alerts and do not enable Mute; a Codex line that is not valid JSON is damage and is passed over.
+- Three findings deferred with notes in tasks.md 6.3; two accepted as they are. Simplification pass applied (two small changes).
+- Suite 1683 → 1705; clean build 0 warnings. The clean build caught two xUnit analyzer warnings in a new test; the earlier test runs' output had been filtered for compiler warnings only, which is how they were missed. Fixed by making the test async.
 
 ## 2026-10-15: 6.2, the changelog
 

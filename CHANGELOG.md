@@ -25,7 +25,7 @@ session logs, anything below `1.0.0` should be treated as liable to break when e
   to show. Products found on the machine start ticked; one not found is marked so but can still
   be ticked.
 - "Show Claude" and "Show Codex" in the tray menu, to change that answer later. At least one
-  stays on.
+  stays on. A product switched off raises no notifications.
 - A Codex block in the detail panel, with exact reset times, the age of the reading, the time of
   the last Codex turn, and where the figures come from.
 - Codex alerts, on the same thresholds and once-per-window rule as Claude's, and independent of

@@ -24,7 +24,7 @@ the other product's:
 
 The first time Bingo starts, it asks which products to show, with the ones it finds on the
 machine already ticked. After that, **Show Claude** and **Show Codex** in the tray menu turn each
-one on or off; at least one stays on.
+one on or off, its notifications included; at least one stays on.
 
 Two more settings in the tray menu change how a line reads, for both products at once. A
 countdown shows the reset as time left at every distance, and a bar of ten segments sits beside

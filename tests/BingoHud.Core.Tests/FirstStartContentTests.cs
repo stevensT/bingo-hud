@@ -80,4 +80,37 @@ public class FirstStartContentTests
         // Something has to be on. Claude alone is what Bingo has always shown.
         Assert.Equal(new ProductSwitches(true, false), FirstStartContent.WhenClosed(new ProductDetection(false, false)));
     }
+
+    [Fact]
+    public void AStandInFromAClosedQuestionIsLeftOutOfLaterSaves()
+    {
+        // Found at the feature review: the stand-in sat in the settings, and the next HUD drag
+        // saved it, so the question never came back.
+        var standIn = new ProductSwitches(true, true);
+        var dragged = UserSettings.Default with { Products = standIn, Position = new HudPosition(10, 20) };
+
+        var saved = FirstStartContent.ToSave(dragged, standIn);
+
+        Assert.Null(saved.Products);
+        Assert.Equal(new HudPosition(10, 20), saved.Position);
+    }
+
+    [Fact]
+    public void ProductsChangedFromTheStandInAreAnAnswerAndAreSaved()
+    {
+        // Ticking a product in the tray is choosing, which is what the question asks.
+        var changed = new ProductSwitches(true, false);
+
+        var saved = FirstStartContent.ToSave(UserSettings.Default with { Products = changed }, standIn: new ProductSwitches(true, true));
+
+        Assert.Equal(changed, saved.Products);
+    }
+
+    [Fact]
+    public void WithNoStandInEverythingIsSaved()
+    {
+        var answered = UserSettings.Default with { Products = new ProductSwitches(true, true) };
+
+        Assert.Equal(answered, FirstStartContent.ToSave(answered, standIn: null));
+    }
 }

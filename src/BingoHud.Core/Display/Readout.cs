@@ -88,9 +88,11 @@ public static class Readout
             if (isEnded(window))
             {
                 // The figure belongs to an occurrence that has ended, and nothing has been said
-                // about the new one. No number, no bar, no colour (codex-quota AC-3, AC-2).
+                // about the new one. No number, no bar, no colour (codex-quota AC-3, AC-2). "No
+                // use since" is read from the logs, so it is not claimed when they could not be.
                 lines.Add(new ReadoutLine(
-                    WindowName.Label(product, window.Kind), Percent: null, EndedPhrase, Severity.Normal, Bar: null));
+                    WindowName.Label(product, window.Kind), Percent: null, frozen ? EndedUnconfirmedPhrase : EndedPhrase,
+                    Severity.Normal, Bar: null));
 
                 continue;
             }
@@ -178,7 +180,7 @@ public static class Readout
         CultureInfo? culture = null,
         TimeZoneInfo? zone = null)
     {
-        var shown = settings.Products ?? new ProductSwitches(Claude: true, Codex: false);
+        var shown = settings.Shown;
         var sections = new List<HudSection>(2);
 
         if (shown.Claude)
@@ -232,6 +234,9 @@ public static class Readout
 
     /// <summary>What a Codex window whose reset has passed says in place of its figure.</summary>
     private const string EndedPhrase = "reset, no use since";
+
+    /// <summary>The same, while the logs cannot be read and so cannot say whether Codex was used.</summary>
+    private const string EndedUnconfirmedPhrase = "reset";
 
     /// <summary>
     /// The reset phrase, led by "limited" when the server is refusing work against the window.

@@ -48,8 +48,7 @@ public static class CodexRecord
         }
         catch (JsonException)
         {
-            return new CodexRecordResult.Unreadable(
-                "A line that mentions rate limits was not valid JSON.");
+            return new CodexRecordResult.Damaged();
         }
 
         using (document)

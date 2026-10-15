@@ -48,6 +48,13 @@ Recorded so they are not reopened:
   narrowing of AC-4's "reads like a Claude line".
 - The Codex source is its session logs (AC-1), settled 2026-10-14 when the spike closed early at
   Trevor's call, with its known gaps accepted (spike Result).
+- A product switched off raises no alerts, and its reading does not enable Mute. Decided
+  2026-10-15 by Trevor, at the feature review (task 6.3): the spec had not said, and alerting for a
+  product the user chose not to see contradicts the choice. Applies to Claude as well as Codex.
+- A Codex log line that mentions rate limits but is not valid JSON is damage, not a format change:
+  it cannot be dated, so it is skipped and newer readings win. Valid JSON in a shape Bingo does not
+  recognise is still reported as unreadable (AC-1). Decided 2026-10-15 by Trevor, at the feature
+  review, after it was found that one such line in an old log blocked every later reading.
 - Target release 0.5.0. First set at 0.4.0, and moved on 2026-10-13 when the 0.3.0 review fixes
   took 0.4.0: one of them changes how the usage response is parsed, which the versioning policy
   makes at least MINOR.

@@ -26,7 +26,10 @@ public sealed class CodexMonitor
     private readonly IClock _clock;
 
     // Rescan runs on the shell's timer and on "Refresh now"; Current is read once a second by the
-    // display. One lock covers all of it, and a scan is fast enough to hold it.
+    // display, on the UI thread. A scan reads every log and grows with them, so it holds only its
+    // own lock, which keeps two scans from finishing out of order. The state lock is held just
+    // long enough to record a result or read one, so the display never waits for a scan.
+    private readonly object _scanGate = new();
     private readonly object _gate = new();
 
     private CodexPresence _presence = CodexPresence.NotLookedYet;
@@ -78,9 +81,32 @@ public sealed class CodexMonitor
     /// </summary>
     public void Rescan()
     {
-        lock (_gate)
+        lock (_scanGate)
         {
-            Record(_scan());
+            var scan = ScanOrProblem();
+
+            lock (_gate)
+            {
+                Record(scan);
+            }
+        }
+    }
+
+    /// <summary>
+    /// One look, with anything the reader did not expect recorded as a failed look. The rescan
+    /// runs on a timer thread, where an escaped exception would end the whole app, Claude's
+    /// readout with it; as a problem, it is shown beside the last reading and retried next time.
+    /// </summary>
+    private CodexScan ScanOrProblem()
+    {
+        try
+        {
+            return _scan();
+        }
+        catch (Exception e)
+        {
+            return new CodexScan.Problem(new CodexProblem.LogsUnreadable(
+                $"Bingo hit an unexpected error reading the Codex logs: {e.Message}"));
         }
     }
 

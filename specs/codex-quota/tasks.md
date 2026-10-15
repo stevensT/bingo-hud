@@ -340,8 +340,44 @@ The three units touch separate files and do not depend on each other.
       labels on every HUD line, and 5.8's save retry and notice, all user-visible. The opening
       paragraph now names both undocumented sources, as the README's Versioning section does
       (Trevor's call: Codex log parsing changes are at least MINOR).*
-- [ ] 6.3 Run the review on the feature's changes and resolve or defer each finding, recording
+- [x] 6.3 Run the review on the feature's changes and resolve or defer each finding, recording
       deferrals here.
+      *2026-10-15. Code, failure-handling, test, comment and type reviews over `47185a7..HEAD`.
+      Fixed, each test-first (red seen before the change unless noted as a guard):*
+      - *An unexpected exception in a Codex scan, on the timer thread, ended the app. The monitor
+        now records it as a problem beside the last reading.*
+      - *Alerts could wait forever if Windows never reported a notification ending. One older
+        than a minute is now taken as ended.*
+      - *Closing the first-start question with X saved its stand-in at the next HUD drag or tray
+        click, so the question never came back. The stand-in is now left out of saves.*
+      - *A scan held the lock the UI thread reads every second. Scans now run under their own
+        lock; the duplicate startup scan was removed.*
+      - *A log moved to archived_sessions mid-scan failed the scan; it is now passed over.*
+      - *An ended window said "no use since" while the logs could not be read; now "reset".*
+      - *Decided by Trevor, recorded in the spec: a product switched off raises no alerts and
+        does not enable Mute, Claude included (new `ProductAlerts`, `UserSettings.Shown`, which
+        also replaced three copies of the Claude-alone fallback); a Codex line that is not valid
+        JSON is damage and is passed over, so it can no longer block newer readings.*
+      - *Comments: two monitor test comments still describing the removed file-time shortcut,
+        App's startup comment, and two `CodexRecordResult` comments.*
+      - *Tests added as guards for behaviour already right: two windows of one length, a window
+        with no reset time, both Codex windows ended, `shown` kept out of the settings file.*
+      *Deferred:*
+      - *A Codex folder Windows refuses Bingo reads as not installed, since `Directory.Exists`
+        returns false for both. Rare in the user's own profile; lifting it means telling absent
+        from denied in `CodexLogReader.Scan`.*
+      - *A settings file locked or unparseable at startup loads as defaults and is later saved
+        over. Present since 0.1 and not Codex work; the first-start question makes it slightly
+        likelier. Worth its own task: retry the read, and do not save over a file that exists
+        but could not be used.*
+      - *`CodexState` and `ProductSwitches` can be built in contradictory states. No caller does;
+        `UserSettings.Shown` already covers the all-off case where it is read.*
+      *Accepted: the 100 ms pause before a save retry, on the UI thread; comments citing spec
+      task numbers, since the specs are committed.*
+      *Simplification pass over the fixes: App's constructor moved below its fields, and the
+      Claude-alone fallback made one `ProductSwitches.ClaudeOnly`. Full suite 1705 pass, clean
+      build 0 warnings/errors. The shell wiring for the alert filter, Mute and the first-start
+      stand-in was not checked on screen; the rules it calls are tested in Core.*
 
 ## Build Verification
 

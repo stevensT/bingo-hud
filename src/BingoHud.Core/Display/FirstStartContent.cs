@@ -54,9 +54,20 @@ public sealed record FirstStartContent(
 
     /// <summary>
     /// What to show for this session when the question is closed without an answer: what was
-    /// found, or Claude alone when nothing was. Nothing is saved, so the question is asked again
-    /// at the next start.
+    /// found, or Claude alone when nothing was. It is not saved (see <see cref="ToSave"/>), so the
+    /// question is asked again at the next start.
     /// </summary>
     public static ProductSwitches WhenClosed(ProductDetection found) =>
-        found.Suggested.AnyOn ? found.Suggested : new ProductSwitches(Claude: true, Codex: false);
+        found.Suggested.AnyOn ? found.Suggested : ProductSwitches.ClaudeOnly;
+
+    /// <summary>
+    /// The settings to write. While the products are still the stand-in from a question closed
+    /// without an answer, they are left out, so a HUD drag or another setting saved this session
+    /// does not answer the question on the user's behalf. Products the user has changed from the
+    /// stand-in are a choice, and are saved.
+    /// </summary>
+    /// <param name="standIn">The stand-in from <see cref="WhenClosed"/>, or null when the question
+    /// was answered or not asked.</param>
+    public static UserSettings ToSave(UserSettings settings, ProductSwitches? standIn) =>
+        standIn is not null && settings.Products == standIn ? settings with { Products = null } : settings;
 }

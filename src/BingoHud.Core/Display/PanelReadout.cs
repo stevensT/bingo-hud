@@ -99,7 +99,7 @@ public static class PanelReadout
         TimeZoneInfo? zone = null,
         string? settingsNotice = null)
     {
-        var shown = settings.Products ?? new ProductSwitches(Claude: true, Codex: false);
+        var shown = settings.Shown;
 
         return Compose(claude, settings, version, now, culture, lastRefresh, zone) with
         {
