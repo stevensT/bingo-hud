@@ -63,7 +63,9 @@ public sealed record PanelContent(
     string NextPoll,
     string Version,
     StatusMessage? Status,
-    string? RefreshNotice)
+    string? RefreshNotice,
+    bool ShowClaude = true,
+    CodexPanel? Codex = null)
 {
     /// <summary>
     /// Whether this would draw the same panel as <paramref name="other"/>, so a redraw can be
@@ -87,5 +89,43 @@ public sealed record PanelContent(
         && NextPoll == other.NextPoll
         && Version == other.Version
         && Status == other.Status
-        && RefreshNotice == other.RefreshNotice;
+        && RefreshNotice == other.RefreshNotice
+        && ShowClaude == other.ShowClaude
+        && (Codex is null ? other.Codex is null : other.Codex is not null && Codex.SameAs(other.Codex));
+}
+
+/// <summary>
+/// The detail panel's Codex block (codex-quota AC-1, AC-6).
+/// </summary>
+/// <param name="Windows">The two Codex windows, session first; empty before the first reading.</param>
+/// <param name="WindowsEmptyState">What to show in place of the rows when there are none, or null.</param>
+/// <param name="Age">How old the reading is, or null before the first one.</param>
+/// <param name="LastTurn">When the Codex turn that wrote the reading happened, written out in full.</param>
+/// <param name="Source">
+/// Where the reading comes from and what it cannot see (AC-1): always shown, because it is the
+/// limit every Codex figure carries.
+/// </param>
+/// <param name="Status">The Codex state and what to do about it, or null when there is nothing wrong.</param>
+/// <param name="ReachedType">Codex's <c>rate_limit_reached_type</c> exactly as written, or null.</param>
+/// <param name="IgnoredWindows">Windows of a length Bingo does not know, named, or empty.</param>
+public sealed record CodexPanel(
+    IReadOnlyList<PanelRow> Windows,
+    string? WindowsEmptyState,
+    string? Age,
+    string LastTurn,
+    string Source,
+    StatusMessage? Status,
+    string? ReachedType,
+    IReadOnlyList<string> IgnoredWindows)
+{
+    /// <summary>Field by field, for the same reason as <see cref="PanelContent.SameAs"/>.</summary>
+    public bool SameAs(CodexPanel other) =>
+        Windows.SequenceEqual(other.Windows)
+        && WindowsEmptyState == other.WindowsEmptyState
+        && Age == other.Age
+        && LastTurn == other.LastTurn
+        && Source == other.Source
+        && Status == other.Status
+        && ReachedType == other.ReachedType
+        && IgnoredWindows.SequenceEqual(other.IgnoredWindows);
 }

@@ -64,7 +64,7 @@ public sealed record AlertMessage(string Title, string Body)
         var worst = due.Max(a => a.Severity);
 
         var lines = due.Select(a =>
-            $"{WindowName.Short(a.Key.Kind)}: {Line(a, direction, now, culture, zone)}");
+            $"{WindowName.Label(a.Key.Product, a.Key.Kind)}: {Line(a, direction, now, culture, zone)}");
 
         return new AlertMessage(
             $"{due.Count} windows {Trouble(worst)}",
@@ -86,7 +86,9 @@ public sealed record AlertMessage(string Title, string Body)
         CultureInfo? culture = null,
         TimeZoneInfo? zone = null)
     {
-        var window = WindowName.Short(alert.Key.Kind);
+        // Every notification names its product (codex-quota AC-10). A toast is read out of
+        // context, and "5h window running low" no longer says whose.
+        var window = WindowName.Label(alert.Key.Product, alert.Key.Kind);
 
         return new AlertMessage(
             $"{window} window {Trouble(alert.Severity)}",

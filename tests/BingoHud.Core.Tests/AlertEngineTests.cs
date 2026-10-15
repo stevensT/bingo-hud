@@ -192,6 +192,6 @@ public class AlertEngineTests
             due, Settings.DisplayDirection.Consumed, ObservedAt, System.Globalization.CultureInfo.InvariantCulture);
 
         Assert.NotNull(message);
-        Assert.StartsWith("5h", message.Title);
+        Assert.StartsWith("Claude 5h", message.Title);
     }
 }

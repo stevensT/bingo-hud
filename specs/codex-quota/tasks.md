@@ -188,13 +188,24 @@ The three units touch separate files and do not depend on each other.
       switch it off in the tray. Unreadable logs say Bingo will retry; an unrecognised record
       says a wait will not fix it. The HUD's empty Codex phrase is now the headline, which
       removed 4.2's `deferred:` placeholder. Full suite 1631.*
-- [P] 4.5 Test + implement `PanelReadout` per product: a block per shown product with exact
+- [x] 4.5 Test + implement `PanelReadout` per product: a block per shown product with exact
       resets and age; the Codex block says the reading is as of the last Codex turn on this
       machine and shows a non-null reached type verbatim. (AC-1, AC-6)
-- [P] 4.6 Test + implement `AlertMessage` naming the product in every notification, and Codex
+      *Done 2026-10-14: 18 tests in `CodexPanelTests`, all red then green. Claude's part is
+      composed exactly as before and hidden by the shell when switched off; `PanelContent` gains
+      `ShowClaude` and an optional `CodexPanel`, composed by `PanelReadout.ComposeAll`. The Codex
+      block always states its source and what it cannot see. A window whose reset has passed
+      shows "no reading since it reset" and the time it reset. Full suite 1649.*
+- [x] 4.6 Test + implement `AlertMessage` naming the product in every notification, and Codex
       alert evaluation that passes over a window whose reset has passed. (AC-10, AC-3)
-- [C] 4.7 Checkpoint: clean, build, full suite; every Core criterion assessed against `spec.md`;
-      record in `progress.md`.
+      *Done 2026-10-14: 9 tests in `CodexAlertTests`, all red then green. Toasts now read "Claude
+      5h window running low" and "Codex Week window nearly used up", and batch lines name each
+      window's product; the 7 existing toast assertions gained "Claude " and nothing else.
+      `CodexAlerts.TakeNew` hands the engine only Codex windows whose reset has not passed, a
+      reset at exactly now counting as passed, so the engine itself is unchanged. Full suite
+      1658.*
+- [x] 4.7 Checkpoint: clean, build, full suite; every Core criterion assessed against `spec.md`;
+      record in `progress.md`. *Passed 2026-10-14.*
 
 ## Phase 5: The shell
 

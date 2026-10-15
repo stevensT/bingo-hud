@@ -55,7 +55,7 @@ public class AlertMessageTests
     [Fact]
     public void AWarningNamesTheWindowAndSaysItIsRunningLow()
     {
-        Assert.Equal("5h window running low", Describe(Alert()).Title);
+        Assert.Equal("Claude 5h window running low", Describe(Alert()).Title);
     }
 
     [Fact]
@@ -65,7 +65,7 @@ public class AlertMessageTests
         // severity states on the HUD and one in their notifications.
         var critical = Alert(threshold: 10, severity: Severity.Critical, used: 92);
 
-        Assert.Equal("5h window nearly used up", Describe(critical).Title);
+        Assert.Equal("Claude 5h window nearly used up", Describe(critical).Title);
     }
 
     [Fact]
@@ -73,7 +73,7 @@ public class AlertMessageTests
     {
         var weekly = Alert(kind: WindowKind.WeeklyAll);
 
-        Assert.Equal("Week window running low", Describe(weekly).Title);
+        Assert.Equal("Claude Week window running low", Describe(weekly).Title);
     }
 
     [Fact]
@@ -125,7 +125,7 @@ public class AlertMessageTests
     {
         var message = DescribeAll(Alert());
 
-        Assert.Equal("5h window running low", message.Title);
+        Assert.Equal("Claude 5h window running low", message.Title);
         Assert.Equal("22% left, resets in 53 min.", message.Body);
     }
 
@@ -144,8 +144,8 @@ public class AlertMessageTests
         var message = DescribeAll(Alert(), Alert(kind: WindowKind.WeeklyAll, used: 80));
 
         Assert.Equal(
-            "5h: 22% left, resets in 53 min." + Environment.NewLine +
-            "Week: 20% left, resets in 53 min.",
+            "Claude 5h: 22% left, resets in 53 min." + Environment.NewLine +
+            "Claude Week: 20% left, resets in 53 min.",
             message.Body);
     }
 

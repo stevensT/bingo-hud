@@ -1,9 +1,9 @@
 # Codex Quota — Progress
 
 updated: 2026-10-14
-status: Phase 4 in progress; 4.1 to 4.4 done 2026-10-14
+status: Phase 4 checkpoint passed 2026-10-14; Core work complete
 blockers: none
-next_session: the [P] pair 4.5 (PanelReadout per product) and 4.6 (product-named alert messages and Codex alert evaluation), then checkpoint 4.7.
+next_session: Phase 5, the shell: 5.1 the first-start window, then tray check marks, HUD and panel drawing, and App wiring, each checked on screen with Trevor.
 
 ## 2026-10-14: the spike closed early
 
@@ -43,4 +43,28 @@ parallel group: run inline and in sequence, at Trevor's call. The three units we
 guards: 6 of the 31 new tests passed before their change and are kept as guards rather than red-green tests: in 3.1 the product written by name and a 0.4.0 alerts file read as Claude's; in 3.2 no answer by default, no file, a 0.4.0 settings file, and an answer with nothing on.
 fix during the phase: one 3.1 test had a hand-written reset four hours off its fixture (05:23 for 09:23 UTC), which would have kept it red for the wrong reason; corrected against the Unix time before implementing.
 criteria_met: none in full; each needs Phase 4 or 5. In Core now: AC-10's alert identity (per product, ten-minute reset tolerance, 0.4.0 state kept as Claude's), AC-8's at-least-one rule, AC-8a's never-asked state surviving an upgrade, AC-8b's detection.
+issues: none
+
+### CP: Phase 4 Display in Core — 2026-10-14
+tests: 1658 pass / 0 fail / 0 skip (15 ClaudeOnlyHudTests, 13 HudCompositionTests, 13 CodexSectionTests, 8 CodexStatusMessageTests, 18 CodexPanelTests, 9 CodexAlertTests)
+build: pass, 0 warnings, 0 errors, whole solution including the app (`dotnet clean`, `dotnet build`, `dotnet test --no-build`)
+done: 4.1, 4.2, 4.3, 4.4, 4.5, 4.6
+rework: none
+parallel group 4.5 and 4.6: run inline and in sequence, at Trevor's call, as Phase 3's was.
+existing tests changed: only expected labels gained the product name, and nothing else in them: 14 in ReadoutTests (HUD lines, allowed by AC-9) and 7 in AlertMessageTests and AlertEngineTests (toasts, required by AC-10).
+guards: 6 of the 76 new tests passed before their change and are kept as guards (3 Claude-only empty phrases in 4.1; in 4.3 two Codex empty phrases that 4.2's placeholders already told apart, and the live window beside an ended one).
+criteria, Core side (each still needs the shell in Phase 5 before it is met in full):
+- AC-1: logs read with conversation lines never kept (Phase 2); the panel states the source and what it cannot see (4.5).
+- AC-2: no figure from a null, broken or unrecognised record, nor for a window whose reset has passed (4.3).
+- AC-3: every Codex reading carries its age from its own record; an ended window shows no figure, raises no alert (4.3, 4.6).
+- AC-3a: idle keeps colours with "used 12 min ago"; failed drops them and names the cause (4.3, 4.4).
+- AC-3b: deferred past 0.5.0.
+- AC-4, AC-5: one line builder for both products, following direction, reset format and bar (4.2).
+- AC-6: Codex panel block with exact resets, age and last turn (4.5).
+- AC-7: every Codex state without a reading has a phrase and advice; a shown product always has a section (4.2, 4.4).
+- AC-7a: every HUD line and every notification carries its product (4.2, 4.6).
+- AC-8, AC-8a, AC-8b: settings, never-asked state and detection in Core (Phase 3); the window and tray are 5.1, 5.2.
+- AC-8c: shell only (5.2).
+- AC-9: pinned by ClaudeOnlyHudTests against 0.4.0's recorded output; confirmed on screen in 5.3.
+- AC-10: Codex alerts, product-named toasts, ended windows skipped (3.1, 4.6); wiring in 5.5.
 issues: none

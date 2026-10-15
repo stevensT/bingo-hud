@@ -81,6 +81,94 @@ public static class PanelReadout
     }
 
     /// <summary>
+    /// The whole panel: Claude's part, and a Codex block when Codex is shown.
+    /// </summary>
+    /// <remarks>
+    /// Claude's part is composed exactly as it was before Codex, whether or not it is shown, and
+    /// the shell hides it when it is switched off. Before the first-start question is answered
+    /// the panel is Claude's alone, matching the HUD.
+    /// </remarks>
+    public static PanelContent ComposeAll(
+        ReadingState claude,
+        Codex.CodexState codex,
+        UserSettings settings,
+        string version,
+        DateTimeOffset now,
+        CultureInfo? culture = null,
+        RefreshResult? lastRefresh = null,
+        TimeZoneInfo? zone = null)
+    {
+        var shown = settings.Products ?? new ProductSwitches(Claude: true, Codex: false);
+
+        return Compose(claude, settings, version, now, culture, lastRefresh, zone) with
+        {
+            ShowClaude = shown.Claude,
+            Codex = shown.Codex ? ComposeCodex(codex, settings, now, culture, zone) : null,
+        };
+    }
+
+    /// <summary>
+    /// The Codex block at this instant (codex-quota AC-1, AC-6).
+    ///
+    /// <para>
+    /// The same rows as Claude's, with one difference the HUD also makes: a window whose reset
+    /// has passed shows no figure, because the one Bingo holds belongs to an occurrence that has
+    /// ended (AC-3). Its row gives the time it reset instead.
+    /// </para>
+    /// </summary>
+    public static CodexPanel ComposeCodex(
+        Codex.CodexState state,
+        UserSettings settings,
+        DateTimeOffset now,
+        CultureInfo? culture = null,
+        TimeZoneInfo? zone = null)
+    {
+        var snapshot = state.Last;
+        var windows = new List<PanelRow>();
+
+        if (snapshot is not null)
+        {
+            foreach (var kind in Readout.HudKinds)
+            {
+                if (snapshot.Windows.FirstOrDefault(w => w.Kind == kind) is not { } window)
+                {
+                    continue;
+                }
+
+                var ended = window.ResetsAt is { } resetsAt && resetsAt <= now;
+
+                windows.Add(new PanelRow(
+                    WindowName.Short(kind),
+                    ended ? NoFigureSinceReset : Percentage.Describe(window.UsedPercent, settings.Direction),
+                    window.ResetsAt is { } at ? ResetFormatter.Exact(at, now, culture, zone) : NoResetTime));
+            }
+        }
+
+        return new CodexPanel(
+            Windows: windows,
+            WindowsEmptyState: EmptyState(snapshot, windows),
+            // Always shown with a reading, as Claude's is, and here it matters more: a Codex
+            // figure is as old as the last Codex turn.
+            Age: snapshot is null ? null : AgeText.Old(state.Age),
+            LastTurn: snapshot is null ? "never" : ResetFormatter.Exact(snapshot.ObservedAt, now, culture, zone),
+            Source: CodexSource,
+            Status: StatusMessage.DescribeCodex(state),
+            ReachedType: state.ReachedType,
+            IgnoredWindows: state.IgnoredWindows);
+    }
+
+    /// <summary>
+    /// Where every Codex figure comes from, and the one thing it cannot see (codex-quota AC-1).
+    /// </summary>
+    private const string CodexSource =
+        "Read from Codex's own logs on this machine, so each figure is as of the last Codex turn on "
+        + "this machine. Codex used elsewhere, in the browser, on another computer, or by cloud "
+        + "tasks, shows here only after your next turn on this one.";
+
+    /// <summary>A Codex window's figure column once its reset has passed.</summary>
+    private const string NoFigureSinceReset = "no reading since it reset";
+
+    /// <summary>
     /// Said in place of a section's rows when a reading carried none.
     ///
     /// <para>
