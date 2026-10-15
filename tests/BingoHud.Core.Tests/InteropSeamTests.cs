@@ -79,7 +79,7 @@ public class InteropSeamTests
         // interop file needing to know about WPF at all — the opposite of the rule above, and
         // the reason it is not simply moved.
         Assert.Equal(
-            ["DetailPanelWindow.xaml.cs", "HudWindow.xaml.cs"],
+            ["DetailPanelWindow.xaml.cs", "FirstStartWindow.xaml.cs", "HudWindow.xaml.cs"],
             FilesContaining("WindowInteropHelper"));
     }
 }

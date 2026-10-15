@@ -47,5 +47,10 @@ public sealed record ProductSwitches(bool Claude, bool Codex)
     }
 
     /// <summary>Whether at least one product is on, which every saved answer must be.</summary>
+    /// <remarks>
+    /// Kept out of the settings file: the file holds what the user chose, and a value worked out
+    /// from it would be a second copy that a hand edit could make disagree.
+    /// </remarks>
+    [System.Text.Json.Serialization.JsonIgnore]
     public bool AnyOn => Claude || Codex;
 }

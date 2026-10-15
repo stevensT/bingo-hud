@@ -116,6 +116,21 @@ public class ProductSettingsTests
     }
 
     [Fact]
+    public void TheSavedAnswerHoldsTheTwoSwitchesAndNothingWorkedOutFromThem()
+    {
+        // Found on screen at task 5.1: "anyOn" was written beside the switches. A file holds what
+        // the user chose; anything derived from it would be a second copy that could disagree.
+        using var directory = new TempDirectory();
+        var path = directory.PathTo("settings.json");
+        new SettingsStore(path).Save(UserSettings.Default with { Products = new ProductSwitches(true, false) });
+
+        using var document = System.Text.Json.JsonDocument.Parse(File.ReadAllText(path));
+        var products = document.RootElement.GetProperty("products");
+
+        Assert.Equal(["claude", "codex"], products.EnumerateObject().Select(p => p.Name));
+    }
+
+    [Fact]
     public void AnAnswerWithNothingOnIsReadAsNotYetAsked()
     {
         // Only a hand edit can produce it. Asking again is the one way back to a HUD that shows

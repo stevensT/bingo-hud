@@ -57,10 +57,28 @@ public class DebugOverrideTests
         }
     }
 
+    // Codex's own folder variable, which a shipped build honours as Codex does (codex-quota AC-1).
+    // It moves where local logs are read from; no credential or request goes anywhere because of
+    // it. Allowed only when read through this named constant, so a read of anything else, or of
+    // the same variable spelt out, still fails the fence.
+    private const string CodexHomeRead = "GetEnvironmentVariable(CodexLogReader.HomeVariable)";
+
     [Fact]
     public void NothingInTheShellReadsTheEnvironmentOutsideADebugBranch()
     {
-        Assert.Empty(EnvironmentReads().Where(r => !r.InDebug).Select(r => $"{r.File}:{r.Line}"));
+        Assert.Empty(EnvironmentReads()
+            .Where(r => !r.InDebug && !r.Text.Contains(CodexHomeRead, StringComparison.Ordinal))
+            .Select(r => $"{r.File}:{r.Line}"));
+    }
+
+    [Fact]
+    public void CodexsFolderVariableIsTheOnlyOneAShippedBuildReads()
+    {
+        // The exception above names exactly one variable, and it is Codex's.
+        Assert.Equal("CODEX_HOME", Codex.CodexLogReader.HomeVariable);
+        Assert.All(
+            EnvironmentReads().Where(r => !r.InDebug),
+            r => Assert.Contains(CodexHomeRead, r.Text, StringComparison.Ordinal));
     }
 
     [Theory]

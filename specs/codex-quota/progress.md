@@ -1,9 +1,9 @@
 # Codex Quota — Progress
 
 updated: 2026-10-14
-status: Phase 4 checkpoint passed 2026-10-14; Core work complete
+status: Phase 5 in progress; 5.1 done 2026-10-14
 blockers: none
-next_session: Phase 5, the shell: 5.1 the first-start window, then tray check marks, HUD and panel drawing, and App wiring, each checked on screen with Trevor.
+next_session: task 5.2, the tray's product check marks. Trevor's real settings are backed up in artifacts\settings-backup-5.1 and currently match it; restore from it after each on-screen run.
 
 ## 2026-10-14: the spike closed early
 

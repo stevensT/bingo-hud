@@ -209,11 +209,24 @@ The three units touch separate files and do not depend on each other.
 
 ## Phase 5: The shell
 
-- [ ] 5.1 First-start window: shown before the HUD while `Products` is null, one tick box per
+- [x] 5.1 First-start window: shown before the HUD while `Products` is null, one tick box per
       product from `ProductDetection`, "not found" beside a missing one, Continue disabled with
       nothing ticked; the answer saved and used. If the save fails, the answer still holds for
       the session. Checked on screen with Trevor, using a copy of the settings file with no
       products. (AC-8a, AC-8b)
+      *Done 2026-10-14. Words, starting ticks, the Continue rule and the closed-without-answer
+      fallback are `FirstStartContent` in Core (7 tests, red then green); the window draws them.
+      Shutdown is explicit while the question is up, because WPF makes the first window the main
+      window and the app quits when its main window closes; startup restores it once the HUD is
+      main. `CODEX_HOME` is read through `CodexLogReader.HomeVariable`, the one environment
+      variable the shell fence now allows outside Debug, with a test that it is the only one;
+      `FirstStartWindow` joins the list of windows that take a handle, for the dark title bar.
+      On screen with Trevor, real settings backed up to `artifacts\settings-backup-5.1` first:
+      the question came before any HUD with both products ticked and no "not found"; unticking
+      both disabled Continue; Continue saved both and the HUD appeared without Bingo quitting;
+      after restoring, closing with the X still brought up the HUD and saved nothing. Found on
+      screen: the saved answer carried a derived "anyOn"; a test pinned it red, and it is now
+      kept out of the file. Full suite 1667. Real settings restored and unchanged.*
 - [ ] 5.2 Tray: "Show Claude" and "Show Codex" check marks above the display options, the last
       one on cannot be cleared. Checked on screen. (AC-8, AC-8c)
 - [ ] 5.3 HUD: draw product sections, each with its lines and its mark; the reset-passed line

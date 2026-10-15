@@ -3,6 +3,7 @@ using System.Reflection;
 using System.Windows;
 using BingoHud.Core;
 using BingoHud.Core.Alerts;
+using BingoHud.Core.Codex;
 using BingoHud.Core.Credentials;
 using BingoHud.Core.Display;
 using BingoHud.Core.Monitoring;
@@ -40,6 +41,13 @@ public partial class App : Application
 
         _settings = _settingsStore.Load();
 
+        // Asked once, before the HUD appears, on a new install and on the first start after an
+        // upgrade from a version that never asked (codex-quota AC-8a).
+        if (_settings.Products is null)
+        {
+            AskWhichProducts();
+        }
+
         (string? CredentialPath, Uri? Endpoint) overrides;
 
         try
@@ -75,6 +83,10 @@ public partial class App : Application
             _alerts,
             thresholds: () => _settings.Thresholds,
             onAlerts: Announce);
+
+        // The HUD is the main window from here, so closing it quits Bingo again, as it always
+        // has. The first-start question, when it was asked, had switched this off; see there.
+        ShutdownMode = ShutdownMode.OnMainWindowClose;
 
         MainWindow = new HudWindow(
             _settings.Position,
@@ -131,6 +143,42 @@ public partial class App : Application
 #else
     private static (string? CredentialPath, Uri? Endpoint) Overrides() => (null, null);
 #endif
+
+    /// <summary>
+    /// Asks which products to show, and remembers the answer (codex-quota AC-8a, AC-8b).
+    ///
+    /// <para>
+    /// The app quits when its main window closes, and WPF makes the first window created the main
+    /// window, which here is this question. Shutdown is made explicit while it is up, so closing
+    /// it does not end Bingo before the HUD exists; startup restores the usual mode once the HUD
+    /// is the main window.
+    /// </para>
+    /// <para>
+    /// A failed save still leaves the answer in force for this session, and the question comes
+    /// back at the next start. Closing the window without answering does the same with what was
+    /// found, so the user is never left with a HUD they did not choose for longer than a session.
+    /// </para>
+    /// </summary>
+    private void AskWhichProducts()
+    {
+        var found = ProductDetection.Detect(
+            Environment.GetFolderPath(Environment.SpecialFolder.UserProfile),
+            Environment.GetEnvironmentVariable(CodexLogReader.HomeVariable));
+
+        ShutdownMode = ShutdownMode.OnExplicitShutdown;
+
+        var question = new FirstStartWindow(FirstStartContent.For(found));
+        question.ShowDialog();
+
+        if (question.Answer is { } answer)
+        {
+            Remember(_settings with { Products = answer });
+        }
+        else
+        {
+            _settings = _settings with { Products = FirstStartContent.WhenClosed(found) };
+        }
+    }
 
     /// <summary>
     /// What the machine and the user are doing, read immediately before each poll.

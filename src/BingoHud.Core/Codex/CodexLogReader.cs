@@ -36,6 +36,13 @@ public sealed class CodexLogReader(string root)
     public string Root { get; } = root;
 
     /// <summary>
+    /// The environment variable Codex reads to find its folder, read here the same way so Bingo
+    /// looks where Codex writes. The one environment variable a shipped build honours: it moves
+    /// where local logs are read from, and no credential or request goes anywhere because of it.
+    /// </summary>
+    public const string HomeVariable = "CODEX_HOME";
+
+    /// <summary>
     /// The Codex folder: <paramref name="codexHome"/> when it is set, as Codex itself does, else
     /// <c>.codex</c> in the user profile.
     /// </summary>
