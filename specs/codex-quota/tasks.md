@@ -41,7 +41,7 @@ See the Building section of `README.md`. Every checkpoint runs `dotnet clean` fi
       `Codex Desktop`: it is the one log that crosses a five-hour reset and shows `resets_at`
       moving eight seconds for one window, both cases later tasks need. One fixture added beyond
       the list, a log whose last line is cut off mid-write; 2.1 tests it.*
-- [ ] 1.2 Test `CodexRecord.Parse(line)`, against the fixtures:
+- [x] 1.2 Test `CodexRecord.Parse(line)`, against the fixtures:
       - a record with figures gives a `QuotaSnapshot` with `Session` and `WeeklyAll`, mapped by
         `window_minutes`, `used_percent` as sent, `resets_at` from Unix seconds, `ObservedAt`
         from the line's `timestamp`;
@@ -51,7 +51,14 @@ See the Building section of `README.md`. Every checkpoint runs `dotnet clean` fi
         unreadable with a reason;
       - `rate_limit_reached_type` is carried verbatim when not null.
       Run it red. (AC-1, AC-2)
-- [ ] 1.3 Implement `CodexRecord.Parse` until 1.2 passes.
+      *Done 2026-10-14: 26 tests in `CodexRecordTests`, all red on the stub's
+      `NotImplementedException`. Added beyond the list: decoy lines are "not a record"; a record
+      with no window of a known length, or no usable timestamp, is unreadable; a cut-off line is
+      unreadable rather than an exception; a trailing carriage return reads the same.*
+- [x] 1.3 Implement `CodexRecord.Parse` until 1.2 passes.
+      *Done 2026-10-14: 26 of 26 pass; full suite 1515 pass. Beyond the tests: two windows of
+      the same length make the record unreadable, and a null `resets_at` is allowed, as for a
+      Claude window, meaning no countdown.*
 - [C] 1.4 Checkpoint: clean, build, full suite; record in `progress.md`.
 
 ## Phase 2: Reading the logs

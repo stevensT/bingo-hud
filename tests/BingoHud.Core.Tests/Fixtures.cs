@@ -31,4 +31,31 @@ internal static class Fixtures
     /// fixture directory's README.
     /// </summary>
     public const string DerivedFlatOnly = "2026-08-30-derived-flat-only.json";
+
+    /// <summary>
+    /// Full path to a named Codex session log fixture in the test output directory. See
+    /// <c>tests/fixtures/codex/README.md</c> for what each one is and what was cut from it.
+    /// </summary>
+    public static string CodexPath(string fileName) =>
+        System.IO.Path.Combine(AppContext.BaseDirectory, "fixtures", "codex", fileName);
+
+    /// <summary>
+    /// The non-empty lines of a named Codex fixture, in file order.
+    /// </summary>
+    public static string[] CodexLines(string fileName) =>
+        File.ReadAllLines(CodexPath(fileName)).Where(line => line.Length > 0).ToArray();
+
+    public const string CodexSession = "2026-10-13-work-desktop-session.jsonl";
+    public const string CodexTuiRecord = "2026-10-14-tui-record.jsonl";
+    public const string CodexNullRecord = "2026-10-14-null-record.jsonl";
+    public const string CodexUnknownWindow = "2026-10-14-made-unknown-window.jsonl";
+    public const string CodexMissingField = "2026-10-14-made-missing-field.jsonl";
+    public const string CodexWrongType = "2026-10-14-made-wrong-type.jsonl";
+    public const string CodexReachedType = "2026-10-14-made-reached-type.jsonl";
+    public const string CodexTruncatedTail = "2026-10-14-made-truncated-tail.jsonl";
+
+    /// <summary>
+    /// The prefix every invented conversation line in <see cref="CodexSession"/> carries.
+    /// </summary>
+    public const string DecoyMarker = "DECOY-MARKER-";
 }

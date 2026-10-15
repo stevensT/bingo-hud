@@ -1,9 +1,9 @@
 # Codex Quota — Progress
 
 updated: 2026-10-14
-status: Phase 1 in progress; 1.1 done 2026-10-14
+status: Phase 1 in progress; 1.1 to 1.3 done 2026-10-14
 blockers: none
-next_session: task 1.2, the record parser's tests, run red against the fixtures in tests/fixtures/codex.
+next_session: checkpoint 1.4 (clean, build, full suite), then task 2.1.
 
 ## 2026-10-14: the spike closed early
 
