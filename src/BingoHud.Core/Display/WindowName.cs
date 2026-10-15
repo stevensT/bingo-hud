@@ -24,4 +24,21 @@ public static class WindowName
         WindowKind.WeeklyAll => "Week",
         _ => throw new ArgumentOutOfRangeException(nameof(kind), kind, "Not a named window."),
     };
+
+    /// <summary>
+    /// A product's name as the user sees it. Written out rather than taken from the enum, so a
+    /// rename in code cannot change what is on screen.
+    /// </summary>
+    public static string Product(Product product) => product switch
+    {
+        Core.Product.Claude => "Claude",
+        Core.Product.Codex => "Codex",
+        _ => throw new ArgumentOutOfRangeException(nameof(product), product, null),
+    };
+
+    /// <summary>
+    /// A HUD line's label: the product, then the window, as "Claude 5h" or "Codex Week". Every
+    /// line carries one, so neither product is the unlabelled default (codex-quota AC-7a).
+    /// </summary>
+    public static string Label(Product product, WindowKind kind) => $"{Product(product)} {Short(kind)}";
 }

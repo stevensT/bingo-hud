@@ -77,7 +77,7 @@ public class ReadoutTests
         var frozen = Frozen(Snapshot(Window(WindowKind.Session, 12, Now.AddMinutes(53))));
 
         Assert.Equal(
-            [new ReadoutLine("5h", "12% used", "resets in 53 min", Severity.Normal, Bar: null)],
+            [new ReadoutLine("Claude 5h", "12% used", "resets in 53 min", Severity.Normal, Bar: null)],
             Lines(frozen));
     }
 
@@ -274,8 +274,8 @@ public class ReadoutTests
 
         Assert.Equal(
             [
-                new ReadoutLine("5h", "12% used", "resets in 53 min", Severity.Normal, Bar: null),
-                new ReadoutLine("Week", "37% used", "resets Thu 11:34 AM", Severity.Normal, Bar: null),
+                new ReadoutLine("Claude 5h", "12% used", "resets in 53 min", Severity.Normal, Bar: null),
+                new ReadoutLine("Claude Week", "37% used", "resets Thu 11:34 AM", Severity.Normal, Bar: null),
             ],
             Lines(snapshot));
     }
@@ -384,7 +384,7 @@ public class ReadoutTests
         // that the server never sent.
         var lines = Lines(Snapshot(Window(WindowKind.WeeklyAll, 37)));
 
-        Assert.Equal("Week", Assert.Single(lines).Window);
+        Assert.Equal("Claude Week", Assert.Single(lines).Window);
     }
 
     [Fact]
@@ -394,7 +394,7 @@ public class ReadoutTests
             Window(WindowKind.WeeklyAll, 37),
             Window(WindowKind.Session, 12)));
 
-        Assert.Equal(["5h", "Week"], lines.Select(line => line.Window));
+        Assert.Equal(["Claude 5h", "Claude Week"], lines.Select(line => line.Window));
     }
 
     [Fact]
@@ -407,7 +407,7 @@ public class ReadoutTests
             Window(WindowKind.WeeklyAll, 37),
             Window(WindowKind.WeeklyScoped, 5)));
 
-        Assert.Equal(["5h", "Week"], lines.Select(line => line.Window));
+        Assert.Equal(["Claude 5h", "Claude Week"], lines.Select(line => line.Window));
     }
 
     // ---- Collapse (AC-7) ----
@@ -429,7 +429,7 @@ public class ReadoutTests
 
         var line = Assert.Single(Lines(snapshot, collapse: true));
 
-        Assert.Equal("Week", line.Window);
+        Assert.Equal("Claude Week", line.Window);
         Assert.Equal("60% used", line.Percent);
     }
 
@@ -442,7 +442,7 @@ public class ReadoutTests
 
         var line = Assert.Single(Lines(snapshot, collapse: true));
 
-        Assert.Equal("5h", line.Window);
+        Assert.Equal("Claude 5h", line.Window);
     }
 
     [Fact]
@@ -466,7 +466,7 @@ public class ReadoutTests
 
         var line = Assert.Single(Lines(snapshot, collapse: true));
 
-        Assert.Equal("Week", line.Window);
+        Assert.Equal("Claude Week", line.Window);
     }
 
     [Fact]
@@ -478,7 +478,7 @@ public class ReadoutTests
 
         var line = Assert.Single(Lines(snapshot, collapse: true));
 
-        Assert.Equal("5h", line.Window);
+        Assert.Equal("Claude 5h", line.Window);
     }
 
     [Fact]
@@ -490,7 +490,7 @@ public class ReadoutTests
 
         var line = Assert.Single(Lines(snapshot, collapse: true));
 
-        Assert.Equal("5h", line.Window);
+        Assert.Equal("Claude 5h", line.Window);
     }
 
     // ---- Severity on screen (AC-4, AC-5, AC-6) ----
@@ -678,8 +678,8 @@ public class ReadoutTests
         // Display options AC-16: clock time and no bar is 0.1.0, line for line.
         Assert.Equal(
             [
-                new ReadoutLine("5h", "75% used", "resets 11:52 AM", Severity.Warning, Bar: null), // 25% left is the warning line
-                new ReadoutLine("Week", "37% used", "resets Fri 9:34 PM", Severity.Normal, Bar: null),
+                new ReadoutLine("Claude 5h", "75% used", "resets 11:52 AM", Severity.Warning, Bar: null), // 25% left is the warning line
+                new ReadoutLine("Claude Week", "37% used", "resets Fri 9:34 PM", Severity.Normal, Bar: null),
             ],
             LinesWith(Fresh(Both), UserSettings.Default));
     }
@@ -772,7 +772,7 @@ public class ReadoutTests
         // Display options AC-15: the options change how a line is drawn, never which lines exist.
         var settings = Options(format, bar) with { Collapse = true };
 
-        Assert.Equal("5h", Assert.Single(LinesWith(Fresh(Both), settings)).Window);
+        Assert.Equal("Claude 5h", Assert.Single(LinesWith(Fresh(Both), settings)).Window);
     }
 
     // ---- Live or frozen, for the bar's normal colour (display options AC-11, amended for 0.3.0) ----

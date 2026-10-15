@@ -1,9 +1,9 @@
 # Codex Quota — Progress
 
 updated: 2026-10-14
-status: Phase 3 checkpoint passed 2026-10-14
+status: Phase 4 in progress; 4.1 and 4.2 done 2026-10-14
 blockers: none
-next_session: task 4.1, the AC-9 test pinning a Claude-only HUD to today's apart from the label, run red before any display change.
+next_session: task 4.3, the Codex section from CodexState: phrases for not found and no reading, the age mark, idle vs failed, and the reset-passed line.
 
 ## 2026-10-14: the spike closed early
 

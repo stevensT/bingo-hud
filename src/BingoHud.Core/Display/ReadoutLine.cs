@@ -4,7 +4,10 @@ namespace BingoHud.Core.Display;
 /// One line of the HUD: which window, how much, when it resets, how close it is to its limit, and,
 /// when the bar is on, its segment fills.
 /// </summary>
-/// <param name="Window">The window's short name, as shown: "5h" or "Week".</param>
+/// <param name="Window">
+/// The line's label, product then window, as shown: "Claude 5h" or "Codex Week"
+/// (codex-quota AC-7a). See <see cref="WindowName.Label"/>.
+/// </param>
 /// <param name="Percent">
 /// The figure and the word that says which way it reads (AC-2b): "12% used" or "88% left".
 /// The word travels with the number so the two can never be separated on screen.

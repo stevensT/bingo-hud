@@ -1,4 +1,5 @@
 using System.Globalization;
+using BingoHud.Core.Codex;
 using BingoHud.Core.Monitoring;
 using BingoHud.Core.Settings;
 using BingoHud.Core.Usage;
@@ -56,6 +57,22 @@ public static class Readout
             return [];
         }
 
+        return LinesFor(Product.Claude, snapshot, frozen: state.Freshness == Freshness.Frozen, settings, now, culture, zone);
+    }
+
+    /// <summary>
+    /// One product's lines from one reading. Shared by both products, so a Codex line and a Claude
+    /// line can never be drawn by different rules (codex-quota AC-4, AC-5).
+    /// </summary>
+    private static List<ReadoutLine> LinesFor(
+        Product product,
+        QuotaSnapshot snapshot,
+        bool frozen,
+        UserSettings settings,
+        DateTimeOffset now,
+        CultureInfo? culture,
+        TimeZoneInfo? zone)
+    {
         var shown = Shown(snapshot, settings);
         var lines = new List<ReadoutLine>(shown.Count);
 
@@ -63,12 +80,12 @@ public static class Readout
         {
             // A frozen reading takes no colour (AC-13). The overall severity is the worst line,
             // so excluding it here excludes it from the accent bar too.
-            var severity = state.Freshness == Freshness.Frozen
+            var severity = frozen
                 ? Severity.Normal
                 : SeverityPolicy.Evaluate(window, settings.Thresholds);
 
             lines.Add(new ReadoutLine(
-                WindowName.Short(window.Kind),
+                WindowName.Label(product, window.Kind),
                 Percentage.Describe(window.UsedPercent, settings.Direction),
                 Reset(window, severity, settings.ResetFormat, now, culture, zone),
                 severity,
@@ -117,6 +134,72 @@ public static class Readout
         }
 
         return new HudContent.Reading(lines, StatusMessage.MarkFor(state), state.Freshness == Freshness.Frozen);
+    }
+
+    /// <summary>
+    /// The whole HUD: a section for each product switched on, Claude first (codex-quota AC-4,
+    /// AC-7, AC-8).
+    ///
+    /// <para>
+    /// A product switched on always has a section, even with nothing to show, because a missing
+    /// line looks the same as Bingo failing to look (AC-7). Before the first-start question is
+    /// answered only Claude is shown: the question appears before the HUD, so that is the moment
+    /// between, or a failed save, and Claude alone is what Bingo has always shown.
+    /// </para>
+    /// </summary>
+    /// <param name="claude">Claude's monitor state.</param>
+    /// <param name="codex">Codex's monitor state.</param>
+    /// <param name="settings">The user's display preferences, including which products are shown.</param>
+    /// <param name="now">The moment of rendering. Its offset is used only when no zone is given.</param>
+    /// <param name="culture">Whose clock conventions the reset phrase uses.</param>
+    /// <param name="zone">The time zone times are shown in; null keeps the offset of <paramref name="now"/>.</param>
+    public static Hud Compose(
+        ReadingState claude,
+        CodexState codex,
+        UserSettings settings,
+        DateTimeOffset now,
+        CultureInfo? culture = null,
+        TimeZoneInfo? zone = null)
+    {
+        var shown = settings.Products ?? new ProductSwitches(Claude: true, Codex: false);
+        var sections = new List<HudSection>(2);
+
+        if (shown.Claude)
+        {
+            sections.Add(new HudSection(Product.Claude, Content(claude, settings, now, culture, zone)));
+        }
+
+        if (shown.Codex)
+        {
+            sections.Add(new HudSection(Product.Codex, CodexContent(codex, settings, now, culture, zone)));
+        }
+
+        return new Hud(sections);
+    }
+
+    /// <summary>
+    /// Codex's section: its lines, or the phrase that stands in for them.
+    /// </summary>
+    private static HudContent CodexContent(
+        CodexState state,
+        UserSettings settings,
+        DateTimeOffset now,
+        CultureInfo? culture,
+        TimeZoneInfo? zone)
+    {
+        if (state.Last is not { } snapshot)
+        {
+            // deferred: placeholder words until the Codex states get their own in StatusMessage
+            // (task 4.4), with headline and advice like every other state.
+            return new HudContent.Empty(
+                state.Presence == CodexPresence.NotFound ? "Codex not found" : "No Codex reading yet");
+        }
+
+        var lines = LinesFor(Product.Codex, snapshot, frozen: false, settings, now, culture, zone);
+
+        return lines.Count == 0
+            ? new HudContent.Empty(StatusMessage.NoWindowToShow)
+            : new HudContent.Reading(lines, Mark: null, Frozen: false);
     }
 
     /// <summary>

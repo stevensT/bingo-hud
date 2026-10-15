@@ -143,13 +143,28 @@ The three units touch separate files and do not depend on each other.
 
 ## Phase 4: Display in Core
 
-- [ ] 4.1 Test, before any display change: a Claude-only HUD, for every state the current
+- [x] 4.1 Test, before any display change: a Claude-only HUD, for every state the current
       `Readout` tests cover, has the same lines, marks and phrases as today except that each line
       reads "Claude 5h" or "Claude Week". Run it red on the label alone. (AC-9, AC-7a)
-- [ ] 4.2 Test + implement `HudContent` as product sections and `Readout` per product: every line
+      *Done 2026-10-14: 15 tests in `ClaudeOnlyHudTests`. The expectations were recorded from
+      0.4.0's `Readout` by a throwaway program run over the same 15 states, then given the label;
+      bar fills come from `Bar.Segments`, which this feature does not change. 12 reading tests
+      red on the window label and nothing else; the 3 empty-phrase tests pass, since the phrases
+      do not change, and are kept as guards. Decided here: a Claude-only empty phrase is
+      unchanged ("No reading yet"), and a section's product is drawn by the shell from the
+      section rather than written into the phrase.*
+- [x] 4.2 Test + implement `HudContent` as product sections and `Readout` per product: every line
       labelled with its product; collapse applies within each product; the accent severity is
       the worst live line across products; a product switched off has no section. 4.1 passes.
       (AC-4, AC-5, AC-7a, AC-8)
+      *Done 2026-10-14: 13 tests in `HudCompositionTests`, red then green; the 15
+      `ClaudeOnlyHudTests` now ask through `Readout.Compose` and pass with their expectations
+      unchanged. Shape: `HudContent` is kept as one section's content, and a new `Hud` holds the
+      sections with the accent and the repaint check, which kept `Readout.Content` and its tests
+      in place. Both products' lines come from one builder. The 14 label assertions in
+      `ReadoutTests` gained "Claude " and nothing else. Before the question is answered, only
+      Claude is shown. Codex's empty phrases are placeholders marked `deferred:` until 4.4. Full
+      suite 1610.*
 - [ ] 4.3 Test + implement the Codex section from `CodexState`:
       - not found and no reading yet each give a phrase in place of lines (AC-7);
       - a reading always carries its age, "used 12m ago" (AC-3);
