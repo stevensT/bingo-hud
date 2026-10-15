@@ -205,6 +205,25 @@ public class CodexLogReaderTests
         Assert.DoesNotContain(Fixtures.DecoyMarker, everything, StringComparison.Ordinal);
     }
 
+    [Fact]
+    public void TheNewestWriteIsTheLatestAcrossBothLogFolders()
+    {
+        using var codex = new TempDirectory();
+        WriteLog(codex, "sessions/2026/10/14/a.jsonl", Fixture(Fixtures.CodexTuiRecord), Earlier);
+        WriteLog(codex, "archived_sessions/b.jsonl", Fixture(Fixtures.CodexTuiRecord), Later);
+
+        Assert.Equal(Later.UtcDateTime, new CodexLogReader(codex.Path).NewestWrite());
+    }
+
+    [Fact]
+    public void TheNewestWriteIsNullWithNoLogsOrNoFolder()
+    {
+        using var codex = new TempDirectory();
+
+        Assert.Null(new CodexLogReader(codex.Path).NewestWrite());
+        Assert.Null(new CodexLogReader(codex.PathTo(".codex")).NewestWrite());
+    }
+
     [Theory]
     [InlineData(null)]
     [InlineData("")]

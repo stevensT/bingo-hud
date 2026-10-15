@@ -85,14 +85,24 @@ See the Building section of `README.md`. Every checkpoint runs `dotnet clean` fi
       *Done 2026-10-14: 18 of 18 pass; full suite 1533 pass. Logs are opened with read and
       delete sharing, so Codex can go on writing a session's log while Bingo reads it. The
       privacy test was strengthened to prove its serialized text reaches the kept record.*
-- [ ] 2.3 Test `CodexMonitor`:
+- [x] 2.3 Test `CodexMonitor`:
       - `Rescan()` reads the logs only when a log file's last write time has moved since the last
         scan;
       - a failed scan keeps the last reading and records the problem (AC-3a failed); a clean scan
         with no newer record keeps the reading and clears the problem (AC-3a idle);
       - the reading's age is measured from its `ObservedAt`, not from the scan (AC-3).
       Run it red.
-- [ ] 2.4 Implement `CodexMonitor` until 2.3 passes.
+      *Done 2026-10-14: 15 tests in `CodexMonitorTests` and 2 for `CodexLogReader.NewestWrite`,
+      all red on the stubs. Added beyond the list: after a failed scan the logs are read again
+      even with nothing written, since a released lock writes nothing; Codex not found clears an
+      earlier reading (AC-7); one test runs the whole path over a real folder, appending a newer
+      record as Codex does at the end of a turn. `CodexState` and `CodexPresence` added as the
+      monitor's interface.*
+- [x] 2.4 Implement `CodexMonitor` until 2.3 passes.
+      *Done 2026-10-14: full suite 1551 pass. One rule went in beyond 2.3's tests: while Codex is
+      not found, every rescan looks again, because installing Codex creates its folder before
+      any log. Its test was written after the code, so it was seen to fail with the rule removed
+      before being kept.*
 - [C] 2.5 Checkpoint: clean, build, full suite. Also time one `Scan()` against the real
       `%USERPROFILE%\.codex`, read-only, and record it; over one second is raised before
       continuing. Record in `progress.md`.

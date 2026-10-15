@@ -1,9 +1,9 @@
 # Codex Quota — Progress
 
 updated: 2026-10-14
-status: Phase 2 in progress; 2.1 and 2.2 done 2026-10-14
+status: Phase 2 in progress; 2.1 to 2.4 done 2026-10-14
 blockers: none
-next_session: task 2.3, the Codex monitor's tests: rescan only on a moved write time, idle vs failed, age from the record.
+next_session: checkpoint 2.5: clean, build, full suite, and time one Scan() against the real %USERPROFILE%\.codex (over one second is raised).
 
 ## 2026-10-14: the spike closed early
 

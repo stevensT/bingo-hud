@@ -42,6 +42,33 @@ public sealed class CodexLogReader(string root)
     public static string RootFor(string userProfile, string? codexHome) =>
         string.IsNullOrWhiteSpace(codexHome) ? Path.Combine(userProfile, ".codex") : codexHome;
 
+    /// <summary>
+    /// When any session log was last written, or null when there are none or they cannot be
+    /// listed. Reads no file, so it is cheap enough to ask every minute.
+    /// </summary>
+    public DateTime? NewestWrite()
+    {
+        if (!Directory.Exists(Root))
+        {
+            return null;
+        }
+
+        try
+        {
+            return LogFolders
+                .Select(folder => Path.Combine(Root, folder))
+                .Where(Directory.Exists)
+                .SelectMany(folder => new DirectoryInfo(folder).EnumerateFiles(LogPattern, Enumeration))
+                .Max(file => (DateTime?)file.LastWriteTimeUtc);
+        }
+        catch (Exception e) when (e is IOException or UnauthorizedAccessException)
+        {
+            // The scan that follows reports the folder as unreadable; this only decides whether
+            // a scan is worth making.
+            return null;
+        }
+    }
+
     public CodexScan Scan()
     {
         if (!Directory.Exists(Root))
