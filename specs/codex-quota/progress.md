@@ -1,9 +1,9 @@
 # Codex Quota — Progress
 
-updated: 2026-10-15
+updated: 2026-10-28
 status: Build Verification done; release 0.5.0 in progress
 blockers: none
-next_session: release 0.5.0 by the README's Releasing steps (Trevor). Steps 1 to 3 done: version 0.5.0 in the project file, changelog section dated 2026-10-15, clean build 0 warnings, 1705 pass. The 0.5.0 winget manifest folder is written with the setup hash still to fill in after step 6.
+next_session: finish release 0.5.0 with the README's Releasing steps 15 and 16. Step 14 done on 2026-10-28 on the laptop, a fresh install with no Bingo installed or running there: `winget validate` passed again; `winget install --manifest` downloaded the setup, verified its hash, and reported "Successfully installed"; all nine install checks passed without -StartsAtSignIn (the box was not ticked). Not covered: winget closing and restarting a running Bingo, the case step 14 exists for, because there was nothing installed on the laptop to upgrade. The silent upgrade in step 9 on the desktop covered upgrade-while-running without winget. Confirm local manifests were disabled again afterwards. Step 15: commit the 0.5.0 manifest folder (still uncommitted) with this file. Step 16: open the winget-pkgs pull request. Steps 11 and 12 done: the release was published as a pre-release on 2026-10-15, and all three uploaded files match the local ones by SHA-256. Steps 1 to 10 and 13 done: release commit 6ea3ae6 tagged v0.5.0 and pushed; both exes read 0.5.0+6ea3ae6; setup built; Defender scan clean, exit 0; silent upgrade over the installed 0.4.0 exited 0, all ten install checks passed with -StartsAtSignIn, Bingo restarted as 0.5.0 with the HUD where it was; manifest filled with the setup hash 3C27F3D6…2DFF and `winget validate` passed. Release notes in artifacts/release-0.5.0-notes.md.
 
 ## 2026-10-15: 6.3, the feature review
 
