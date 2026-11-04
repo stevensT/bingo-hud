@@ -57,9 +57,11 @@ make on evidence.
    - reads `auth.json` in memory and takes only the fields step 1 says the call needs
    - prints the access token's expiry and age, and `auth.json`'s last-refresh time if it has one,
      never the token or any identity claim
-   - makes one request and prints the HTTP status and the rate-limit fields only
-   - with `--out`, writes a scrubbed fixture of the response body, as `capture-usage.js` does
-   - never writes to `auth.json` and never calls a token refresh
+   - makes one request and prints the HTTP status, the rate-limit fields, and the response's
+     key paths and types (never its values otherwise, so an error body is described, not quoted)
+   - never writes to `auth.json` and never calls a token refresh, and prints whether
+     `auth.json`'s modified time changed during the run
+   - writes no files. Fixtures are captured by the reader's own task if the route is chosen.
 3. **Fresh token, agreement.** Right after a Codex turn on this machine, read the Codex app, then
    run the script with nothing in between. Repeat at least three times across two days.
 4. **Usage from elsewhere.** Use Codex on the desktop or the phone, then on the laptop, without a
@@ -123,7 +125,59 @@ fixtures it wrote are kept only if the endpoint route is chosen.
 
 ## Findings
 
-(none yet)
+### Step 1, 2026-11-03: the endpoint in Codex's source
+
+Read from `openai/codex` at commit `3a2788e` (main, 2026-11-04 05:25 UTC). Files:
+`codex-rs/backend-client/src/client.rs` and `client/rate_limit_resets.rs`,
+`codex-rs/login/src/auth/manager.rs`, `storage.rs` and `token_data.rs`,
+`codex-rs/http-client/src/openai_headers.rs`, and the response models under
+`codex-rs/codex-backend-openapi-models/src/models/`.
+
+**The call.**
+- `GET https://chatgpt.com/backend-api/wham/usage` for a ChatGPT sign-in. (An `/api/codex/usage`
+  path exists for a different base URL; not this case.)
+- Headers: `Authorization: Bearer <access token>`, `chatgpt-account-id: <account id>`, and a
+  `User-Agent`. Codex sends its own; with none set the client falls back to `codex-cli`. An
+  optional `x-openai-codex-luna-reserve: 1` is sent only by clients that can apply a reserve; the
+  source comments that it is "not for passive account usage readers", so Bingo would not send it.
+- Nothing else. No body, no signing, no client secret. That rules out the fourth decision row.
+
+**What it needs from `auth.json`.** Two fields under `tokens`: `access_token` (a JWT) and
+`account_id`. The file also holds `refresh_token`, `id_token` (identity, including email), and a
+top-level `last_refresh` time. The script needs neither of the last two, and reads `last_refresh`
+only to print it.
+
+**The response, as the source models it.**
+- `plan_type`
+- `rate_limit`: `allowed`, `limit_reached`, `primary_window` and `secondary_window`, each with
+  `used_percent` (integer), `limit_window_seconds`, `reset_after_seconds` and `reset_at` (Unix
+  seconds)
+- also `credits`, `spend_control`, `additional_rate_limits` (separate per-model limits, each with
+  its own windows), `rate_limit_reached_type`, `rate_limit_reset_credits`
+- Same two windows as the logs' `primary` and `secondary`, renamed, with the window length in
+  seconds rather than minutes. `used_percent` is an integer here; the logs have carried a float.
+
+**When Codex refreshes its token.** In `manager.rs`, Codex refreshes when the access token's JWT
+expiry is within 5 minutes, or, if the expiry cannot be read, when `last_refresh` is more than
+8 days old. It also refreshes and retries once on a 401. The source does not say how long an access
+token lasts; the JWT's own expiry does, and the script will print it.
+
+**Refresh tokens are single-use.** The refresh failure codes include `refresh_token_reused`, with
+the message "your refresh token was already used. Please log out and sign in again." So if Bingo
+refreshed the token and did not write the new pair back to `auth.json`, Codex's next refresh would
+fail and sign it out. Writing it back would mean Bingo taking over Codex's sign-in. The Non-Goal is
+not just caution: refreshing is ruled out unless Codex's own refresh is triggered somehow.
+
+**On this machine.** `auth.json` exists, 4,280 bytes, last written 2026-11-03 20:40 (checked by
+file properties only, contents not read). Codex ran here tonight, so its token is fresh; step 5
+needs a machine idle for longer.
+
+**What this changes for step 2.** The script reads `tokens.access_token` and `tokens.account_id`,
+decodes the access token's `exp` claim without printing anything else from it, and prints
+`last_refresh`. Open choice for Trevor before writing it: which `User-Agent` to send. Honest
+(`bingo-hud/<version>`) is the default; Codex's own string would hide that the caller is not
+Codex. The Claude capture script sends a Claude Code user agent as a fallback, so this choice
+applies there too.
 
 ## Result
 
