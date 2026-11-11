@@ -5,7 +5,7 @@ namespace BingoHud.Core.Display;
 /// </summary>
 /// <param name="Label">
 /// What this row is about: "5h" and "Week" for the two windows the HUD shows, and for a
-/// per-model cap the server's own scope string, unaltered.
+/// per-model cap the server's own name for the model it is restricted to, unaltered.
 /// </param>
 /// <param name="Percent">
 /// The figure and the word that says which way it reads, exactly as the HUD phrases it. The

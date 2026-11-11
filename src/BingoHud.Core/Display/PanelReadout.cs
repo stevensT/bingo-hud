@@ -55,8 +55,8 @@ public static class PanelReadout
         var perModel = Rows(
             snapshot,
             w => w.Kind == WindowKind.WeeklyScoped,
-            // The server's scope string, unaltered. Mapping it to a friendlier model name would
-            // mean inventing a vocabulary for a field no capture has ever carried a value in.
+            // The server's own name for the model, unaltered. Mapping it to a friendlier one
+            // would be the panel saying something the server did not.
             w => w.Scope ?? UnnamedScope,
             settings,
             now,

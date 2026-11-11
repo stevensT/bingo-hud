@@ -17,8 +17,9 @@ public enum WindowKind
     WeeklyAll,
 
     /// <summary>
-    /// A weekly cap restricted to one model. Reported with a non-null <c>scope</c>. Never yet
-    /// observed on a live account, so its empty state is the common case.
+    /// A weekly cap restricted to one model. Recognized by a non-null <c>scope</c> naming the
+    /// model, whatever its <c>kind</c>; the first one observed, on 2026-11-11, reported
+    /// <c>weekly_scoped</c>.
     /// </summary>
     WeeklyScoped,
 }

@@ -207,7 +207,7 @@ Primary form — the `limits` array:
 | `limits[].percent` | `UsedPercent`, unchanged | 0–100 integer |
 | `limits[].severity` | `ServerSeverity` | `normal` only, so far |
 | `limits[].resets_at` | `ResetsAt` | ISO-8601, microsecond precision, `+00:00` offset — not `Z` |
-| `limits[].scope` | `ModelScope` | `null` on this account |
+| `limits[].scope` | `ModelScope` | `null` on this account until 2026-11-11, then `{"model":{"id":null,"display_name":"Fable"},"surface":null}` on a `weekly_scoped` entry. Read as `display_name`, then `id`; any other shape is unreadable. See `specs/scoped-cap-shape/`. |
 | `limits[].is_active` | Ignored | Semantics unclear — see below |
 
 Fallback form — the flat window keys, read only when `limits` is absent:
@@ -216,7 +216,7 @@ Fallback form — the flat window keys, read only when `limits` is absent:
 |---|---|---|
 | `five_hour` | Session window | `5_hour`, `session`, `primary` |
 | `seven_day` | Weekly window | `7_day`, `weekly`, `week`, `secondary` |
-| `seven_day_opus`, `seven_day_sonnet`, `weekly_scoped` | Per-model weekly caps | flat keys, array, or keyed object; all `null` as of 2026-08-30 |
+| `seven_day_opus`, `seven_day_sonnet`, `weekly_scoped` | Per-model weekly caps | flat keys, array, or keyed object; all `null` as of 2026-08-30. The flat keys were still `null` on 2026-11-11, when the first per-model cap arrived in `limits[]` instead. |
 | `.utilization` | `UsedPercent`, unchanged | — |
 | `.resets_at` | `ResetsAt` | ISO-8601, nullable |
 | `spend`, `extra_usage` | Ignored | Deliberately not consumed — non-goal |
@@ -234,7 +234,8 @@ malformed. Map an unrecognized severity string to `Unknown`, never to `Normal`.
   inferred from prior art, not observed here.
 - No per-model cap has ever been observed on this account — the flat `seven_day_opus` and
   `seven_day_sonnet` keys are `null` and `limits[].scope` is `null`. AC-23 therefore needs an
-  empty state, not just a rendering.
+  empty state, not just a rendering. (Superseded 2026-11-11: a per-model cap for Fable arrived
+  in `limits[]`, with `scope` as an object rather than the string predicted here.)
 
 **Error taxonomy** (adopted from prior art):
 

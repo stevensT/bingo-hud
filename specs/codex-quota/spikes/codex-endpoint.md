@@ -174,10 +174,9 @@ needs a machine idle for longer.
 
 **What this changes for step 2.** The script reads `tokens.access_token` and `tokens.account_id`,
 decodes the access token's `exp` claim without printing anything else from it, and prints
-`last_refresh`. Open choice for Trevor before writing it: which `User-Agent` to send. Honest
-(`bingo-hud/<version>`) is the default; Codex's own string would hide that the caller is not
-Codex. The Claude capture script sends a Claude Code user agent as a fallback, so this choice
-applies there too.
+`last_refresh`. Decided 2026-11-03 by Trevor: the script sends an honest `bingo-hud/<version>` user agent rather
+than Codex's own string, which would hide that the caller is not Codex. Whether the Claude capture
+script, which sends a Claude Code user agent, should do the same is still open.
 
 ## Result
 

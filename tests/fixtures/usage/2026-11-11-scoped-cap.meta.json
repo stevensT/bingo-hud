@@ -1,0 +1,27 @@
+{
+  "capturedAt": "2026-11-11T15:38:39.240Z",
+  "endpoint": "https://api.anthropic.com/api/oauth/usage",
+  "userAgent": "claude-code/2.1.322",
+  "status": 200,
+  "statusText": "OK",
+  "bodyBytes": 2512,
+  "bodyIsJson": true,
+  "headers": {
+    "anthropic-organization-id": "<redacted>",
+    "anthropic-workspace-id": "<redacted>",
+    "cf-cache-status": "DYNAMIC",
+    "cf-ray": "<redacted>",
+    "connection": "keep-alive",
+    "content-encoding": "br",
+    "content-security-policy": "default-src 'none'; frame-ancestors 'none'",
+    "content-type": "application/json",
+    "date": "Wed, 11 Nov 2026 15:38:38 GMT",
+    "request-id": "<redacted>",
+    "server": "cloudflare",
+    "server-timing": "x-originResponse;dur=150",
+    "strict-transport-security": "max-age=31536000; includeSubDomains; preload",
+    "transfer-encoding": "chunked",
+    "vary": "Accept-Encoding",
+    "x-robots-tag": "none"
+  }
+}

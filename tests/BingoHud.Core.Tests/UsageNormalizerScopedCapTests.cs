@@ -6,45 +6,52 @@ namespace BingoHud.Core.Tests;
 /// Per-model weekly caps: the windows the detail panel exists to show (AC-23).
 ///
 /// <para>
-/// Every capture so far reports these as null, so none of this has ever run against a real
-/// response. That makes the rule below deliberately the smallest one available: an entry whose
-/// <c>scope</c> names something is a cap restricted to that something. <c>scope</c> is a field
-/// the observed payload already carries — always null so far — so recognizing it guesses at no
-/// value the server has never sent. The alternative, predicting what <c>kind</c> string a scoped
-/// entry would use, would have been a guess, and a wrong guess there is silent: the entry is
-/// skipped and the panel shows an empty state that looks exactly like the honest one.
+/// The rule is the smallest one available: an entry whose <c>scope</c> names a model is a cap
+/// restricted to that model, whatever its <c>kind</c> says. <c>scope</c> was null in every
+/// capture until 2026-11-11, when the server first sent one, as an object:
+/// <c>{"model":{"id":null,"display_name":"Fable"},"surface":null}</c>. Recognizing a cap by its
+/// scope rather than by a predicted <c>kind</c> string is what keeps a new kind from dropping
+/// the cap silently, where the panel would show an empty state that looks exactly like the
+/// honest one.
 /// </para>
 /// <para>
-/// The scope string is shown as the server sent it. Bingo does not map it to a friendlier model
-/// name, because a mapping is a guess about a vocabulary that has never been observed, and a
-/// label invented for a cap is the panel telling the user something the server did not say.
+/// The label is the server's own: <c>display_name</c>, or <c>id</c> when there is no display
+/// name, shown as sent. Bingo does not map it to a friendlier name, because a label invented
+/// for a cap is the panel telling the user something the server did not say. Scope shapes that
+/// have not been observed are unreadable; those cases live in
+/// <see cref="UsageNormalizerUnreadableTests"/>.
 /// </para>
 /// </summary>
 public class UsageNormalizerScopedCapTests
 {
     private static readonly DateTimeOffset ObservedAt =
-        new(2026, 8, 30, 10, 9, 23, TimeSpan.FromHours(-7));
+        new(2026, 11, 11, 7, 38, 39, TimeSpan.FromHours(-8));
 
     private static QuotaSnapshot Parse(string body) =>
         Assert.IsType<FetchOutcome.Success>(UsageNormalizer.Normalize(body, ObservedAt)).Snapshot;
 
     /// <summary>
-    /// A limits array holding one entry, written out so each test states the whole shape it is
-    /// asserting against rather than inheriting it from a helper.
+    /// A limits array holding the given entries, written out so each test states the whole shape
+    /// it is asserting against rather than inheriting it from a helper.
     /// </summary>
     private static string Limits(string entries) => $$"""{"limits":[{{entries}}]}""";
 
     private const string SessionEntry = """
-        {"kind":"session","group":"session","percent":12,"severity":"normal",
-         "resets_at":"2026-08-30T21:30:00+00:00","scope":null,"is_active":false}
+        {"kind":"session","group":"session","percent":3,"severity":"normal",
+         "resets_at":"2026-11-11T19:50:00.864498+00:00","scope":null,"is_active":true}
+        """;
+
+    /// <summary>The scope exactly as the 2026-11-11 capture carried it.</summary>
+    private const string FableScope = """
+        {"model":{"id":null,"display_name":"Fable"},"surface":null}
         """;
 
     [Fact]
     public void AnEntryCarryingAScopeIsAPerModelCap()
     {
-        var body = Limits("""
-            {"kind":"weekly_scoped","group":"weekly","percent":40,"severity":"normal",
-             "resets_at":null,"scope":"claude-opus-4","is_active":true}
+        var body = Limits($$"""
+            {"kind":"weekly_scoped","group":"weekly","percent":0,"severity":"normal",
+             "resets_at":"2026-11-14T01:00:00+00:00","scope":{{FableScope}},"is_active":false}
             """);
 
         var window = Assert.Single(Parse(body).Windows);
@@ -53,26 +60,60 @@ public class UsageNormalizerScopedCapTests
     }
 
     [Fact]
-    public void APerModelCapIsLabelledWithTheScopeTheServerSent()
+    public void APerModelCapIsLabelledWithTheDisplayNameTheServerSent()
     {
-        var body = Limits("""
-            {"kind":"weekly_scoped","group":"weekly","percent":40,"severity":"normal",
-             "resets_at":null,"scope":"claude-opus-4","is_active":true}
+        var body = Limits($$"""
+            {"kind":"weekly_scoped","group":"weekly","percent":0,"severity":"normal",
+             "resets_at":null,"scope":{{FableScope}},"is_active":false}
             """);
 
         var window = Assert.Single(Parse(body).Windows);
 
-        Assert.Equal("claude-opus-4", window.Scope);
+        Assert.Equal("Fable", window.Scope);
+    }
+
+    [Theory]
+    [InlineData("null")]
+    [InlineData("\"\"")]
+    [InlineData("\"   \"")]
+    public void WithNoUsableDisplayNameTheCapIsLabelledWithTheModelId(string displayName)
+    {
+        // The capture's id was null, so the display name is the one that carries a value today.
+        // The id is the server's word too, so it is the label when the display name says
+        // nothing.
+        var body = Limits($$"""
+            {"kind":"weekly_scoped","group":"weekly","percent":0,"severity":"normal",
+             "resets_at":null,
+             "scope":{"model":{"id":"claude-fable-5","display_name":{{displayName}}},"surface":null},
+             "is_active":false}
+            """);
+
+        var window = Assert.Single(Parse(body).Windows);
+
+        Assert.Equal("claude-fable-5", window.Scope);
+    }
+
+    [Fact]
+    public void WithNoDisplayNameKeyAtAllTheCapIsLabelledWithTheModelId()
+    {
+        var body = Limits("""
+            {"kind":"weekly_scoped","group":"weekly","percent":0,"severity":"normal",
+             "resets_at":null,"scope":{"model":{"id":"claude-fable-5"}},"is_active":false}
+            """);
+
+        var window = Assert.Single(Parse(body).Windows);
+
+        Assert.Equal("claude-fable-5", window.Scope);
     }
 
     [Fact]
     public void AScopeIsEnoughOnItsOwnEvenWhenTheKindIsOneBingoDoesNotKnow()
     {
-        // The kind string for a scoped cap has never been observed. Recognizing the entry by its
-        // scope alone is what stops an unforeseen kind from dropping the cap silently.
-        var body = Limits("""
+        // weekly_scoped has now been observed, but the kind is still not what makes the entry a
+        // cap. A later rename of the kind must not drop the cap silently.
+        var body = Limits($$"""
             {"kind":"a_kind_from_2027","group":"weekly","percent":40,"severity":"normal",
-             "resets_at":null,"scope":"claude-opus-4","is_active":true}
+             "resets_at":null,"scope":{{FableScope}},"is_active":true}
             """);
 
         var window = Assert.Single(Parse(body).Windows);
@@ -81,19 +122,61 @@ public class UsageNormalizerScopedCapTests
     }
 
     [Fact]
-    public void APerModelCapKeepsItsPercentageAndResetTime()
+    public void APerModelCapKeepsItsPercentageResetTimeAndSeverity()
     {
-        var body = Limits("""
-            {"kind":"weekly_scoped","group":"weekly","percent":40,"severity":"normal",
-             "resets_at":"2026-09-05T01:00:00+00:00","scope":"claude-opus-4","is_active":true}
+        // The scoped entry's reset time has no fractional seconds, unlike the session and
+        // weekly ones in the same capture. Both forms parse.
+        var body = Limits($$"""
+            {"kind":"weekly_scoped","group":"weekly","percent":40,"severity":"warning",
+             "resets_at":"2026-11-14T01:00:00+00:00","scope":{{FableScope}},"is_active":false}
             """);
 
         var window = Assert.Single(Parse(body).Windows);
 
         Assert.Equal(40, window.UsedPercent);
-        Assert.Equal(
-            new DateTimeOffset(2026, 9, 5, 1, 0, 0, TimeSpan.Zero),
-            window.ResetsAt);
+        Assert.Equal(new DateTimeOffset(2026, 11, 14, 1, 0, 0, TimeSpan.Zero), window.ResetsAt);
+        Assert.Equal(ServerSeverity.Warning, window.Severity);
+    }
+
+    [Fact]
+    public void UnknownKeysInsideTheScopeAreIgnored()
+    {
+        // Tolerant in, as everywhere else in the payload. Noticing a new key is the contract
+        // test's job; refusing a reading over one would fail every response the day it appears.
+        var body = Limits("""
+            {"kind":"weekly_scoped","group":"weekly","percent":0,"severity":"normal",
+             "resets_at":null,
+             "scope":{"model":{"id":null,"display_name":"Fable","family":"fable"},
+                      "surface":null,"tier":"max"},
+             "is_active":false}
+            """);
+
+        var window = Assert.Single(Parse(body).Windows);
+
+        Assert.Equal("Fable", window.Scope);
+    }
+
+    [Fact]
+    public void AScopeOfNullIsNoScope()
+    {
+        var window = Assert.Single(Parse(Limits(SessionEntry)).Windows);
+
+        Assert.Equal(WindowKind.Session, window.Kind);
+        Assert.Null(window.Scope);
+    }
+
+    [Fact]
+    public void AnAbsentScopeIsNoScope()
+    {
+        var body = Limits("""
+            {"kind":"weekly_all","group":"weekly","percent":3,"severity":"normal",
+             "resets_at":"2026-11-14T01:00:00.864518+00:00","is_active":false}
+            """);
+
+        var window = Assert.Single(Parse(body).Windows);
+
+        Assert.Equal(WindowKind.WeeklyAll, window.Kind);
+        Assert.Null(window.Scope);
     }
 
     [Fact]
@@ -118,22 +201,5 @@ public class UsageNormalizerScopedCapTests
         var snapshot = Parse(Fixtures.Read(Fixtures.Baseline));
 
         Assert.All(snapshot.Windows, w => Assert.Null(w.Scope));
-    }
-
-    [Fact]
-    public void AnEmptyScopeStringNamesNoModelAndIsNotACap()
-    {
-        // "" identifies nothing. Treating it as a cap would put an unlabelled row in the panel.
-        // Paired with a session entry because a response reporting no windows at all is
-        // unreadable rather than empty, and that rule is not what this test is about.
-        var body = Limits($$"""
-            {{SessionEntry}},
-            {"kind":"a_kind_from_2027","group":"weekly","percent":40,"severity":"normal",
-             "resets_at":null,"scope":"","is_active":true}
-            """);
-
-        var window = Assert.Single(Parse(body).Windows);
-
-        Assert.Equal(WindowKind.Session, window.Kind);
     }
 }

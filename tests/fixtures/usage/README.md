@@ -25,6 +25,7 @@ to detect.
 |---|---|---|
 | `2026-08-30-baseline` | 200 | Max plan, both windows normal. `five_hour` 12% utilized, `seven_day` 37%. Per-model weekly keys present but `null`. |
 | `2026-08-30-auth-failure` | 401 | Deliberately invalid bearer token (`--auth-failure-probe`). Body carries `error.type == "authentication_error"`. |
+| `2026-11-11-scoped-cap` | 200 | Max plan, both windows normal at 3%. First capture with a per-model weekly cap: a third `limits` entry, `weekly_scoped`, whose `scope` is `{"model":{"id":null,"display_name":"Fable"},"surface":null}`. Its `resets_at` has no fractional seconds, unlike the other two. Carries many new top-level keys Bingo does not read. |
 | `2026-08-30-derived-flat-only` | 200, derived | **Not a capture.** The baseline body with its `limits` array removed. |
 
 ### Derived fixtures

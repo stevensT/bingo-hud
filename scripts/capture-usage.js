@@ -53,6 +53,17 @@ function findAccessToken(node, depth) {
   return null;
 }
 
+// The credential file also holds tokens for connected plugins, under keys that can come
+// before Claude's own. Claude's sign-in lives under claudeAiOauth, which is where the app reads
+// it, so that is the only place looked when it exists. The open search is kept for a file
+// from an older layout that has no claudeAiOauth at all.
+function findClaudeAccessToken(creds) {
+  const own = creds && creds.claudeAiOauth;
+  if (!own || typeof own !== 'object') return findAccessToken(creds);
+  const found = findAccessToken(own, 1);
+  return found && { token: found.token, container: found.container, path: 'claudeAiOauth.' + found.path };
+}
+
 function describeExpiry(container) {
   const raw = container.expiresAt !== undefined ? container.expiresAt : container.expires_at;
   if (typeof raw !== 'number') return 'expiresAt: absent or non-numeric';
@@ -137,9 +148,11 @@ async function main() {
     process.exit(2);
   }
 
-  const found = findAccessToken(creds);
+  const found = findClaudeAccessToken(creds);
   if (!found) {
-    console.error('No accessToken found in the credentials file.');
+    console.error(creds && creds.claudeAiOauth
+      ? 'No accessToken found under claudeAiOauth in the credentials file.'
+      : 'No accessToken found in the credentials file.');
     console.error('Key paths present (names only, no values):');
     for (const line of shapeLines(scrub(creds))) console.error('  ' + line);
     process.exit(2);

@@ -188,22 +188,21 @@ public static class UsageNormalizer
                 return WindowReading.Malformed("An entry of the limits array was not an object.");
             }
 
-            // A scope present in the wrong shape cannot be read as no scope. The entry would be
-            // classified by its kind alone, and a per-model cap reporting weekly_all would be
-            // shown and alerted on as the account-wide week.
-            if (limit.TryGetProperty("scope", out var rawScope)
-                && rawScope.ValueKind is not (JsonValueKind.String or JsonValueKind.Null))
+            // A scope present in a shape this version does not know cannot be read as no scope.
+            // The entry would be classified by its kind alone, and a per-model cap reporting
+            // weekly_all would be shown and alerted on as the account-wide week.
+            var scopeReading = ReadScope(limit);
+
+            if (scopeReading.MalformedReason is not null)
             {
-                return WindowReading.Malformed(
-                    "An entry of the limits array had a scope that was not a string.");
+                return WindowReading.Malformed(scopeReading.MalformedReason);
             }
 
-            var scope = ReadScope(limit);
+            var scope = scopeReading.Label;
 
             // A scope names what the cap is restricted to, so an entry carrying one is a
-            // per-model weekly cap whatever its kind says. Checked before the kind map because
-            // the kind string a scoped entry uses has never been observed, and predicting it
-            // wrongly would drop the cap without a word.
+            // per-model weekly cap whatever its kind says. Checked before the kind map so that
+            // a renamed kind cannot drop the cap without a word.
             var kind = scope is null ? ReadWindowKind(limit) : WindowKind.WeeklyScoped;
 
             if (kind is not { } known)
@@ -288,25 +287,79 @@ public static class UsageNormalizer
     }
 
     /// <summary>
-    /// The scope an entry is restricted to, or null when it is restricted to nothing.
+    /// The result of reading an entry's <c>scope</c>: the label of the model it is restricted
+    /// to, nothing at all, or the reason the scope could not be read.
+    /// </summary>
+    private sealed record ScopeReading(string? Label, string? MalformedReason)
+    {
+        public static readonly ScopeReading None = new(null, null);
+
+        public static ScopeReading Named(string label) => new(label, null);
+
+        public static ScopeReading Malformed(string reason) => new(null, reason);
+    }
+
+    /// <summary>
+    /// Reads an entry's <c>scope</c>.
     ///
     /// <para>
-    /// Null, absent, and empty all mean the same thing here: this entry names no model. An empty
-    /// string identifies nothing, so treating it as a scope would put a row in the panel with
-    /// nothing to label it.
+    /// Absent and null mean the entry is restricted to nothing. The one other shape accepted is
+    /// the one observed on 2026-11-11: an object whose <c>model</c> names a model and whose
+    /// <c>surface</c> is null or absent. The label is <c>display_name</c>, or <c>id</c> when
+    /// there is no usable display name, exactly as sent. Anything else is malformed.
     /// </para>
     /// </summary>
-    private static string? ReadScope(JsonElement limit)
+    private static ScopeReading ReadScope(JsonElement limit)
     {
         if (!limit.TryGetProperty("scope", out var scope)
-            || scope.ValueKind != JsonValueKind.String)
+            || scope.ValueKind == JsonValueKind.Null)
+        {
+            return ScopeReading.None;
+        }
+
+        if (scope.ValueKind != JsonValueKind.Object)
+        {
+            return ScopeReading.Malformed(
+                "An entry of the limits array had a scope that was not an object.");
+        }
+
+        // Checked before the model, because a surface beside a valid model is still a shape
+        // nobody has seen: the cap could be restricted to the model, the surface, or both.
+        if (scope.TryGetProperty("surface", out var surface)
+            && surface.ValueKind != JsonValueKind.Null)
+        {
+            return ScopeReading.Malformed(
+                "An entry of the limits array had a scope restricted to a surface, which this "
+                + "version does not read.");
+        }
+
+        if (!scope.TryGetProperty("model", out var model)
+            || model.ValueKind != JsonValueKind.Object
+            || (ReadNonBlankString(model, "display_name") ?? ReadNonBlankString(model, "id"))
+                is not { } label)
+        {
+            return ScopeReading.Malformed(
+                "An entry of the limits array had a scope that named no model.");
+        }
+
+        return ScopeReading.Named(label);
+    }
+
+    /// <summary>
+    /// Reads a string property, or null when it is absent, not a string, or only whitespace.
+    /// A blank string identifies nothing, so it is treated as no value at all.
+    /// </summary>
+    private static string? ReadNonBlankString(JsonElement element, string property)
+    {
+        if (!element.TryGetProperty(property, out var value)
+            || value.ValueKind != JsonValueKind.String)
         {
             return null;
         }
 
-        var value = scope.GetString();
+        var text = value.GetString();
 
-        return string.IsNullOrWhiteSpace(value) ? null : value;
+        return string.IsNullOrWhiteSpace(text) ? null : text;
     }
 
     /// <summary>

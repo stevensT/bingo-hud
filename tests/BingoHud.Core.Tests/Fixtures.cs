@@ -24,6 +24,12 @@ internal static class Fixtures
     public const string AuthFailure = "2026-08-30-auth-failure.json";
 
     /// <summary>
+    /// The first capture carrying a per-model weekly cap, whose <c>scope</c> is an object
+    /// naming a model.
+    /// </summary>
+    public const string ScopedCap = "2026-11-11-scoped-cap.json";
+
+    /// <summary>
     /// The baseline body with its <c>limits</c> array removed, and nothing else changed.
     ///
     /// Derived rather than captured: the live endpoint returns <c>limits[]</c> on every

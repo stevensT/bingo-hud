@@ -11,6 +11,14 @@ session logs, anything below `1.0.0` should be treated as liable to break when e
 
 ## [Unreleased]
 
+### Fixed
+- Claude readings showed "Response unreadable" once the usage endpoint began reporting a
+  per-model weekly cap. The cap names its model in a form Bingo had not seen before, and Bingo
+  rejected the whole response, 5-hour and weekly figures included. Bingo now reads that form and
+  lists the cap in the detail panel under the name the server gives it, such as "Fable". A cap
+  described in any other unfamiliar way still makes the reading unreadable rather than being
+  guessed at.
+
 ## [0.5.0] - 2026-10-15
 
 Codex usage beside Claude's. A minor release, as every change to how a source is read is: Codex's

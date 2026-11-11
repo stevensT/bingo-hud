@@ -15,8 +15,8 @@ public static class WindowName
 {
     /// <summary>
     /// The short name, sized for the HUD, which has the least room and therefore sets the
-    /// length. Per-model caps have no name here: they are labelled with the server's scope
-    /// string instead, and only the panel shows them.
+    /// length. Per-model caps have no name here: they are labelled with the server's own name
+    /// for the model instead, and only the panel shows them.
     /// </summary>
     public static string Short(WindowKind kind) => kind switch
     {
