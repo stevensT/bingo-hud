@@ -11,6 +11,12 @@ session logs, anything below `1.0.0` should be treated as liable to break when e
 
 ## [Unreleased]
 
+## [0.6.0] - 2026-11-11
+
+A fix for Claude readings, released as a minor version because it changes how the usage
+endpoint's response is read. 0.5.0 shows "Response unreadable" on any account whose plan reports
+a per-model weekly cap; upgrading is the fix.
+
 ### Fixed
 - Claude readings showed "Response unreadable" once the usage endpoint began reporting a
   per-model weekly cap. The cap names its model in a form Bingo had not seen before, and Bingo

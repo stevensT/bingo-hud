@@ -1,9 +1,11 @@
 # Scoped Cap Shape — Progress
 
 updated: 2026-11-11
-status: Phase 3 checkpoint passed; review findings resolved or deferred; awaiting the live app check
+status: complete; release 0.6.0 in progress
 blockers: none
-next_session: Trevor confirms the HUD and the Fable row in the running app, then the feature closes
+next_session: release 0.6.0 from step 4 (commit and tag) of the README's Releasing steps
+
+Live check, 2026-11-11: Trevor ran the Debug build against the live endpoint and confirmed the HUD and the Fable row in the panel.
 
 ## How it was found
 
@@ -69,3 +71,10 @@ notes:
 - 3.5 verified against five scratch credential files, each with a decoy plugin token: `claudeAiOauth` as null, a string, an array, `{}`, and an empty token all stop with exit 2 and never use the decoy. Live run used `claudeAiOauth.accessToken` and got HTTP 200.
 - The first clean build at this checkpoint failed to copy into the App output because the running Debug app held `BingoHud.Core.dll`. The app was stopped, the clean build rerun with 0 warnings, and the app relaunched on the new build.
 issues: none
+
+## 2026-11-11: release 0.6.0
+
+Decided after the feature closed, as the spec's non-goal said it would be. Released on its own rather than held for the Codex endpoint spike, because every installed 0.5.0 is unreadable on an account reporting a per-model cap. Following the README's Releasing steps.
+- Step 1: 0.6.0, a minor version, because the change is to how the endpoint response is parsed.
+- Step 2: `<Version>` set to 0.6.0; the Unreleased entry moved into a dated `[0.6.0] - 2026-11-11` section with a one-paragraph summary. Nothing else user-visible landed since 0.5.0.
+- Step 3: `dotnet clean`, `dotnet build` 0 warnings, `dotnet test` 1747 pass.

@@ -98,6 +98,6 @@ Raised at review on 2026-11-11. These run in sequence.
 
 - [x] `dotnet clean`, then `dotnet build` with zero warnings
 - [x] `dotnet test`, all passing
-- [ ] Run the app against the live endpoint and confirm the HUD shows the 5-hour and weekly
+- [x] Run the app against the live endpoint and confirm the HUD shows the 5-hour and weekly
       readings and the panel lists the Fable cap
-- [ ] Final checkpoint recorded in `progress.md`; review findings resolved or deferred here
+- [x] Final checkpoint recorded in `progress.md`; review findings resolved or deferred here
