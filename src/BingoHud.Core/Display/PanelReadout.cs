@@ -174,9 +174,10 @@ public static class PanelReadout
     /// Said in place of a section's rows when a reading carried none.
     ///
     /// <para>
-    /// For per-model caps this is the common case, not the exceptional one: every capture so far
-    /// reports them as null. An empty area under a heading reads as a section that failed to
-    /// load, so the panel says outright that the server reported none.
+    /// For per-model caps this is an ordinary state, not an exceptional one: an account may have
+    /// none, and every capture before 2026-11-11 reported none. An empty area under a heading
+    /// reads as a section that failed to load, so the panel says outright that the server
+    /// reported none.
     /// </para>
     /// </summary>
     private const string NoneReported = "None reported for this account.";
@@ -198,9 +199,9 @@ public static class PanelReadout
         : null;
 
     /// <summary>
-    /// A per-model cap whose scope came back empty. The normalizer will not produce one — a cap
-    /// with no scope is not a per-model cap — so this exists to make a future regression legible
-    /// on screen rather than to be seen.
+    /// A per-model cap with no label. The normalizer will not produce one: a null scope is not a
+    /// cap, and a scope or per-model entry that names no model makes the response unreadable.
+    /// This exists to make a future regression legible on screen rather than to be seen.
     /// </summary>
     private const string UnnamedScope = "unnamed";
 

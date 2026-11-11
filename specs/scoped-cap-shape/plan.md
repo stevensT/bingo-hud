@@ -34,6 +34,8 @@ from an older layout.
 | `QuotaWindow.Scope` type | Stays `string?` | It already means "the label the panel shows". Widening it to a structured type would touch every display test for no behaviour change. |
 | Reason wording | One reason per failure kind | The reason goes on screen verbatim for bug reports, so it should say what was wrong. |
 | New fixture name | `2026-11-11-scoped-cap` | Names what the capture is for, like `baseline` and `auth-failure`. |
+| `weekly_scoped` kind with no scope | Unreadable (added at review) | The kind is observed now. Skipping it as an unknown feature would drop a real cap without a word. |
+| Name of the wrong type | Unreadable (added at review) | Present and wrong-typed is malformed everywhere else in the parser (percent, reset time, scope). Falling back to the id would read an unseen shape as a normal one. |
 | Baseline contract test | Untouched | It pins the 2026-08-30 capture, which has not changed. The new capture gets its own, narrower contract test on `limits`. |
 
 ## Data Model
@@ -54,6 +56,9 @@ Unreadable reasons added (each is a whole sentence, shown verbatim):
 - `An entry of the limits array had a scope that was not an object.`
 - `An entry of the limits array had a scope that named no model.`
 - `An entry of the limits array had a scope restricted to a surface, which this version does not read.`
+- `An entry of the limits array had a scope whose model was not an object.` (added at review)
+- `An entry of the limits array had a scope whose model name was not a string.` (added at review)
+- `A per-model weekly entry named no model.` (added at review)
 
 The old reason `…had a scope that was not a string.` is removed.
 

@@ -55,6 +55,45 @@ These run in sequence: all three touch `UsageNormalizer` or its tests.
 - [x] 2.3 Checkpoint: clean, build, full suite; audit marks; all acceptance criteria; record in
       `progress.md`.
 
+## Phase 3: Review findings
+
+Raised at review on 2026-11-11. These run in sequence.
+
+- [x] 3.1 Test: a valid scope on a `session` and on a `weekly_all` entry gives a `WeeklyScoped`
+      window labelled `Fable`. A string scope on an unknown kind is unreadable. A bad scope beside
+      a valid session entry, a valid weekly entry and the flat `five_hour`/`seven_day` keys is
+      unreadable. `" Fable "` is kept untrimmed. These pin behaviour already present; each is
+      checked against a deliberate mutation of the parser to prove it can fail. (AC-2, AC-4, AC-9)
+- [x] 3.2 Test + implement: an entry with kind `weekly_scoped` and a null or absent scope is
+      unreadable with the reason `A per-model weekly entry named no model.` (AC-8)
+- [x] 3.3 Test + implement: a `display_name` or `id` present as a number, boolean, object or
+      array is unreadable, even beside a valid name in the other field. Split the "named no
+      model" reason so a `model` that is not an object, a name of the wrong type, and a model
+      with no usable name each say so. (AC-2, AC-4)
+- [x] 3.4 Test: the 2026-11-11 fixture, parsed and composed, gives a panel per-model row labelled
+      `Fable` with no empty state, and panel windows `5h` and `Week`. Add `ScopedCap` to
+      `FixtureAvailabilityTests`. The "no alert for the cap" check was dropped: the captured cap
+      is at 0%, so it would pass whatever the engine did, and `AlertEngineTests` already pins
+      that per-model caps never alert. (AC-1, AC-5)
+- [x] 3.5 Fix `scripts/capture-usage.js` so that when the `claudeAiOauth` key exists, the token is
+      looked for only there, and a value that is null or not an object stops with its own
+      message. Bring the header comment up to date. Test-first suspended as in 2.1; verify live,
+      and verify the null case against a scratch credential file. (AC-6)
+- [x] 3.6 Update the remaining stale descriptions: the "so far" and "common case" wording in
+      `PanelReadout`, `PanelContent`, `PanelReadoutTests` and `BaselineFixtureContractTests`; the
+      `UnnamedScope` summary; `specs/quota-hud/plan.md` lines on `ModelScope` and the per-model
+      row; the `UsageNormalizer` class summary and `ReadScope` summary; `QuotaWindow` and
+      `WindowKind` wording; the two test comments the review named. Sweep for `so far`,
+      `ever been observed`, and `common case`. (AC-7)
+- [x] 3.7 Checkpoint: clean, build, full suite; audit marks; all acceptance criteria; record in
+      `progress.md`.
+
+### Deferred at review
+
+- Duplicate unscoped windows in `limits` (two `weekly_all` entries): the HUD takes the first.
+  Predates this feature; listed under the spec's non-goals. Lifted by its own change adding a
+  criterion that a repeated unscoped kind is unreadable.
+
 ## Build Verification
 
 - [x] `dotnet clean`, then `dotnet build` with zero warnings

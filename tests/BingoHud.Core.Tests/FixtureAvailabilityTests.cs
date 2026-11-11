@@ -15,6 +15,7 @@ public class FixtureAvailabilityTests
     [Theory]
     [InlineData(Fixtures.Baseline)]
     [InlineData(Fixtures.AuthFailure)]
+    [InlineData(Fixtures.ScopedCap)]
     public void FixtureIsCopiedToTheTestOutputDirectory(string fileName)
     {
         var path = Fixtures.Path(fileName);
@@ -28,6 +29,7 @@ public class FixtureAvailabilityTests
     [Theory]
     [InlineData(Fixtures.Baseline)]
     [InlineData(Fixtures.AuthFailure)]
+    [InlineData(Fixtures.ScopedCap)]
     public void FixtureParsesAsAJsonObject(string fileName)
     {
         using var document = JsonDocument.Parse(Fixtures.Read(fileName));

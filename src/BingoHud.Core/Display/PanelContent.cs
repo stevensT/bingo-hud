@@ -32,10 +32,9 @@ public sealed record PanelRow(string Label, string Percent, string Reset);
 /// <param name="WindowsEmptyState">
 /// What to show in place of the window rows when there are none, or null when there are some.
 /// </param>
-/// <param name="PerModelCaps">Weekly caps restricted to one model. Empty on every payload observed so far.</param>
+/// <param name="PerModelCaps">Weekly caps restricted to one model, or empty when the server reported none.</param>
 /// <param name="PerModelCapsEmptyState">
 /// What to show in place of the per-model rows when there are none, or null when there are some.
-/// Not an afterthought: this is the state nearly every user will see.
 /// </param>
 /// <param name="Age">How old the displayed reading is, or null before the first one.</param>
 /// <param name="LastPoll">When the last successful poll happened, written out in full (AC-24).</param>

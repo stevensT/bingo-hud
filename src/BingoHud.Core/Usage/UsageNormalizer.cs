@@ -9,8 +9,10 @@ namespace BingoHud.Core.Usage;
 /// <para>
 /// Tolerant in, strict out. Unknown top-level keys are ignored, because the live payload
 /// carries several of them and any rule that failed on an unrecognized key would fail on every
-/// real response. What is not tolerated is a known window that is present and malformed: that
-/// is <see cref="FetchOutcome.Unreadable"/>, never a zero.
+/// real response. What is not tolerated is a known window that is present and malformed, or a
+/// <c>limits</c> entry whose <c>scope</c> is in a shape this version does not know, whatever its
+/// kind: those are <see cref="FetchOutcome.Unreadable"/>, never a zero and never a partial
+/// reading.
 /// </para>
 /// <para>
 /// Two parse paths. The <c>limits</c> array is preferred: it is self-describing, needs no alias
@@ -205,6 +207,14 @@ public static class UsageNormalizer
             // a renamed kind cannot drop the cap without a word.
             var kind = scope is null ? ReadWindowKind(limit) : WindowKind.WeeklyScoped;
 
+            // The reverse case: a kind that says per-model, with no model named. Since the kind
+            // was observed it is a broken entry, not an unknown one, and skipping it would drop
+            // a real cap without a word.
+            if (kind == WindowKind.WeeklyScoped && scope is null)
+            {
+                return WindowReading.Malformed("A per-model weekly entry named no model.");
+            }
+
             if (kind is not { } known)
             {
                 // A window this version does not know. Skipped, not rejected: the endpoint has
@@ -306,7 +316,9 @@ public static class UsageNormalizer
     /// Absent and null mean the entry is restricted to nothing. The one other shape accepted is
     /// the one observed on 2026-11-11: an object whose <c>model</c> names a model and whose
     /// <c>surface</c> is null or absent. The label is <c>display_name</c>, or <c>id</c> when
-    /// there is no usable display name, exactly as sent. Anything else is malformed.
+    /// there is no usable display name, exactly as sent and untrimmed. A name that is absent,
+    /// null, or blank is missing; a name present with any other type is malformed. Unknown
+    /// extra keys inside <c>scope</c> or <c>model</c> are ignored. Anything else is malformed.
     /// </para>
     /// </summary>
     private static ScopeReading ReadScope(JsonElement limit)
@@ -323,8 +335,9 @@ public static class UsageNormalizer
                 "An entry of the limits array had a scope that was not an object.");
         }
 
-        // Checked before the model, because a surface beside a valid model is still a shape
-        // nobody has seen: the cap could be restricted to the model, the surface, or both.
+        // Checked first, so a non-null surface is reported as such whatever the model holds. A
+        // surface beside a valid model is still a shape nobody has seen: the cap could be
+        // restricted to the model, the surface, or both.
         if (scope.TryGetProperty("surface", out var surface)
             && surface.ValueKind != JsonValueKind.Null)
         {
@@ -333,33 +346,55 @@ public static class UsageNormalizer
                 + "version does not read.");
         }
 
+        const string NamedNoModel = "An entry of the limits array had a scope that named no model.";
+
         if (!scope.TryGetProperty("model", out var model)
-            || model.ValueKind != JsonValueKind.Object
-            || (ReadNonBlankString(model, "display_name") ?? ReadNonBlankString(model, "id"))
-                is not { } label)
+            || model.ValueKind == JsonValueKind.Null)
         {
-            return ScopeReading.Malformed(
-                "An entry of the limits array had a scope that named no model.");
+            return ScopeReading.Malformed(NamedNoModel);
         }
 
-        return ScopeReading.Named(label);
+        if (model.ValueKind != JsonValueKind.Object)
+        {
+            return ScopeReading.Malformed(
+                "An entry of the limits array had a scope whose model was not an object.");
+        }
+
+        if (!TryReadOptionalName(model, "display_name", out var displayName)
+            || !TryReadOptionalName(model, "id", out var id))
+        {
+            return ScopeReading.Malformed(
+                "An entry of the limits array had a scope whose model name was not a string.");
+        }
+
+        return (displayName ?? id) is { } label
+            ? ScopeReading.Named(label)
+            : ScopeReading.Malformed(NamedNoModel);
     }
 
     /// <summary>
-    /// Reads a string property, or null when it is absent, not a string, or only whitespace.
-    /// A blank string identifies nothing, so it is treated as no value at all.
+    /// Reads an optional name. Absent, null, and blank all succeed with no name: a blank string
+    /// identifies nothing. A value of any type other than string fails, because a name present
+    /// in the wrong shape is not a missing one. A usable name is returned exactly as sent.
     /// </summary>
-    private static string? ReadNonBlankString(JsonElement element, string property)
+    private static bool TryReadOptionalName(JsonElement model, string property, out string? name)
     {
-        if (!element.TryGetProperty(property, out var value)
-            || value.ValueKind != JsonValueKind.String)
+        name = null;
+
+        if (!model.TryGetProperty(property, out var value)
+            || value.ValueKind == JsonValueKind.Null)
         {
-            return null;
+            return true;
+        }
+
+        if (value.ValueKind != JsonValueKind.String)
+        {
+            return false;
         }
 
         var text = value.GetString();
-
-        return string.IsNullOrWhiteSpace(text) ? null : text;
+        name = string.IsNullOrWhiteSpace(text) ? null : text;
+        return true;
     }
 
     /// <summary>
@@ -377,6 +412,7 @@ public static class UsageNormalizer
         {
             "session" => WindowKind.Session,
             "weekly_all" => WindowKind.WeeklyAll,
+            "weekly_scoped" => WindowKind.WeeklyScoped,
             _ => null,
         };
     }

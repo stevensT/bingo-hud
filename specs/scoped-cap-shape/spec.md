@@ -34,13 +34,19 @@ and points the capture script at Claude's own token.
       windows come out as they do today, and the entry becomes a per-model weekly cap with its
       percentage, reset time, and severity.
 - [ ] AC-2: The cap's label is `model.display_name` exactly as sent. When that is absent, null,
-      or empty, the label is `model.id` exactly as sent. Bingo maps neither to another name.
-- [ ] AC-3: A `scope` that is absent or null means the entry is restricted to nothing, as today.
+      or blank, the label is `model.id` exactly as sent. Bingo maps neither to another name and
+      trims neither. A `display_name` or `id` present with a type other than string is not a
+      missing name; it is covered by AC-4.
+- [ ] AC-3: A `scope` that is absent or null means the entry is restricted to nothing, as today,
+      except on an entry whose kind is `weekly_scoped` (AC-8).
 - [ ] AC-4: Any other `scope` makes the whole response unreadable, with a reason naming what was
       wrong. This covers a string, a number, or an array; an object whose `model` is absent,
-      null, or not an object; a `model` with neither a usable `display_name` nor a usable `id`;
+      null, or not an object; a `model` whose `display_name` or `id` is present with a type other
+      than string or null; a `model` with neither a usable `display_name` nor a usable `id`;
       and a `surface` that is present and not null, whatever `model` holds. Unknown extra keys
-      inside `scope` or `model` are ignored, as unknown keys are everywhere else.
+      inside `scope` or `model` are ignored, as unknown keys are everywhere else. The whole
+      response is unreadable even when other entries beside the broken one are readable, and
+      even when the broken entry's kind is one Bingo does not know.
 - [ ] AC-5: The 2026-11-11 capture is committed as a scrubbed fixture with its metadata and an
       inventory row. The parser reads it as AC-1 describes, with the cap labelled "Fable", and a
       contract test pins the shape of its `limits` entries, so that a further change to the scope
@@ -48,6 +54,12 @@ and points the capture script at Claude's own token.
 - [ ] AC-6: When the credential file has a `claudeAiOauth` object, the capture script uses the
       token inside it, never one found elsewhere in the file. It still reports which path the
       token came from, and still never prints the token.
+- [ ] AC-8: An entry whose kind is `weekly_scoped` and whose `scope` is absent or null makes the
+      whole response unreadable. The kind is now observed, so a per-model entry naming no model
+      is a broken entry, not a feature that does not exist yet.
+- [ ] AC-9: A valid scope makes an entry a per-model cap whatever its kind, including `session`
+      and `weekly_all`, so a per-model cap is never shown or alerted on as one of the HUD's two
+      windows.
 - [ ] AC-7: Every committed description of `scope` as a string, or as a field no capture has
       carried a value in, is updated to describe the observed object, and the changelog's
       Unreleased section records the fix.
@@ -60,6 +72,9 @@ and points the capture script at Claude's own token.
 - **A string-form scope.** Dropped, not kept as a fallback. It was never observed.
 - **Notifications or HUD space for per-model caps.** They stay in the detail panel only, as now.
 - **Friendlier labels.** No mapping from `display_name` or `id` to another name.
+- **Duplicate unscoped windows in `limits`.** Two entries of the same unscoped kind are not
+  rejected; the HUD takes the first. This predates the feature and was deferred at review on
+  2026-11-11 to be handled as its own change.
 - **Cutting a release.** This changes how the endpoint is parsed, so it is a MINOR change under
   the README's versioning rule. The version bump and release are decided after this closes.
 
@@ -67,7 +82,8 @@ and points the capture script at Claude's own token.
 
 None. Trevor decided the four open choices on 2026-11-11: an unseen scope shape is unreadable,
 the string form is dropped, the label is `display_name` then `id`, and the release is decided
-afterwards.
+afterwards. Review on the same day added AC-8 and AC-9, made a wrong-typed name unreadable
+rather than a fallback to the id, and deferred duplicate unscoped windows.
 
 ## Dependencies
 

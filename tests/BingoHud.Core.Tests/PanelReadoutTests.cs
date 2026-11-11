@@ -222,10 +222,10 @@ public class PanelReadoutTests
         Assert.Equal("88% left", Assert.Single(content.Windows).Percent);
     }
 
-    // ---- Per-model weekly caps: the empty state is the common case (AC-23) ----
+    // ---- Per-model weekly caps, and the empty state when there are none (AC-23) ----
 
     [Fact]
-    public void PerModelCapsAreEmptyOnEveryPayloadObservedSoFar()
+    public void PerModelCapsAreEmptyWhenTheReadingCarriesNone()
     {
         var snapshot = Snapshot(
             Window(WindowKind.Session, 12),
@@ -237,9 +237,9 @@ public class PanelReadoutTests
     [Fact]
     public void AnEmptyPerModelSectionSaysTheAccountHasNoneRatherThanShowingNothing()
     {
-        // Every capture so far reports these as null, so this is the state a user will almost
-        // always see. An empty area under a heading reads as a screen that failed to load;
-        // saying none were reported is the difference between an empty state and a bug.
+        // An account may have no per-model caps at all. An empty area under a heading reads as a
+        // screen that failed to load; saying none were reported is the difference between an
+        // empty state and a bug.
         var snapshot = Snapshot(Window(WindowKind.Session, 12));
 
         Assert.Equal(
@@ -248,15 +248,15 @@ public class PanelReadoutTests
     }
 
     [Fact]
-    public void APerModelCapIsLabelledWithTheScopeTheServerSent()
+    public void APerModelCapIsLabelledWithTheNameTheServerSent()
     {
         var snapshot = Snapshot(
             Window(WindowKind.Session, 12),
-            Window(WindowKind.WeeklyScoped, 40, scope: "claude-opus-4"));
+            Window(WindowKind.WeeklyScoped, 40, scope: "Fable"));
 
         var row = Assert.Single(Compose(Reading(snapshot)).PerModelCaps);
 
-        Assert.Equal("claude-opus-4", row.Label);
+        Assert.Equal("Fable", row.Label);
         Assert.Equal("40% used", row.Percent);
     }
 
@@ -270,6 +270,23 @@ public class PanelReadoutTests
         var row = Assert.Single(Compose(Reading(snapshot)).Windows);
 
         Assert.Equal("5h", row.Label);
+    }
+
+    [Fact]
+    public void TheFirstCapturedPerModelCapReachesThePanelUnderTheServersName()
+    {
+        // The whole path the 2026-11-11 failure broke, from the response body as it arrived to
+        // the rows the panel shows.
+        var outcome = UsageNormalizer.Normalize(Fixtures.Read(Fixtures.ScopedCap), Now);
+        var snapshot = Assert.IsType<FetchOutcome.Success>(outcome).Snapshot;
+
+        var content = Compose(Reading(snapshot));
+
+        Assert.Equal(["5h", "Week"], content.Windows.Select(row => row.Label));
+        var cap = Assert.Single(content.PerModelCaps);
+        Assert.Equal("Fable", cap.Label);
+        Assert.Equal("0% used", cap.Percent);
+        Assert.Null(content.PerModelCapsEmptyState);
     }
 
     [Fact]

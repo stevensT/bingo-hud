@@ -2,13 +2,14 @@
 'use strict';
 
 // Captures a live response from the undocumented quota endpoint and writes a scrubbed
-// fixture for the parser tests (JSON bodies only; see below). The access token is read into memory, used for the one
-// request, and never printed, logged, or written to disk.
+// fixture for the parser tests (JSON bodies only; see below). The access token is Claude's own,
+// read from claudeAiOauth in the credential file, the same place the app reads it. It is read
+// into memory, used for the one request, and never printed, logged, or written to disk.
 //
 //   node scripts/capture-usage.js --label five-hour-normal
 //   node scripts/capture-usage.js --label rate-limited --raw-dir /some/scratch/dir
 //
-// Re-run this whenever the contract test fails. A failing contract test means the payload
+// Re-run this whenever a fixture contract test fails. A failing contract test means the payload
 // moved; the fix is a fresh fixture, never a looser parser.
 
 const fs = require('fs');
@@ -53,15 +54,31 @@ function findAccessToken(node, depth) {
   return null;
 }
 
-// The credential file also holds tokens for connected plugins, under keys that can come
-// before Claude's own. Claude's sign-in lives under claudeAiOauth, which is where the app reads
-// it, so that is the only place looked when it exists. The open search is kept for a file
-// from an older layout that has no claudeAiOauth at all.
+// The credential file also holds other sign-ins, such as MCP servers', under keys that can come
+// before Claude's own. Claude's sign-in is claudeAiOauth.accessToken, which is where the app
+// reads it. When the claudeAiOauth key exists, that is the only place looked: a value there
+// that is null, not an object, or holds no token stops the capture rather than falling back
+// to someone else's token. The open search is kept for a file from an older layout that has
+// no claudeAiOauth key at all.
+//
+// Returns { found } on success, or { problem } with a sentence saying why there is no token.
 function findClaudeAccessToken(creds) {
-  const own = creds && creds.claudeAiOauth;
-  if (!own || typeof own !== 'object') return findAccessToken(creds);
-  const found = findAccessToken(own, 1);
-  return found && { token: found.token, container: found.container, path: 'claudeAiOauth.' + found.path };
+  if (!creds || typeof creds !== 'object' || Array.isArray(creds)) {
+    return { problem: 'The credentials file does not hold a JSON object.' };
+  }
+  if (!Object.prototype.hasOwnProperty.call(creds, 'claudeAiOauth')) {
+    const found = findAccessToken(creds);
+    return found ? { found } : { problem: 'No accessToken found in the credentials file.' };
+  }
+  const own = creds.claudeAiOauth;
+  if (!own || typeof own !== 'object' || Array.isArray(own)) {
+    return { problem: 'claudeAiOauth is in the credentials file but is not an object. Sign in with Claude Code again.' };
+  }
+  const token = own.accessToken;
+  if (typeof token !== 'string' || token.length === 0) {
+    return { problem: 'claudeAiOauth holds no accessToken. Sign in with Claude Code again.' };
+  }
+  return { found: { token, container: own, path: 'claudeAiOauth.accessToken' } };
 }
 
 function describeExpiry(container) {
@@ -148,11 +165,9 @@ async function main() {
     process.exit(2);
   }
 
-  const found = findClaudeAccessToken(creds);
+  const { found, problem } = findClaudeAccessToken(creds);
   if (!found) {
-    console.error(creds && creds.claudeAiOauth
-      ? 'No accessToken found under claudeAiOauth in the credentials file.'
-      : 'No accessToken found in the credentials file.');
+    console.error(problem);
     console.error('Key paths present (names only, no values):');
     for (const line of shapeLines(scrub(creds))) console.error('  ' + line);
     process.exit(2);

@@ -155,6 +155,12 @@ public class UsageNormalizerUnreadableTests
     private const string ScopeNamedNoModel =
         "An entry of the limits array had a scope that named no model.";
 
+    private const string ScopeModelNotAnObject =
+        "An entry of the limits array had a scope whose model was not an object.";
+
+    private const string ScopeModelNameNotAString =
+        "An entry of the limits array had a scope whose model name was not a string.";
+
     private const string ScopeRestrictedToASurface =
         "An entry of the limits array had a scope restricted to a surface, which this version "
         + "does not read.";
@@ -167,7 +173,8 @@ public class UsageNormalizerUnreadableTests
     /// </summary>
     public static TheoryData<string, string> UnseenScopes => new()
     {
-        // The form the plan once predicted. The server has only ever sent an object.
+        // The form the plan once predicted. The only non-null scope the server has sent was an
+        // object.
         { "\"claude-opus-4\"", ScopeNotAnObject },
         { "\"\"", ScopeNotAnObject },
         { "42", ScopeNotAnObject },
@@ -176,11 +183,23 @@ public class UsageNormalizerUnreadableTests
 
         { "{}", ScopeNamedNoModel },
         { "{\"model\":null,\"surface\":null}", ScopeNamedNoModel },
-        { "{\"model\":\"opus\"}", ScopeNamedNoModel },
         { "{\"model\":{}}", ScopeNamedNoModel },
         { "{\"model\":{\"id\":null,\"display_name\":null}}", ScopeNamedNoModel },
         { "{\"model\":{\"id\":\"\",\"display_name\":\"  \"}}", ScopeNamedNoModel },
-        { "{\"model\":{\"id\":7,\"display_name\":false}}", ScopeNamedNoModel },
+
+        { "{\"model\":\"opus\"}", ScopeModelNotAnObject },
+        { "{\"model\":[\"opus\"]}", ScopeModelNotAnObject },
+        { "{\"model\":7}", ScopeModelNotAnObject },
+
+        // A name present with the wrong type is not a missing name. Falling back to the other
+        // field would read a shape nobody has seen as a normal one, so it is rejected even when
+        // the other field is a usable string.
+        { "{\"model\":{\"id\":7,\"display_name\":false}}", ScopeModelNameNotAString },
+        { "{\"model\":{\"id\":\"claude-fable-5\",\"display_name\":42}}", ScopeModelNameNotAString },
+        { "{\"model\":{\"id\":\"claude-fable-5\",\"display_name\":true}}", ScopeModelNameNotAString },
+        { "{\"model\":{\"id\":\"claude-fable-5\",\"display_name\":{}}}", ScopeModelNameNotAString },
+        { "{\"model\":{\"id\":[\"fable\"],\"display_name\":\"Fable\"}}", ScopeModelNameNotAString },
+        { "{\"model\":{\"id\":{},\"display_name\":null}}", ScopeModelNameNotAString },
 
         // A surface has never carried a value, so its meaning is unknown. Whether the cap is
         // restricted to the model, the surface, or both cannot be told from the shape alone.
@@ -207,6 +226,69 @@ public class UsageNormalizerUnreadableTests
         var unreadable = ParseExpectingUnreadable(body);
 
         Assert.Equal(reason, unreadable.Reason);
+    }
+
+    [Theory]
+    [InlineData("\"scope\": null,")]
+    [InlineData("")]
+    public void APerModelWeeklyEntryThatNamesNoModelIsUnreadable(string scope)
+    {
+        // weekly_scoped has been observed, so it is no longer a feature that does not exist yet.
+        // Skipped as one, a real cap would vanish and the panel would show the empty state that
+        // looks exactly like an account with none.
+        var body =
+            $$"""
+            {
+              "limits": [
+                { "kind": "session", "percent": 3, "resets_at": null, "scope": null },
+                { "kind": "weekly_scoped", {{scope}} "percent": 0, "resets_at": null }
+              ]
+            }
+            """;
+
+        Assert.Equal(
+            "A per-model weekly entry named no model.",
+            ParseExpectingUnreadable(body).Reason);
+    }
+
+    [Fact]
+    public void ABrokenScopeIsUnreadableEvenOnAKindBingoDoesNotKnow()
+    {
+        // Unknown kinds are skipped, but the scope is read first. A renamed kind arriving with a
+        // new scope shape is exactly the change that must not pass silently.
+        var body =
+            """
+            {
+              "limits": [
+                { "kind": "session", "percent": 3, "resets_at": null, "scope": null },
+                { "kind": "a_kind_from_2027", "percent": 40, "resets_at": null, "scope": "opus" }
+              ]
+            }
+            """;
+
+        Assert.Equal(ScopeNotAnObject, ParseExpectingUnreadable(body).Reason);
+    }
+
+    [Fact]
+    public void ABrokenScopeMakesTheWholeResponseUnreadableNotJustItsEntry()
+    {
+        // The 5-hour and weekly entries here are perfectly readable, and so are the flat keys.
+        // Keeping them and dropping the broken entry would report a partial reading as a
+        // complete one, and a broken limits array is not a reason to fall back to the flat keys.
+        var body =
+            """
+            {
+              "five_hour": { "utilization": 3, "resets_at": null },
+              "seven_day": { "utilization": 3, "resets_at": null },
+              "limits": [
+                { "kind": "session", "percent": 3, "resets_at": null, "scope": null },
+                { "kind": "weekly_all", "percent": 3, "resets_at": null, "scope": null },
+                { "kind": "weekly_scoped", "percent": 0, "resets_at": null, "scope": 42 }
+              ]
+            }
+            """;
+
+        Assert.Equal(ScopeNotAnObject, ParseExpectingUnreadable(body).Reason);
     }
 
     [Fact]

@@ -1,9 +1,9 @@
 # Scoped Cap Shape — Progress
 
 updated: 2026-11-11
-status: Phase 2 checkpoint passed; awaiting the live app check and review
+status: Phase 3 checkpoint passed; review findings resolved or deferred; awaiting the live app check
 blockers: none
-next_session: Trevor runs the app against the live endpoint, then the review gate
+next_session: Trevor confirms the HUD and the Fable row in the running app, then the feature closes
 
 ## How it was found
 
@@ -39,4 +39,33 @@ criteria_met: AC-1 to AC-7
 notes:
 - 2.1 test-first suspended as planned. Verified live: the script reported `claudeAiOauth.accessToken` and HTTP 200, 2512 bytes. A credential file with `claudeAiOauth` but no token inside it now fails with its own message rather than falling through to another product's token.
 - 2.2 sweep: no `scope string` or `never yet` wording left in `src` or the test project. README needed no change; it mentions per-model caps but not their shape.
+issues: none
+
+## Review — 2026-11-11
+
+Four reviews of the committed work: general code, test coverage, comment accuracy, silent failures. No critical findings and no parser bug. Decisions taken by Trevor the same day:
+
+| Finding | Outcome |
+|---|---|
+| Capture script fell back to other sign-ins when `claudeAiOauth` was present but null or not an object | Fixed in 3.5 |
+| No test that a valid scope outranks a `session` or `weekly_all` kind | Fixed in 3.1 |
+| Stale "so far" / "common case" wording the 2.2 sweep missed | Fixed in 3.6 |
+| `weekly_scoped` entry with no scope skipped silently | Fixed in 3.2: unreadable (AC-8) |
+| Wrong-typed `display_name` or `id` fell back silently | Fixed in 3.3: unreadable (AC-2, AC-4) |
+| One reason for several model failures | Fixed in 3.3: split into three |
+| Duplicate unscoped windows in `limits` | Deferred; recorded in tasks.md and the spec's non-goals |
+| Unknown keys inside `scope` (e.g. `tier`) accepted | Dismissed: AC-4 ignores unknown keys by decision |
+| Public-repo wording in this feature's spec files | Dismissed: matches earlier committed specs, names no tooling |
+
+### CP: Phase 3 Review findings — 2026-11-11
+tests: 1747 pass / 0 fail / 0 skip
+build: pass, 0 warnings (`dotnet clean`, `dotnet build`, `dotnet test --no-build`)
+done: 3.1, 3.2, 3.3, 3.4, 3.5, 3.6
+criteria_met: AC-1 to AC-9
+notes:
+- 3.1 pins behaviour already present, so each test was proven against a deliberate mutation of `UsageNormalizer.cs`, restored with `git checkout` after each: kind-before-scope failed both `AScopeOutranksAKindTheHudShows` rows; trimming the label failed the untrimmed test; skipping a broken-scope entry failed both whole-response tests.
+- 3.2 failed both rows before the fix. 3.3 failed exactly the 9 new rows (3 model-not-object, 6 wrong-typed name) before the fix.
+- 3.4's end-to-end panel test was run against the pre-fix parser from `fd3bc6d` and failed with `Unreadable`, the 2026-11-11 symptom. Its "no alert" check was dropped as vacuous on a 0% cap.
+- 3.5 verified against five scratch credential files, each with a decoy plugin token: `claudeAiOauth` as null, a string, an array, `{}`, and an empty token all stop with exit 2 and never use the decoy. Live run used `claudeAiOauth.accessToken` and got HTTP 200.
+- The first clean build at this checkpoint failed to copy into the App output because the running Debug app held `BingoHud.Core.dll`. The app was stopped, the clean build rerun with 0 warnings, and the app relaunched on the new build.
 issues: none

@@ -147,9 +147,9 @@ public class BaselineFixtureContractTests
     [InlineData("seven_day_sonnet")]
     public void ThePerModelWeeklyKeysAreStillNull(string key)
     {
-        // No per-model cap has ever been observed. The detail panel's empty state is built on
-        // that, so the day this fails is the day the empty state stops being the common case
-        // and a real fixture becomes available for it.
+        // True of the 2026-08-30 capture, which this pins. The first per-model cap arrived on
+        // 2026-11-11 in limits[], not under these keys, and is pinned by
+        // ScopedCapFixtureContractTests.
         Assert.Equal(JsonValueKind.Null, Root.GetProperty(key).ValueKind);
     }
 

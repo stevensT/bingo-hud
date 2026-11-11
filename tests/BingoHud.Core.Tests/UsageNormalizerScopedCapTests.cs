@@ -121,11 +121,45 @@ public class UsageNormalizerScopedCapTests
         Assert.Equal(WindowKind.WeeklyScoped, window.Kind);
     }
 
+    [Theory]
+    [InlineData("session")]
+    [InlineData("weekly_all")]
+    public void AScopeOutranksAKindTheHudShows(string kind)
+    {
+        // The case that does the damage if it regresses. Classified by its kind, this entry
+        // would be shown on the HUD and alerted on as the account-wide window, when it is a
+        // cap on one model.
+        var body = Limits($$"""
+            {"kind":"{{kind}}","group":"weekly","percent":40,"severity":"normal",
+             "resets_at":null,"scope":{{FableScope}},"is_active":false}
+            """);
+
+        var window = Assert.Single(Parse(body).Windows);
+
+        Assert.Equal(WindowKind.WeeklyScoped, window.Kind);
+        Assert.Equal("Fable", window.Scope);
+    }
+
+    [Fact]
+    public void TheLabelIsKeptExactlyAsSentWithoutTrimming()
+    {
+        var body = Limits("""
+            {"kind":"weekly_scoped","group":"weekly","percent":0,"severity":"normal",
+             "resets_at":null,"scope":{"model":{"id":null,"display_name":" Fable "},"surface":null},
+             "is_active":false}
+            """);
+
+        var window = Assert.Single(Parse(body).Windows);
+
+        Assert.Equal(" Fable ", window.Scope);
+    }
+
     [Fact]
     public void APerModelCapKeepsItsPercentageResetTimeAndSeverity()
     {
         // The scoped entry's reset time has no fractional seconds, unlike the session and
-        // weekly ones in the same capture. Both forms parse.
+        // weekly ones in the same capture. The fractional form is covered by the fixture test
+        // in ScopedCapFixtureContractTests.
         var body = Limits($$"""
             {"kind":"weekly_scoped","group":"weekly","percent":40,"severity":"warning",
              "resets_at":"2026-11-14T01:00:00+00:00","scope":{{FableScope}},"is_active":false}
