@@ -97,7 +97,8 @@ public static class PanelReadout
         CultureInfo? culture = null,
         RefreshResult? lastRefresh = null,
         TimeZoneInfo? zone = null,
-        string? settingsNotice = null)
+        string? settingsNotice = null,
+        string? placementNotice = null)
     {
         var shown = settings.Shown;
 
@@ -105,6 +106,7 @@ public static class PanelReadout
         {
             ShowClaude = shown.Claude,
             SettingsNotice = settingsNotice,
+            PlacementNotice = placementNotice,
             Codex = shown.Codex ? ComposeCodex(codex, settings, now, culture, zone) : null,
         };
     }

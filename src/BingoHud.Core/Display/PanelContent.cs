@@ -53,6 +53,10 @@ public sealed record PanelRow(string Label, string Percent, string Reset);
 /// is possible; a success needs no words, because the age resetting is the feedback.
 /// </param>
 /// <param name="SettingsNotice">An unsaved settings change, independent of either product, or null.</param>
+/// <param name="PlacementNotice">
+/// That the HUD is away from its saved spot because that spot is on no connected monitor,
+/// independent of either product, or null (late-monitor-placement AC-6).
+/// </param>
 public sealed record PanelContent(
     IReadOnlyList<PanelRow> Windows,
     string? WindowsEmptyState,
@@ -66,7 +70,8 @@ public sealed record PanelContent(
     string? RefreshNotice,
     bool ShowClaude = true,
     CodexPanel? Codex = null,
-    string? SettingsNotice = null)
+    string? SettingsNotice = null,
+    string? PlacementNotice = null)
 {
     /// <summary>
     /// Whether this would draw the same panel as <paramref name="other"/>, so a redraw can be
@@ -92,6 +97,7 @@ public sealed record PanelContent(
         && Status == other.Status
         && RefreshNotice == other.RefreshNotice
         && SettingsNotice == other.SettingsNotice
+        && PlacementNotice == other.PlacementNotice
         && ShowClaude == other.ShowClaude
         && (Codex is null ? other.Codex is null : other.Codex is not null && Codex.SameAs(other.Codex));
 }
