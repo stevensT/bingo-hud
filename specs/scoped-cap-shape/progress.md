@@ -3,7 +3,7 @@
 updated: 2026-11-11
 status: complete; release 0.6.0 in progress
 blockers: none
-next_session: release 0.6.0 from step 4 (commit and tag) of the README's Releasing steps
+next_session: release 0.6.0 from step 16 (winget-pkgs pull request) of the README's Releasing steps
 
 Live check, 2026-11-11: Trevor ran the Debug build against the live endpoint and confirmed the HUD and the Fable row in the panel.
 
@@ -78,3 +78,12 @@ Decided after the feature closed, as the spec's non-goal said it would be. Relea
 - Step 1: 0.6.0, a minor version, because the change is to how the endpoint response is parsed.
 - Step 2: `<Version>` set to 0.6.0; the Unreleased entry moved into a dated `[0.6.0] - 2026-11-11` section with a one-paragraph summary. Nothing else user-visible landed since 0.5.0.
 - Step 3: `dotnet clean`, `dotnet build` 0 warnings, `dotnet test` 1747 pass.
+- Step 4: release commit 521fc18, tagged v0.6.0 and pushed by Trevor.
+- Step 5: both exes read 0.6.0+521fc182a2ee673b353dda124e042e18d1892cdb.
+- Steps 6 to 8: setup compiled; the three files gathered in artifacts\release-0.6.0; Defender scan found no threats, exit 0.
+- Step 9: installed 0.5.0 (starting at sign-in) started as process 62160; silent setup exited 0; Bingo restarted as process 53292; all ten checks passed with -StartsAtSignIn at 0.6.0.
+- Step 10: setup 340AEF55…9EF86, self-contained 0DAB504A…30A2, framework-dependent 71AD995B…D08A. Release notes in artifacts/release-0.6.0-notes.md.
+- Step 11: GitHub release "Bingo 0.6.0" published by Trevor from v0.6.0 as a pre-release, with the three files.
+- Step 12: the setup downloaded from the release matched the local hash.
+- Step 13: manifest written at packaging/winget/stevensT.Bingo/0.6.0, copied from 0.5.0 with the version, release date, installer URL, hash and release notes URL changed. After the install test, "resets" in ShortDescription and Description became "starts over": winget-pkgs' brand check matched "ESET" inside the word on both earlier PRs and each needed a moderator's waiver. Revalidated; the change touches no installer field, so the install test stands.
+- Step 14: `winget validate` succeeded. With `LocalManifestFiles` turned on by Trevor, `winget install --manifest` downloaded the release's setup, verified its hash and reported "Successfully installed". Bingo (process 53292) was closed and restarted as process 52564; all ten checks passed with -StartsAtSignIn at 0.6.0.
